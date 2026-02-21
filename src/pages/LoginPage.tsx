@@ -21,9 +21,10 @@ export function LoginPage() {
       toast.success('Login realizado com sucesso!')
       navigate('/dashboard')
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string }; status?: number } }
-      if (error.response?.status === 403 && error.response?.data?.error?.includes('must change')) {
-        toast.error('Primeiro acesso detectado. Troque sua senha.')
+      const error = err as { response?: { data?: { code?: string; error?: string }; status?: number } }
+      const code = error.response?.data?.code
+
+      if (code === 'AUTH_MUST_CHANGE_PASSWORD') {
         navigate('/first-access')
       }
     } finally {
