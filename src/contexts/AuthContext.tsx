@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
-import type { User } from '@/types'
+import type { AuthUser } from '@/types'
 import * as authApi from '@/api/auth'
 
 interface AuthContextType {
-  user: User | null
+  user: AuthUser | null
   token: string | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
+  loginWithToken: (token: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -14,7 +15,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
+  const [user, setUser] = useState<AuthUser | null>(() => {
     const stored = localStorage.getItem('clave_user')
     return stored ? JSON.parse(stored) : null
   })
@@ -50,6 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('clave_user', JSON.stringify(response.user))
   }
 
+  const loginWithToken = async (newToken: string) => {
+    localStorage.setItem('clave_token', newToken)
+    setToken(newToken)
+    const me = await authApi.getMe()
+    setUser(me)
+    localStorage.setItem('clave_user', JSON.stringify(me))
+  }
+
   const logout = () => {
     setUser(null)
     setToken(null)
@@ -58,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, loginWithToken, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Music } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -25,7 +26,7 @@ export function LoginPage() {
       const code = error.response?.data?.code
 
       if (code === 'AUTH_MUST_CHANGE_PASSWORD') {
-        navigate('/first-access')
+        navigate('/first-access', { state: { email, tempPassword: password } })
       }
     } finally {
       setIsLoading(false)
@@ -53,10 +54,9 @@ export function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <Input
+          <PasswordInput
             id="password"
             label="Senha"
-            type="password"
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

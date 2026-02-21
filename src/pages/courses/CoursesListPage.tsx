@@ -25,6 +25,7 @@ export function CoursesListPage() {
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ['courses', schoolFilter],
     queryFn: () => listCourses(schoolFilter || undefined),
+    enabled: !!schoolFilter,
   })
 
   const saveMutation = useMutation({

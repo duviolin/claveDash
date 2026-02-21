@@ -21,6 +21,11 @@ export async function updateClass(id: string, payload: { name?: string; maxStude
   return data
 }
 
+export async function deleteClass(id: string) {
+  const { data } = await api.delete(`/classes/${id}`)
+  return data
+}
+
 export async function addTeacher(classId: string, teacherId: string) {
   const { data } = await api.post(`/classes/${classId}/teachers/${teacherId}`)
   return data

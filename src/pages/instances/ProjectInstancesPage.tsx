@@ -28,15 +28,18 @@ export function ProjectInstancesPage() {
   const [editTarget, setEditTarget] = useState<Project | null>(null)
   const [editForm, setEditForm] = useState({ name: '', description: '' })
   const [instForm, setInstForm] = useState({ templateId: '', classId: '', seasonId: '' })
+  const [selectedSeasonId, setSelectedSeasonId] = useState('')
+
+  const { data: seasons = [] } = useQuery({ queryKey: ['seasons'], queryFn: () => listSeasons() })
 
   const { data: projects = [], isLoading } = useQuery({
-    queryKey: ['projects'],
-    queryFn: () => listProjects(),
+    queryKey: ['projects', selectedSeasonId],
+    queryFn: () => listProjects(selectedSeasonId),
+    enabled: !!selectedSeasonId,
   })
 
   const { data: templates = [] } = useQuery({ queryKey: ['project-templates'], queryFn: () => listProjectTemplates() })
   const { data: classes = [] } = useQuery({ queryKey: ['classes'], queryFn: () => listClasses() })
-  const { data: seasons = [] } = useQuery({ queryKey: ['seasons'], queryFn: () => listSeasons() })
 
   const instantiateMut = useMutation({
     mutationFn: () => instantiateProject(instForm),
@@ -89,10 +92,25 @@ export function ProjectInstancesPage() {
   return (
     <PageContainer
       title="Projetos Instanciados"
-      count={projects.length}
+      count={selectedSeasonId ? projects.length : undefined}
       action={<Button onClick={() => { setInstForm({ templateId: '', classId: '', seasonId: '' }); setInstantiateOpen(true) }}><Plus className="h-4 w-4" /> Instanciar Projeto</Button>}
     >
-      <Table columns={columns} data={projects} keyExtractor={(p) => p.id} isLoading={isLoading} />
+      <div className="mb-4 max-w-xs">
+        <Select
+          id="filterSeason"
+          label="Filtrar por Semestre"
+          value={selectedSeasonId}
+          onChange={(e) => setSelectedSeasonId(e.target.value)}
+          placeholder="Selecionar semestre..."
+          options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))}
+        />
+      </div>
+
+      {!selectedSeasonId ? (
+        <p className="text-muted text-sm">Selecione um semestre para ver os projetos.</p>
+      ) : (
+        <Table columns={columns} data={projects} keyExtractor={(p) => p.id} isLoading={isLoading} />
+      )}
 
       <Modal isOpen={instantiateOpen} onClose={() => setInstantiateOpen(false)} title="Instanciar Projeto" footer={
         <><Button variant="secondary" onClick={() => setInstantiateOpen(false)}>Cancelar</Button><Button onClick={() => instantiateMut.mutate()} isLoading={instantiateMut.isPending}>Instanciar</Button></>

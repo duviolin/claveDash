@@ -23,9 +23,11 @@ export function formatDateTime(date: string | Date): string {
   }).format(new Date(date))
 }
 
-export function getInitials(name: string): string {
+export function getInitials(name?: string | null): string {
+  if (!name) return '?'
   return name
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .slice(0, 2)
     .join('')

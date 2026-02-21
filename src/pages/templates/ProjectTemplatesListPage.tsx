@@ -28,6 +28,7 @@ export function ProjectTemplatesListPage() {
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['project-templates', courseFilter],
     queryFn: () => listProjectTemplates(courseFilter || undefined),
+    enabled: !!courseFilter,
   })
 
   const createMutation = useMutation({

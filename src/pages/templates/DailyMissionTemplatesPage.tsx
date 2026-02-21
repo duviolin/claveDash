@@ -40,6 +40,7 @@ export function DailyMissionTemplatesPage() {
   const { data: missions = [], isLoading } = useQuery({
     queryKey: ['daily-mission-templates', courseFilter],
     queryFn: () => listDailyMissionTemplates(courseFilter || undefined),
+    enabled: !!courseFilter,
   })
 
   const saveMutation = useMutation({

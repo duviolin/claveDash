@@ -14,14 +14,30 @@ interface PresignUploadResponse {
   expiresIn: number
 }
 
-export async function presignUpload(payload: PresignUploadPayload) {
-  const { data } = await api.post<PresignUploadResponse>('/storage/presign-upload', payload)
-  return data
+interface StorageConfig {
+  fileType: string
+  maxSizeMB: string
+  maxSizeBytes: number
+  allowedMimeTypes: string[]
+  allowedExtensions: string[]
 }
 
-export async function presignDownload(key: string) {
-  const { data } = await api.get<{ downloadUrl: string }>(`/storage/presign-download/${key}`)
-  return data
+interface OrphansResponse {
+  totalR2: number
+  totalDB: number
+  orphanCount: number
+  deleted: boolean
+  orphans: string[]
+}
+
+export async function presignUpload(payload: PresignUploadPayload): Promise<PresignUploadResponse> {
+  const { data } = await api.post<{ success: boolean; data: PresignUploadResponse }>('/storage/presign-upload', payload)
+  return data.data
+}
+
+export async function presignDownload(key: string): Promise<{ downloadUrl: string; expiresIn: number }> {
+  const { data } = await api.get<{ success: boolean; data: { downloadUrl: string; expiresIn: number } }>(`/storage/presign-download/${key}`)
+  return data.data
 }
 
 export async function deleteFile(key: string) {
@@ -29,14 +45,16 @@ export async function deleteFile(key: string) {
   return data
 }
 
-export async function getStorageConfig(fileType: string) {
-  const { data } = await api.get(`/storage/config/${fileType}`)
-  return data
+export async function getStorageConfig(fileType: string): Promise<StorageConfig> {
+  const { data } = await api.get<{ success: boolean; data: StorageConfig }>(`/storage/config/${fileType}`)
+  return data.data
 }
 
-export async function listOrphans(deleteOrphans = false) {
-  const { data } = await api.get('/storage/orphans', { params: deleteOrphans ? { delete: true } : undefined })
-  return data
+export async function listOrphans(deleteOrphans = false): Promise<OrphansResponse> {
+  const { data } = await api.get<{ success: boolean; data: OrphansResponse }>('/storage/orphans', {
+    params: deleteOrphans ? { delete: true } : undefined,
+  })
+  return data.data
 }
 
 export async function uploadFile(

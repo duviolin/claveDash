@@ -70,7 +70,7 @@ export function Header() {
               {getInitials(user.name)}
             </div>
             <div className="text-right">
-              <p className="text-sm font-medium text-text">{user.name}</p>
+              <p className="text-sm font-medium text-text">{user.name || user.email}</p>
               <Badge variant={roleBadgeVariant[user.role]} className="text-[10px]">
                 {user.role}
               </Badge>

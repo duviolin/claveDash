@@ -19,7 +19,6 @@ export const ERROR_HANDLERS: Record<string, ErrorHandler> = {
   AUTH_INVALID_CREDENTIALS: { message: 'Email ou senha inválidos' },
   AUTH_MUST_CHANGE_PASSWORD: {
     message: 'Primeiro acesso. Troque sua senha.',
-    action: 'redirect:/first-access',
   },
   AUTH_PASSWORD_ALREADY_CHANGED: {
     message: 'Senha já foi alterada. Faça login normalmente.',

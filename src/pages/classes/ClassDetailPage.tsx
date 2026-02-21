@@ -5,15 +5,23 @@ import { Plus, Trash2 } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
 import { Tabs } from '@/components/ui/Tabs'
 import { Modal } from '@/components/ui/Modal'
 import { Select } from '@/components/ui/Select'
 import { ConfirmModal } from '@/components/ui/Modal'
 import { getClass, listClassTeachers, listClassStudents, addTeacher, removeTeacher, addStudent, removeStudent } from '@/api/classes'
 import { listUsers } from '@/api/users'
-import type { User } from '@/types'
 import toast from 'react-hot-toast'
+
+interface ClassMember {
+  id: string
+  teacherId?: string
+  studentId?: string
+  name: string
+  email: string
+  stageName?: string
+  joinedAt: string
+}
 
 export function ClassDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -21,7 +29,7 @@ export function ClassDetailPage() {
   const [activeTab, setActiveTab] = useState('teachers')
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState('')
-  const [removeTarget, setRemoveTarget] = useState<{ user: User; type: 'teacher' | 'student' } | null>(null)
+  const [removeTarget, setRemoveTarget] = useState<{ member: ClassMember; type: 'teacher' | 'student' } | null>(null)
 
   const { data: classData } = useQuery({
     queryKey: ['class', id],
@@ -51,10 +59,12 @@ export function ClassDetailPage() {
     queryFn: () => listUsers({ role: 'STUDENT' }),
   })
 
-  const teachers: User[] = Array.isArray(teachersRaw) ? teachersRaw : []
-  const students: User[] = Array.isArray(studentsRaw) ? studentsRaw : []
-  const allTeachers: User[] = Array.isArray(allTeachersData) ? allTeachersData : allTeachersData?.data ?? []
-  const allStudents: User[] = Array.isArray(allStudentsData) ? allStudentsData : allStudentsData?.data ?? []
+  const teachers: ClassMember[] = Array.isArray(teachersRaw) ? teachersRaw : []
+  const students: ClassMember[] = Array.isArray(studentsRaw) ? studentsRaw : []
+  const allTeachers = Array.isArray(allTeachersData) ? allTeachersData : allTeachersData?.data ?? []
+  const allStudents = Array.isArray(allStudentsData) ? allStudentsData : allStudentsData?.data ?? []
+
+  const getUserId = (member: ClassMember) => member.teacherId || member.studentId || member.id
 
   const addMutation = useMutation({
     mutationFn: () => {
@@ -72,8 +82,9 @@ export function ClassDetailPage() {
   const removeMutation = useMutation({
     mutationFn: () => {
       if (!removeTarget) throw new Error('No target')
-      if (removeTarget.type === 'teacher') return removeTeacher(id!, removeTarget.user.id)
-      return removeStudent(id!, removeTarget.user.id)
+      const userId = getUserId(removeTarget.member)
+      if (removeTarget.type === 'teacher') return removeTeacher(id!, userId)
+      return removeStudent(id!, userId)
     },
     onSuccess: () => {
       toast.success('Removido com sucesso!')
@@ -82,32 +93,39 @@ export function ClassDetailPage() {
     },
   })
 
-  const availableUsers = activeTab === 'teachers'
-    ? allTeachers.filter((t) => !teachers.some((ct) => ct.id === t.id))
-    : allStudents.filter((s) => !students.some((cs) => cs.id === s.id))
+  const assignedTeacherIds = new Set(teachers.map((t) => t.teacherId))
+  const assignedStudentIds = new Set(students.map((s) => s.studentId))
 
-  const userColumns = [
+  const availableUsers = activeTab === 'teachers'
+    ? allTeachers.filter((t: { id: string }) => !assignedTeacherIds.has(t.id))
+    : allStudents.filter((s: { id: string }) => !assignedStudentIds.has(s.id))
+
+  const memberColumns = [
     {
       key: 'name',
       header: 'Nome',
-      render: (u: User) => <span className="font-medium text-text">{u.name}</span>,
+      render: (m: ClassMember) => <span className="font-medium text-text">{m.name}</span>,
     },
     {
       key: 'email',
       header: 'Email',
-      render: (u: User) => <span className="text-muted">{u.email}</span>,
+      render: (m: ClassMember) => <span className="text-muted">{m.email}</span>,
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (u: User) => <Badge variant={u.status === 'ACTIVE' ? 'success' : 'error'}>{u.status}</Badge>,
+      key: 'joinedAt',
+      header: 'Entrada',
+      render: (m: ClassMember) => (
+        <span className="text-muted text-sm">
+          {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('pt-BR') : '—'}
+        </span>
+      ),
     },
     {
       key: 'actions',
       header: 'Ações',
-      render: (u: User) => (
+      render: (m: ClassMember) => (
         <button
-          onClick={() => setRemoveTarget({ user: u, type: activeTab === 'teachers' ? 'teacher' : 'student' })}
+          onClick={() => setRemoveTarget({ member: m, type: activeTab === 'teachers' ? 'teacher' : 'student' })}
           className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"
           title="Remover"
         >
@@ -135,9 +153,9 @@ export function ClassDetailPage() {
       </div>
 
       <Table
-        columns={userColumns}
+        columns={memberColumns}
         data={activeTab === 'teachers' ? teachers : students}
-        keyExtractor={(u) => u.id}
+        keyExtractor={(m) => m.id}
         isLoading={activeTab === 'teachers' ? loadingTeachers : loadingStudents}
         emptyMessage={activeTab === 'teachers' ? 'Nenhum professor vinculado' : 'Nenhum aluno matriculado'}
       />
@@ -161,7 +179,7 @@ export function ClassDetailPage() {
           value={selectedUserId}
           onChange={(e) => setSelectedUserId(e.target.value)}
           placeholder="Selecionar..."
-          options={availableUsers.map((u) => ({ value: u.id, label: `${u.name} (${u.email})` }))}
+          options={availableUsers.map((u: { id: string; name: string; email: string }) => ({ value: u.id, label: `${u.name} (${u.email})` }))}
         />
         {availableUsers.length === 0 && (
           <p className="mt-2 text-sm text-muted">
@@ -176,7 +194,7 @@ export function ClassDetailPage() {
         onConfirm={() => removeMutation.mutate()}
         isLoading={removeMutation.isPending}
         title="Remover Vínculo"
-        message={`Tem certeza que deseja remover "${removeTarget?.user.name}" desta turma?`}
+        message={`Tem certeza que deseja remover "${removeTarget?.member.name}" desta turma?`}
       />
     </PageContainer>
   )

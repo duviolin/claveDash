@@ -6,8 +6,13 @@ export async function instantiateProject(payload: { templateId: string; classId:
   return data
 }
 
-export async function listProjects(params?: { classId?: string; seasonId?: string }) {
-  const { data } = await api.get<Project[]>('/projects', { params })
+export async function listProjects(seasonId: string) {
+  const { data } = await api.get(`/seasons/${seasonId}/projects`)
+  return data
+}
+
+export async function getProject(id: string) {
+  const { data } = await api.get(`/projects/${id}`)
   return data
 }
 

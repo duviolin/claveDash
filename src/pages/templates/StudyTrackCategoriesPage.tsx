@@ -26,6 +26,7 @@ export function StudyTrackCategoriesPage() {
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ['study-track-categories', courseFilter],
     queryFn: () => listStudyTrackCategories(courseFilter || undefined),
+    enabled: !!courseFilter,
   })
 
   const saveMutation = useMutation({

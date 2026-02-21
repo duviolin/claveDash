@@ -16,7 +16,12 @@ export async function createCourse(payload: { schoolId: string; name: string; ty
   return data
 }
 
-export async function updateCourse(id: string, payload: { name?: string; type?: CourseType }) {
+export async function updateCourse(id: string, payload: { name?: string }) {
   const { data } = await api.patch<Course>(`/courses/${id}`, payload)
+  return data
+}
+
+export async function deleteCourse(id: string) {
+  const { data } = await api.delete(`/courses/${id}`)
   return data
 }

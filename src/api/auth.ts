@@ -1,9 +1,20 @@
 import { api } from './client'
-import type { User } from '@/types'
+import type { AuthUser } from '@/types'
 
 interface LoginResponse {
   token: string
-  user: User
+  user: AuthUser
+  mustChangePassword: boolean
+}
+
+interface FirstAccessResponse {
+  success: boolean
+  token: string
+}
+
+interface ChangePasswordResponse {
+  success: boolean
+  token: string
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
@@ -11,8 +22,8 @@ export async function login(email: string, password: string): Promise<LoginRespo
   return data
 }
 
-export async function firstAccess(email: string, currentPassword: string, newPassword: string) {
-  const { data } = await api.post('/auth/first-access', {
+export async function firstAccess(email: string, currentPassword: string, newPassword: string): Promise<FirstAccessResponse> {
+  const { data } = await api.post<FirstAccessResponse>('/auth/first-access', {
     email,
     temporaryPassword: currentPassword,
     newPassword,
@@ -20,12 +31,12 @@ export async function firstAccess(email: string, currentPassword: string, newPas
   return data
 }
 
-export async function changePassword(currentPassword: string, newPassword: string) {
-  const { data } = await api.post('/auth/change-password', { currentPassword, newPassword })
+export async function changePassword(currentPassword: string, newPassword: string): Promise<ChangePasswordResponse> {
+  const { data } = await api.post<ChangePasswordResponse>('/auth/change-password', { currentPassword, newPassword })
   return data
 }
 
-export async function getMe(): Promise<User> {
-  const { data } = await api.get<User>('/auth/me')
-  return data
+export async function getMe(): Promise<AuthUser> {
+  const { data } = await api.get<{ user: AuthUser }>('/me')
+  return data.user
 }

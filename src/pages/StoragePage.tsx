@@ -58,7 +58,7 @@ export function StoragePage() {
     }
   }
 
-  const orphanList = Array.isArray(orphans) ? orphans : orphans?.files ?? []
+  const orphanList = orphans?.orphans ?? []
 
   return (
     <PageContainer title="Storage">
@@ -76,7 +76,8 @@ export function StoragePage() {
           />
           {config && (
             <div className="text-xs text-muted space-y-1">
-              <p>Limite: {JSON.stringify(config)}</p>
+              <p>Limite: {config.maxSizeMB}MB</p>
+              <p>Extensões: {config.allowedExtensions.join(', ')}</p>
             </div>
           )}
           <div className="relative">
@@ -103,6 +104,13 @@ export function StoragePage() {
               </Button>
             )}
           </div>
+          {orphans && (
+            <div className="flex gap-4 text-xs text-muted">
+              <span>R2: {orphans.totalR2}</span>
+              <span>BD: {orphans.totalDB}</span>
+              <span>Órfãos: {orphans.orphanCount}</span>
+            </div>
+          )}
           {loadingOrphans ? (
             <div className="flex justify-center py-4"><div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" /></div>
           ) : orphanList.length > 0 ? (

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { changePassword } from '@/api/auth'
 import toast from 'react-hot-toast'
 
@@ -39,26 +39,23 @@ export function SettingsPage() {
         <div className="rounded-xl border border-border bg-surface p-6">
           <h2 className="text-lg font-semibold text-text mb-4">Trocar Senha</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
+            <PasswordInput
               id="currentPassword"
               label="Senha atual"
-              type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
             />
-            <Input
+            <PasswordInput
               id="newPassword"
               label="Nova senha"
-              type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
             />
-            <Input
+            <PasswordInput
               id="confirmPassword"
               label="Confirmar nova senha"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required

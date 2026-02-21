@@ -9,6 +9,13 @@ export type TrackMaterialType = 'PDF' | 'AUDIO' | 'VIDEO' | 'TEXT' | 'LINK'
 export type DailyMissionTemplateStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 export type SubmissionStatus = 'PENDING' | 'PENDING_REVIEW' | 'APPROVED' | 'NEEDS_REVISION' | 'REJECTED'
 
+export interface AuthUser {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+}
+
 export interface User {
   id: string
   name: string
@@ -26,6 +33,7 @@ export interface School {
   directorId: string | null
   isActive: boolean
   createdAt: string
+  updatedAt: string
 }
 
 export interface Course {
@@ -35,6 +43,7 @@ export interface Course {
   type: CourseType
   isActive: boolean
   createdAt: string
+  updatedAt: string
 }
 
 export interface Season {
@@ -45,6 +54,8 @@ export interface Season {
   endDate: string
   status: SeasonStatus
   isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Class {
@@ -53,6 +64,8 @@ export interface Class {
   name: string
   maxStudents: number
   isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ProjectTemplate {
@@ -65,6 +78,7 @@ export interface ProjectTemplate {
   version: number
   isActive: boolean
   createdAt: string
+  updatedAt: string
 }
 
 export interface TrackSceneTemplate {
@@ -76,10 +90,13 @@ export interface TrackSceneTemplate {
   technicalInstruction: string | null
   lyrics: string | null
   order: number
+  unlockAfterTrackId: string | null
   demoRequired: boolean
   pressQuizRequired: boolean
   isActive: boolean
   version: number
+  createdAt: string
+  updatedAt: string
 }
 
 export interface TrackMaterialTemplate {
@@ -93,6 +110,8 @@ export interface TrackMaterialTemplate {
   isRequired: boolean
   isActive: boolean
   version: number
+  createdAt: string
+  updatedAt: string
 }
 
 export interface StudyTrackCategory {
@@ -105,6 +124,8 @@ export interface StudyTrackCategory {
   description: string | null
   order: number
   isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface StudyTrackTemplate {
@@ -123,6 +144,8 @@ export interface StudyTrackTemplate {
   isRequired: boolean
   isVisible: boolean
   isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PressQuizTemplate {
@@ -135,6 +158,8 @@ export interface PressQuizTemplate {
   passingScore: number
   version: number
   isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface DailyMissionTemplate {
@@ -145,6 +170,8 @@ export interface DailyMissionTemplate {
   order: number
   status: DailyMissionTemplateStatus
   isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface DailyMissionQuiz {
@@ -155,6 +182,8 @@ export interface DailyMissionQuiz {
   maxAttemptsPerDay: number
   allowRecoveryAttempt: boolean
   isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface QuizQuestion {
@@ -165,15 +194,14 @@ export interface QuizQuestion {
 
 export interface Project {
   id: string
-  templateId: string
-  classId: string
-  seasonId: string
   name: string
-  description: string | null
-  coverImage: string | null
+  type: string
   status: ProjectStatus
+  coverImage: string | null
+  description: string | null
   isVisible: boolean
-  releasedAt: string | null
+  progress: number
+  tracks: { id: string; title: string; status: string }[]
 }
 
 export interface PaginatedResponse<T> {
