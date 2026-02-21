@@ -1,73 +1,65 @@
-# React + TypeScript + Vite
+# Clave Admin Portal
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Portal administrativo da plataforma **Clave** — educação musical gamificada.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19** + **Vite 7** (SPA com TypeScript)
+- **Tailwind CSS 4** (tema escuro customizado)
+- **React Router 7** (roteamento client-side)
+- **@tanstack/react-query** (data fetching + cache)
+- **react-hook-form** + **zod** (formulários + validação)
+- **Lucide React** (ícones)
+- **react-hot-toast** (notificações)
+- **Axios** (HTTP client com interceptors JWT)
+- **OpenAI API** (assistente IA para gerar conteúdo)
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# Instalar dependências
+npm install
 
-## Expanding the ESLint configuration
+# Copiar variáveis de ambiente
+cp .env.example .env
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# Editar .env com sua API URL e OpenAI key
+# VITE_API_URL=http://localhost:3000
+# VITE_OPENAI_API_KEY=sk-your-key
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Iniciar dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+O portal roda em `http://localhost:5173` e conecta ao backend em `http://localhost:3000`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Funcionalidades
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- **Autenticação**: Login, primeiro acesso (troca de senha), JWT
+- **Gestão de Usuários**: CRUD completo com filtro por role e busca
+- **Escolas**: CRUD com vínculo de diretor
+- **Cursos**: CRUD filtrado por escola (MUSIC/THEATER)
+- **Semestres**: CRUD filtrado por curso com datas e status
+- **Turmas**: CRUD com vínculo de professores e matrícula de alunos
+- **Templates de Projeto**: CRUD hierárquico (Projeto > Faixas > Materiais > Trilhas > Quizzes)
+- **Missões Diárias**: Templates com quizzes embutidos
+- **Categorias de Trilha**: Gestão por curso
+- **Instanciação**: Criar projetos a partir de templates para turmas/semestres
+- **Storage**: Upload com presigned URLs (R2), gestão de órfãos
+- **IA**: Assistente OpenAI para gerar quizzes, descrições e conteúdo
+- **Dashboard**: Métricas resumidas da plataforma
+
+## Estrutura
+
+```
+src/
+├── api/            # Camada de requisições HTTP por domínio
+├── components/
+│   ├── ui/         # Componentes genéricos (Button, Input, Modal, Table, etc.)
+│   └── layout/     # Sidebar, Header, PageContainer, AppLayout
+├── contexts/       # AuthContext
+├── lib/            # Utilitários (cn, formatDate, etc.)
+├── pages/          # Páginas organizadas por domínio
+├── types/          # TypeScript types espelhando o backend
+└── routes.tsx      # Definição de rotas
 ```
