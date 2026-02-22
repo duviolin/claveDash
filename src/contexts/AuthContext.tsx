@@ -43,8 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Sync with auth API on token change; loading cleared when done
   useEffect(() => {
     if (token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- loading cleared after async auth sync
       refreshUser().finally(() => setIsLoading(false))
     } else {
       setIsLoading(false)
@@ -85,6 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// Context consumer hook - same file as provider is standard for React Context
+/* eslint-disable-next-line react-refresh/only-export-components */
 export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) throw new Error('useAuth must be used within AuthProvider')
