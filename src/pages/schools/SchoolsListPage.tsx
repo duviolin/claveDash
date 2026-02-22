@@ -19,10 +19,12 @@ export function SchoolsListPage() {
   const [editing, setEditing] = useState<School | null>(null)
   const [form, setForm] = useState({ name: '', directorId: '' })
 
-  const { data: schools = [], isLoading } = useQuery({
+  const { data: schoolsResponse, isLoading } = useQuery({
     queryKey: ['schools'],
     queryFn: listSchools,
   })
+  const schools = schoolsResponse?.data ?? []
+  const pagination = schoolsResponse?.pagination
 
   const { data: directorsData } = useQuery({
     queryKey: ['users', 'DIRECTOR'],
@@ -98,7 +100,7 @@ export function SchoolsListPage() {
   return (
     <PageContainer
       title="Escolas"
-      count={schools.length}
+      count={pagination?.total ?? schools.length}
       action={
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" /> Criar Escola

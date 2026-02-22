@@ -20,7 +20,11 @@ export function CoursesListPage() {
   const [schoolFilter, setSchoolFilter] = useState('')
   const [form, setForm] = useState({ schoolId: '', name: '', type: 'MUSIC' as CourseType })
 
-  const { data: schools = [] } = useQuery({ queryKey: ['schools'], queryFn: listSchools })
+  const { data: schoolsResponse } = useQuery({
+    queryKey: ['schools'],
+    queryFn: () => listSchools({ limit: 500 }),
+  })
+  const schools = schoolsResponse?.data ?? []
 
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ['courses', schoolFilter],
