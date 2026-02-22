@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { AuthUser } from '@/types'
+import type { AuthUser, MeResponse } from '@/types'
 
 interface LoginResponse {
   token: string
@@ -36,7 +36,12 @@ export async function changePassword(currentPassword: string, newPassword: strin
   return data
 }
 
-export async function getMe(): Promise<AuthUser> {
-  const { data } = await api.get<{ user: AuthUser }>('/me')
-  return data.user
+export async function getMe(): Promise<MeResponse> {
+  const { data } = await api.get<MeResponse>('/me')
+  return data
+}
+
+export async function updateAvatar(key: string): Promise<{ success: boolean; avatarUrl: string }> {
+  const { data } = await api.patch<{ success: boolean; avatarUrl: string }>('/me/avatar', { key })
+  return data
 }

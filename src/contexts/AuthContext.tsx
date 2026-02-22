@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
-import type { AuthUser } from '@/types'
+import type { AuthUser, MeResponse, StudentProfile, TeacherProfile } from '@/types'
 import * as authApi from '@/api/auth'
 
 interface AuthContextType {
   user: AuthUser | null
+  profile: StudentProfile | TeacherProfile | null
+  userContext: MeResponse['context'] | null
   token: string | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
@@ -19,16 +21,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem('clave_user')
     return stored ? JSON.parse(stored) : null
   })
+  const [profile, setProfile] = useState<StudentProfile | TeacherProfile | null>(null)
+  const [userContext, setUserContext] = useState<MeResponse['context'] | null>(null)
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('clave_token'))
   const [isLoading, setIsLoading] = useState(true)
 
   const refreshUser = useCallback(async () => {
     try {
       const me = await authApi.getMe()
-      setUser(me)
-      localStorage.setItem('clave_user', JSON.stringify(me))
+      setUser(me.user)
+      setProfile(me.profile)
+      setUserContext(me.context)
+      localStorage.setItem('clave_user', JSON.stringify(me.user))
     } catch {
       setUser(null)
+      setProfile(null)
+      setUserContext(null)
       setToken(null)
       localStorage.removeItem('clave_token')
       localStorage.removeItem('clave_user')
@@ -55,19 +63,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('clave_token', newToken)
     setToken(newToken)
     const me = await authApi.getMe()
-    setUser(me)
-    localStorage.setItem('clave_user', JSON.stringify(me))
+    setUser(me.user)
+    setProfile(me.profile)
+    setUserContext(me.context)
+    localStorage.setItem('clave_user', JSON.stringify(me.user))
   }
 
   const logout = () => {
     setUser(null)
+    setProfile(null)
+    setUserContext(null)
     setToken(null)
     localStorage.removeItem('clave_token')
     localStorage.removeItem('clave_user')
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, loginWithToken, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, profile, userContext, token, isLoading, login, loginWithToken, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )
