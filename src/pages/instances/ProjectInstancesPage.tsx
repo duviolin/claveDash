@@ -32,7 +32,7 @@ export function ProjectInstancesPage() {
 
   const { data: seasons = [] } = useQuery({ queryKey: ['seasons'], queryFn: () => listSeasons() })
 
-  const { data: projects = [], isLoading } = useQuery({
+  const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ['projects', selectedSeasonId],
     queryFn: () => listProjects(selectedSeasonId),
     enabled: !!selectedSeasonId,

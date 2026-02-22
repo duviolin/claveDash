@@ -1,33 +1,41 @@
 import { api } from './client'
 import type { Project } from '@/types'
 
-export async function instantiateProject(payload: { templateId: string; classId: string; seasonId: string }) {
-  const { data } = await api.post('/projects/from-template', payload)
+export async function instantiateProject(payload: {
+  templateId: string
+  classId: string
+  seasonId: string
+}): Promise<Project> {
+  const { data } = await api.post<Project>('/projects/from-template', payload)
   return data
 }
 
-export async function listProjects(seasonId: string) {
-  const { data } = await api.get(`/seasons/${seasonId}/projects`)
+/** Lista projetos da temporada. Endpoint pode existir no backend mesmo não documentado. */
+export async function listProjects(seasonId: string): Promise<Project[]> {
+  const { data } = await api.get<Project[]>(`/seasons/${seasonId}/projects`)
   return data
 }
 
-export async function getProject(id: string) {
-  const { data } = await api.get(`/projects/${id}`)
+export async function getProject(id: string): Promise<Project> {
+  const { data } = await api.get<Project>(`/projects/${id}`)
   return data
 }
 
-export async function updateProject(id: string, payload: { name?: string; description?: string; coverImage?: string }) {
+export async function updateProject(
+  id: string,
+  payload: { name?: string; description?: string; coverImage?: string }
+): Promise<Project> {
   const { data } = await api.patch<Project>(`/projects/${id}`, payload)
   return data
 }
 
-export async function publishProject(id: string) {
-  const { data } = await api.patch(`/projects/${id}/publish`)
+export async function publishProject(id: string): Promise<Project> {
+  const { data } = await api.patch<Project>(`/projects/${id}/publish`)
   return data
 }
 
-export async function unpublishProject(id: string) {
-  const { data } = await api.patch(`/projects/${id}/unpublish`)
+export async function unpublishProject(id: string): Promise<Project> {
+  const { data } = await api.patch<Project>(`/projects/${id}/unpublish`)
   return data
 }
 
