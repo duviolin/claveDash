@@ -3,6 +3,7 @@ import { LogOut, ChevronRight } from 'lucide-react'
 import { useLocation, Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { getInitials } from '@/lib/utils'
+import { NotificationBell } from './NotificationBell'
 
 const routeLabels: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -65,7 +66,9 @@ export function Header() {
 
       <div className="flex items-center gap-4">
         {user && (
-          <div className="flex items-center gap-3">
+          <>
+            <NotificationBell />
+            <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent text-xs font-bold">
               {getInitials(user.name)}
             </div>
@@ -82,7 +85,8 @@ export function Header() {
             >
               <LogOut className="h-4 w-4" />
             </button>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </header>
