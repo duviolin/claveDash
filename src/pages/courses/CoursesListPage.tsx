@@ -8,17 +8,25 @@ import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { listCourses, createCourse, updateCourse } from '@/api/courses'
+import { listCoursesPaginated, createCourse, updateCourse } from '@/api/courses'
 import { listSchools } from '@/api/schools'
 import type { Course, CourseType, School } from '@/types'
 import toast from 'react-hot-toast'
+
+const COURSES_PAGE_LIMIT = 10
 
 export function CoursesListPage() {
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Course | null>(null)
   const [schoolFilter, setSchoolFilter] = useState('')
+  const [page, setPage] = useState(1)
   const [form, setForm] = useState({ schoolId: '', name: '', type: 'MUSIC' as CourseType })
+
+  const setSchoolFilterAndResetPage = (value: string) => {
+    setSchoolFilter(value)
+    setPage(1)
+  }
 
   const { data: schoolsResponse } = useQuery({
     queryKey: ['schools'],
@@ -26,11 +34,17 @@ export function CoursesListPage() {
   })
   const schools = schoolsResponse?.data ?? []
 
-  const { data: courses = [], isLoading } = useQuery({
-    queryKey: ['courses', schoolFilter],
-    queryFn: () => listCourses(schoolFilter || undefined),
-    enabled: !!schoolFilter,
+  const { data: coursesResponse, isLoading } = useQuery({
+    queryKey: ['courses', 'paginated', schoolFilter || 'all', page],
+    queryFn: () =>
+      listCoursesPaginated({
+        schoolId: schoolFilter || undefined,
+        page,
+        limit: COURSES_PAGE_LIMIT,
+      }),
   })
+  const courses = coursesResponse?.data ?? []
+  const pagination = coursesResponse?.pagination
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -97,13 +111,13 @@ export function CoursesListPage() {
   return (
     <PageContainer
       title="Cursos"
-      count={courses.length}
+      count={pagination?.total ?? courses.length}
       action={<Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Curso</Button>}
     >
       <div className="flex items-center gap-4">
         <Select
           value={schoolFilter}
-          onChange={(e) => setSchoolFilter(e.target.value)}
+          onChange={(e) => setSchoolFilterAndResetPage(e.target.value)}
           placeholder="Todas as escolas"
           options={schools.map((s: School) => ({ value: s.id, label: s.name }))}
           className="max-w-xs"
@@ -111,6 +125,33 @@ export function CoursesListPage() {
       </div>
 
       <Table columns={columns} data={courses} keyExtractor={(c) => c.id} isLoading={isLoading} />
+
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-border pt-4">
+          <span className="text-sm text-muted">
+            Página {pagination.page} de {pagination.totalPages}
+            {pagination.total != null && ` (${pagination.total} no total)`}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={pagination.page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Próximo
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Modal
         isOpen={modalOpen}
