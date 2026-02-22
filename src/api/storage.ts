@@ -1,4 +1,5 @@
 import { api } from './client'
+import type { PresignUploadResponse, StorageConfig } from '@/types'
 
 interface PresignUploadPayload {
   fileType: string
@@ -6,20 +7,6 @@ interface PresignUploadPayload {
   entityType: string
   entityId: string
   fileSize: number
-}
-
-interface PresignUploadResponse {
-  uploadUrl: string
-  key: string
-  expiresIn: number
-}
-
-interface StorageConfig {
-  fileType: string
-  maxSizeMB: string
-  maxSizeBytes: number
-  allowedMimeTypes: string[]
-  allowedExtensions: string[]
 }
 
 interface OrphansResponse {

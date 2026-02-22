@@ -1,19 +1,5 @@
 import { api } from './client'
-
-export interface StudentProfile {
-  id: string
-  userId: string
-  stageName: string
-  avatarUrl: string | null
-  bio: string | null
-}
-
-export interface TeacherProfile {
-  id: string
-  userId: string
-  avatarUrl: string | null
-  bio: string | null
-}
+import type { StudentProfile, TeacherProfile } from '@/types'
 
 // --- Student Profile ---
 export async function getStudentProfile(userId: string) {
