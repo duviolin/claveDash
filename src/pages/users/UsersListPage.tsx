@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Tabs } from '@/components/ui/Tabs'
 import { Input } from '@/components/ui/Input'
 import { ConfirmModal } from '@/components/ui/Modal'
+import { Pagination } from '@/components/ui/Pagination'
 import { listUsers, suspendUser, reactivateUser } from '@/api/users'
 import { formatDate } from '@/lib/utils'
 import type { User, UserRole } from '@/types'
@@ -173,31 +174,13 @@ export function UsersListPage() {
         emptyMessage="Nenhum usuário encontrado"
       />
 
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-border pt-4">
-          <span className="text-sm text-muted">
-            Página {pagination.page} de {pagination.totalPages}
-            {pagination.total != null && ` (${pagination.total} no total)`}
-          </span>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={pagination.page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Próximo
-            </Button>
-          </div>
-        </div>
+      {pagination && (
+        <Pagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          onPageChange={setPage}
+        />
       )}
 
       <ConfirmModal

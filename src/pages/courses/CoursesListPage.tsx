@@ -6,6 +6,7 @@ import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { Pagination } from '@/components/ui/Pagination'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { listCoursesPaginated, createCourse, updateCourse } from '@/api/courses'
@@ -126,31 +127,13 @@ export function CoursesListPage() {
 
       <Table columns={columns} data={courses} keyExtractor={(c) => c.id} isLoading={isLoading} />
 
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-border pt-4">
-          <span className="text-sm text-muted">
-            Página {pagination.page} de {pagination.totalPages}
-            {pagination.total != null && ` (${pagination.total} no total)`}
-          </span>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={pagination.page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Próximo
-            </Button>
-          </div>
-        </div>
+      {pagination && (
+        <Pagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          onPageChange={setPage}
+        />
       )}
 
       <Modal

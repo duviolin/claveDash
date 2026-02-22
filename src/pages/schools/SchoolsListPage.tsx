@@ -8,20 +8,24 @@ import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
+import { Pagination } from '@/components/ui/Pagination'
 import { listSchools, createSchool, updateSchool } from '@/api/schools'
 import { listUsers } from '@/api/users'
 import type { School, User } from '@/types'
 import toast from 'react-hot-toast'
+
+const SCHOOLS_PAGE_LIMIT = 10
 
 export function SchoolsListPage() {
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<School | null>(null)
   const [form, setForm] = useState({ name: '', directorId: '' })
+  const [page, setPage] = useState(1)
 
   const { data: schoolsResponse, isLoading } = useQuery({
-    queryKey: ['schools'],
-    queryFn: listSchools,
+    queryKey: ['schools', page],
+    queryFn: () => listSchools({ page, limit: SCHOOLS_PAGE_LIMIT }),
   })
   const schools = schoolsResponse?.data ?? []
   const pagination = schoolsResponse?.pagination
@@ -108,6 +112,15 @@ export function SchoolsListPage() {
       }
     >
       <Table columns={columns} data={schools} keyExtractor={(s) => s.id} isLoading={isLoading} />
+
+      {pagination && (
+        <Pagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          onPageChange={setPage}
+        />
+      )}
 
       <Modal
         isOpen={modalOpen}
