@@ -14,6 +14,7 @@ export interface AuthUser {
   name: string
   email: string
   role: UserRole
+  status: UserStatus
 }
 
 export interface User {
@@ -90,13 +91,11 @@ export interface TrackSceneTemplate {
   technicalInstruction: string | null
   lyrics: string | null
   order: number
-  unlockAfterTrackId: string | null
   demoRequired: boolean
   pressQuizRequired: boolean
   isActive: boolean
   version: number
   createdAt: string
-  updatedAt: string
 }
 
 export interface TrackMaterialTemplate {
@@ -194,22 +193,80 @@ export interface QuizQuestion {
 
 export interface Project {
   id: string
+  templateId: string
+  classId: string
+  seasonId: string
   name: string
-  type: string
-  status: ProjectStatus
-  coverImage: string | null
   description: string | null
+  coverImage: string | null
+  status: ProjectStatus
   isVisible: boolean
-  progress: number
-  tracks: { id: string; title: string; status: string }[]
+  releasedAt: string | null
+  projectTemplateVersion: number
+  createdAt: string
 }
 
 export interface PaginatedResponse<T> {
   data: T[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
+export interface StudentProfile {
+  id: string
+  userId: string
+  stageName: string
+  avatarUrl: string | null
+  bio: string | null
+  createdAt: string
+}
+
+export interface TeacherProfile {
+  id: string
+  userId: string
+  avatarUrl: string | null
+  bio: string | null
+  createdAt: string
+}
+
+export interface StorageConfig {
+  fileType: string
+  maxSizeMB: number
+  maxSizeBytes: number
+  allowedMimeTypes: string[]
+  allowedExtensions: string[]
+}
+
+export interface PresignUploadResponse {
+  uploadUrl: string
+  key: string
+  expiresIn: number
+}
+
+export interface Notification {
+  id: string
+  userId: string
+  type: string
+  title: string
+  message: string
+  data: Record<string, unknown> | null
+  isRead: boolean
+  createdAt: string
+}
+
+export interface MeResponse {
+  user: AuthUser
+  profile: StudentProfile | TeacherProfile | null
+  context: {
+    schoolId: string | null
+    courseId: string | null
+    seasonId: string | null
+    classId: string | null
+  }
 }
 
 export interface ApiError {
