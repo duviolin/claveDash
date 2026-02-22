@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { User, UserRole } from '@/types'
+import type { User, UserRole, PaginatedResponse } from '@/types'
 
 interface CreateUserPayload {
   name: string
@@ -20,8 +20,8 @@ interface ListUsersParams {
   limit?: number
 }
 
-export async function listUsers(params?: ListUsersParams) {
-  const { data } = await api.get('/users', { params })
+export async function listUsers(params?: ListUsersParams): Promise<PaginatedResponse<User>> {
+  const { data } = await api.get<PaginatedResponse<User>>('/users', { params })
   return data
 }
 

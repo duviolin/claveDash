@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Pencil, Ban, RotateCcw } from 'lucide-react'
@@ -29,19 +29,32 @@ const roleVariant: Record<UserRole, 'accent' | 'info' | 'success' | 'warning'> =
   DIRECTOR: 'warning',
 }
 
+const USERS_PAGE_LIMIT = 10
+
 export function UsersListPage() {
   const navigate = useNavigate()
   const [roleFilter, setRoleFilter] = useState('ALL')
+  const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [confirmAction, setConfirmAction] = useState<{ user: User; action: 'suspend' | 'reactivate' } | null>(null)
   const [isActioning, setIsActioning] = useState(false)
 
+  useEffect(() => {
+    setPage(1)
+  }, [roleFilter])
+
+  const params =
+    roleFilter === 'ALL'
+      ? { page, limit: USERS_PAGE_LIMIT }
+      : { role: roleFilter as UserRole, page, limit: USERS_PAGE_LIMIT }
+
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['users', roleFilter],
-    queryFn: () => listUsers(roleFilter !== 'ALL' ? { role: roleFilter as UserRole } : undefined),
+    queryKey: ['users', roleFilter, page],
+    queryFn: () => listUsers(params),
   })
 
-  const users: User[] = Array.isArray(data) ? data : data?.data ?? []
+  const users: User[] = data?.data ?? []
+  const pagination = data?.pagination
 
   const filteredUsers = users.filter((u) => {
     if (!search) return true
@@ -134,7 +147,7 @@ export function UsersListPage() {
   return (
     <PageContainer
       title="Usuários"
-      count={filteredUsers.length}
+      count={pagination?.total ?? filteredUsers.length}
       action={
         <Button onClick={() => navigate('/users/new')}>
           <Plus className="h-4 w-4" />
@@ -159,6 +172,33 @@ export function UsersListPage() {
         isLoading={isLoading}
         emptyMessage="Nenhum usuário encontrado"
       />
+
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-border pt-4">
+          <span className="text-sm text-muted">
+            Página {pagination.page} de {pagination.totalPages}
+            {pagination.total != null && ` (${pagination.total} no total)`}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={pagination.page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Próximo
+            </Button>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={!!confirmAction}
