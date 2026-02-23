@@ -141,6 +141,16 @@ export async function deleteTrackTemplate(id: string) {
   await api.delete(`/track-templates/${id}`)
 }
 
+export async function listDeletedTrackTemplates(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<TrackSceneTemplate>>('/track-templates/deleted', { params })
+  return data
+}
+
+export async function restoreTrackTemplate(id: string) {
+  const { data } = await api.patch<TrackSceneTemplate>(`/track-templates/${id}/restore`)
+  return data
+}
+
 export async function reorderTrackTemplates(items: { id: string; order: number }[]) {
   const { data } = await api.patch('/track-templates/reorder', { items })
   return data
@@ -164,6 +174,16 @@ export async function updateMaterialTemplate(id: string, payload: UpdateMaterial
 
 export async function deleteMaterialTemplate(id: string) {
   await api.delete(`/material-templates/${id}`)
+}
+
+export async function listDeletedMaterialTemplates(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<TrackMaterialTemplate>>('/material-templates/deleted', { params })
+  return data
+}
+
+export async function restoreMaterialTemplate(id: string) {
+  const { data } = await api.patch<TrackMaterialTemplate>(`/material-templates/${id}/restore`)
+  return data
 }
 
 // --- Study Track Categories ---
@@ -216,6 +236,16 @@ export async function deleteStudyTrackTemplate(id: string) {
   await api.delete(`/study-track-templates/${id}`)
 }
 
+export async function listDeletedStudyTrackTemplates(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<StudyTrackTemplate>>('/study-track-templates/deleted', { params })
+  return data
+}
+
+export async function restoreStudyTrackTemplate(id: string) {
+  const { data } = await api.patch<StudyTrackTemplate>(`/study-track-templates/${id}/restore`)
+  return data
+}
+
 // --- Press Quiz Templates ---
 export async function listPressQuizTemplates(trackTemplateId: string) {
   const { data } = await api.get<PressQuizTemplate[]>(`/track-templates/${trackTemplateId}/press-quizzes`)
@@ -234,4 +264,14 @@ export async function updatePressQuizTemplate(id: string, payload: UpdatePressQu
 
 export async function deletePressQuizTemplate(id: string) {
   await api.delete(`/press-quiz-templates/${id}`)
+}
+
+export async function listDeletedPressQuizTemplates(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<PressQuizTemplate>>('/press-quiz-templates/deleted', { params })
+  return data
+}
+
+export async function restorePressQuizTemplate(id: string) {
+  const { data } = await api.patch<PressQuizTemplate>(`/press-quiz-templates/${id}/restore`)
+  return data
 }

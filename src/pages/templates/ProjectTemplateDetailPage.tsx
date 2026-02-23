@@ -9,6 +9,10 @@ import { Modal, ConfirmModal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
+import { FileUpload } from '@/components/ui/FileUpload'
+import { QuizBuilder } from '@/components/ui/QuizBuilder'
+import { AIButton } from '@/components/ui/AIButton'
+import { generateQuiz } from '@/api/ai'
 import {
   getProjectTemplate,
   updateProjectTemplate,
@@ -24,12 +28,15 @@ import {
   createStudyTrackTemplate,
   updateStudyTrackTemplate,
   deleteStudyTrackTemplate,
+  listStudyTrackCategories,
   listPressQuizTemplates,
   createPressQuizTemplate,
   updatePressQuizTemplate,
   deletePressQuizTemplate,
 } from '@/api/templates'
-import type { TrackSceneTemplate, TrackMaterialTemplate, TrackMaterialType, StudyTrackTemplate, PressQuizTemplate } from '@/types'
+import type { AxiosError } from 'axios'
+import type { TrackSceneTemplate, TrackMaterialTemplate, TrackMaterialType, StudyTrackTemplate, StudyTrackCategory, PressQuizTemplate, DeactivationErrorDetails, QuizQuestion } from '@/types'
+import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import toast from 'react-hot-toast'
 
 export function ProjectTemplateDetailPage() {
@@ -78,7 +85,7 @@ export function ProjectTemplateDetailPage() {
     >
       {template.description && <p className="text-sm text-muted -mt-4 mb-4">{template.description}</p>}
 
-      <TracksList projectTemplateId={id!} tracks={tracks} />
+      <TracksList projectTemplateId={id!} tracks={tracks} courseId={template!.courseId} />
 
       <Modal
         isOpen={editingProject}
@@ -101,12 +108,13 @@ export function ProjectTemplateDetailPage() {
 }
 
 // ---- Tracks List ----
-function TracksList({ projectTemplateId, tracks }: { projectTemplateId: string; tracks: TrackSceneTemplate[] }) {
+function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId: string; tracks: TrackSceneTemplate[]; courseId: string }) {
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
   const [editingTrack, setEditingTrack] = useState<TrackSceneTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TrackSceneTemplate | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
   const [form, setForm] = useState({ title: '', artist: '', description: '', technicalInstruction: '', lyrics: '', demoRequired: false, pressQuizRequired: false })
 
   const sortedTracks = [...tracks].sort((a, b) => a.order - b.order)
@@ -136,6 +144,13 @@ function TracksList({ projectTemplateId, tracks }: { projectTemplateId: string; 
     onSuccess: () => {
       toast.success('Faixa desativada!')
       queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateId] })
+      setDeleteTarget(null)
+    },
+    onError: (error: unknown) => {
+      const err = error as AxiosError<{ details: DeactivationErrorDetails }>
+      if (err.response?.status === 409 && err.response?.data?.details) {
+        setBlockedInfo({ name: deleteTarget!.title, id: deleteTarget!.id, details: err.response.data.details })
+      }
       setDeleteTarget(null)
     },
   })
@@ -187,7 +202,7 @@ function TracksList({ projectTemplateId, tracks }: { projectTemplateId: string; 
               {track.technicalInstruction && <div><p className="text-xs font-medium text-muted uppercase">Instrução Técnica</p><p className="text-sm text-text mt-1">{track.technicalInstruction}</p></div>}
 
               <MaterialsSection trackTemplateId={track.id} />
-              <StudyTracksSection trackTemplateId={track.id} />
+              <StudyTracksSection trackTemplateId={track.id} courseId={courseId} />
               <PressQuizzesSection trackTemplateId={track.id} />
             </div>
           )}
@@ -206,6 +221,13 @@ function TracksList({ projectTemplateId, tracks }: { projectTemplateId: string; 
       />
 
       <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMutation.mutate()} isLoading={deleteMutation.isPending} title="Desativar Faixa" message={`Tem certeza que deseja desativar "${deleteTarget?.title}"?`} />
+      <DeactivationBlockedModal
+        isOpen={!!blockedInfo}
+        onClose={() => setBlockedInfo(null)}
+        entityName={blockedInfo?.name ?? ''}
+        parentId={blockedInfo?.id ?? ''}
+        details={blockedInfo?.details ?? null}
+      />
     </div>
   )
 }
@@ -301,8 +323,19 @@ function MaterialsSection({ trackTemplateId }: { trackTemplateId: string }) {
         <div className="space-y-4">
           {!editing && <Select id="matType" label="Tipo" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as TrackMaterialType })} options={[{ value: 'TEXT', label: 'Texto' }, { value: 'PDF', label: 'PDF' }, { value: 'AUDIO', label: 'Áudio' }, { value: 'VIDEO', label: 'Vídeo' }, { value: 'LINK', label: 'Link' }]} />}
           <Input id="matTitle" label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-          {(form.type !== 'TEXT') && <Input id="matUrl" label="URL do Conteúdo" value={form.defaultContentUrl} onChange={(e) => setForm({ ...form, defaultContentUrl: e.target.value })} />}
-          {(form.type === 'TEXT') && <Textarea id="matText" label="Conteúdo" value={form.defaultTextContent} onChange={(e) => setForm({ ...form, defaultTextContent: e.target.value })} />}
+          {(['PDF', 'AUDIO', 'VIDEO'].includes(form.type)) && (
+            <FileUpload
+              fileType="materials"
+              entityType="material-template"
+              entityId={editing?.id || 'draft'}
+              currentValue={form.defaultContentUrl || null}
+              onUploadComplete={(key) => setForm({ ...form, defaultContentUrl: key })}
+              onRemove={() => setForm({ ...form, defaultContentUrl: '' })}
+              label="Arquivo do Material"
+            />
+          )}
+          {form.type === 'LINK' && <Input id="matUrl" label="URL do Link" value={form.defaultContentUrl} onChange={(e) => setForm({ ...form, defaultContentUrl: e.target.value })} placeholder="https://..." />}
+          {form.type === 'TEXT' && <Textarea id="matText" label="Conteúdo" value={form.defaultTextContent} onChange={(e) => setForm({ ...form, defaultTextContent: e.target.value })} />}
         </div>
       </Modal>
 
@@ -312,21 +345,26 @@ function MaterialsSection({ trackTemplateId }: { trackTemplateId: string }) {
 }
 
 // ---- Study Tracks Section ----
-function StudyTracksSection({ trackTemplateId }: { trackTemplateId: string }) {
+function StudyTracksSection({ trackTemplateId, courseId }: { trackTemplateId: string; courseId: string }) {
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<StudyTrackTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StudyTrackTemplate | null>(null)
-  const [form, setForm] = useState({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true })
+  const [form, setForm] = useState({ title: '', categoryId: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true })
 
   const { data: studyTracks = [] } = useQuery({
     queryKey: ['study-track-templates', trackTemplateId],
     queryFn: () => listStudyTrackTemplates(trackTemplateId),
   })
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['study-track-categories', courseId],
+    queryFn: () => listStudyTrackCategories(courseId),
+  })
+
   const createMut = useMutation({
     mutationFn: () => createStudyTrackTemplate(trackTemplateId, {
-      title: form.title, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
+      title: form.title, categoryId: form.categoryId || undefined, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
       videoUrl: form.videoUrl || undefined, audioUrl: form.audioUrl || undefined, pdfUrl: form.pdfUrl || undefined,
       estimatedMinutes: form.estimatedMinutes, isRequired: form.isRequired, isVisible: form.isVisible,
     }),
@@ -335,7 +373,7 @@ function StudyTracksSection({ trackTemplateId }: { trackTemplateId: string }) {
 
   const updateMut = useMutation({
     mutationFn: () => updateStudyTrackTemplate(editing!.id, {
-      title: form.title, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
+      title: form.title, categoryId: form.categoryId || undefined, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
       videoUrl: form.videoUrl || undefined, audioUrl: form.audioUrl || undefined, pdfUrl: form.pdfUrl || undefined,
       estimatedMinutes: form.estimatedMinutes, isRequired: form.isRequired, isVisible: form.isVisible,
     }),
@@ -347,8 +385,8 @@ function StudyTracksSection({ trackTemplateId }: { trackTemplateId: string }) {
     onSuccess: () => { toast.success('Trilha desativada!'); queryClient.invalidateQueries({ queryKey: ['study-track-templates', trackTemplateId] }); setDeleteTarget(null) },
   })
 
-  const openCreate = () => { setEditing(null); setForm({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true }); setModalOpen(true) }
-  const openEdit = (st: StudyTrackTemplate) => { setEditing(st); setForm({ title: st.title, description: st.description || '', technicalNotes: st.technicalNotes || '', videoUrl: st.videoUrl || '', audioUrl: st.audioUrl || '', pdfUrl: st.pdfUrl || '', estimatedMinutes: st.estimatedMinutes, isRequired: st.isRequired, isVisible: st.isVisible }); setModalOpen(true) }
+  const openCreate = () => { setEditing(null); setForm({ title: '', categoryId: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true }); setModalOpen(true) }
+  const openEdit = (st: StudyTrackTemplate) => { setEditing(st); setForm({ title: st.title, categoryId: st.categoryId || '', description: st.description || '', technicalNotes: st.technicalNotes || '', videoUrl: st.videoUrl || '', audioUrl: st.audioUrl || '', pdfUrl: st.pdfUrl || '', estimatedMinutes: st.estimatedMinutes, isRequired: st.isRequired, isVisible: st.isVisible }); setModalOpen(true) }
 
   return (
     <div>
@@ -358,15 +396,19 @@ function StudyTracksSection({ trackTemplateId }: { trackTemplateId: string }) {
       </div>
       {studyTracks.length > 0 && (
         <div className="space-y-1">
-          {studyTracks.map((st) => (
-            <div key={st.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
-              <span className="flex-1 text-text">{st.title}</span>
-              <span className="text-xs text-muted">{st.estimatedMinutes}min</span>
-              {st.isRequired && <Badge variant="warning">Obrigatória</Badge>}
-              <button onClick={() => openEdit(st)} className="text-muted hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-              <button onClick={() => setDeleteTarget(st)} className="text-muted hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
-            </div>
-          ))}
+          {studyTracks.map((st) => {
+            const category = st.categoryId ? categories.find((c: StudyTrackCategory) => c.id === st.categoryId) : null
+            return (
+              <div key={st.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+                <span className="flex-1 text-text">{st.title}</span>
+                {category && <Badge variant="default" className="text-[10px]">{category.name}</Badge>}
+                <span className="text-xs text-muted">{st.estimatedMinutes}min</span>
+                {st.isRequired && <Badge variant="warning">Obrigatória</Badge>}
+                <button onClick={() => openEdit(st)} className="text-muted hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                <button onClick={() => setDeleteTarget(st)} className="text-muted hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -375,6 +417,14 @@ function StudyTracksSection({ trackTemplateId }: { trackTemplateId: string }) {
         <Button onClick={() => editing ? updateMut.mutate() : createMut.mutate()} isLoading={createMut.isPending || updateMut.isPending}>{editing ? 'Salvar' : 'Criar'}</Button></>
       }>
         <div className="space-y-4">
+          <Select
+            id="stCat"
+            label="Categoria"
+            value={form.categoryId}
+            onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+            placeholder="Sem categoria"
+            options={categories.map((c: StudyTrackCategory) => ({ value: c.id, label: c.name }))}
+          />
           <Input id="stTitle" label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <Textarea id="stDesc" label="Descrição" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <Textarea id="stNotes" label="Notas Técnicas" value={form.technicalNotes} onChange={(e) => setForm({ ...form, technicalNotes: e.target.value })} />
@@ -402,7 +452,7 @@ function PressQuizzesSection({ trackTemplateId }: { trackTemplateId: string }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<PressQuizTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PressQuizTemplate | null>(null)
-  const [form, setForm] = useState({ title: '', description: '', questionsJson: '', maxAttempts: 3, passingScore: 70 })
+  const [form, setForm] = useState({ title: '', description: '', questions: [] as QuizQuestion[], maxAttempts: 3, passingScore: 70 })
 
   const { data: quizzes = [] } = useQuery({
     queryKey: ['press-quiz-templates', trackTemplateId],
@@ -410,20 +460,24 @@ function PressQuizzesSection({ trackTemplateId }: { trackTemplateId: string }) {
   })
 
   const createMut = useMutation({
-    mutationFn: () => {
-      let questions
-      try { questions = form.questionsJson ? JSON.parse(form.questionsJson) : undefined } catch { toast.error('JSON de questões inválido'); throw new Error('Invalid JSON') }
-      return createPressQuizTemplate(trackTemplateId, { title: form.title, description: form.description || undefined, questionsJson: questions, maxAttempts: form.maxAttempts, passingScore: form.passingScore })
-    },
+    mutationFn: () => createPressQuizTemplate(trackTemplateId, {
+      title: form.title,
+      description: form.description || undefined,
+      questionsJson: form.questions.length > 0 ? form.questions : undefined,
+      maxAttempts: form.maxAttempts,
+      passingScore: form.passingScore,
+    }),
     onSuccess: () => { toast.success('Quiz criado!'); queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] }); setModalOpen(false) },
   })
 
   const updateMut = useMutation({
-    mutationFn: () => {
-      let questions
-      try { questions = form.questionsJson ? JSON.parse(form.questionsJson) : undefined } catch { toast.error('JSON de questões inválido'); throw new Error('Invalid JSON') }
-      return updatePressQuizTemplate(editing!.id, { title: form.title, description: form.description || undefined, questionsJson: questions, maxAttempts: form.maxAttempts, passingScore: form.passingScore })
-    },
+    mutationFn: () => updatePressQuizTemplate(editing!.id, {
+      title: form.title,
+      description: form.description || undefined,
+      questionsJson: form.questions.length > 0 ? form.questions : undefined,
+      maxAttempts: form.maxAttempts,
+      passingScore: form.passingScore,
+    }),
     onSuccess: () => { toast.success('Quiz atualizado!'); queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] }); setEditing(null); setModalOpen(false) },
   })
 
@@ -432,8 +486,8 @@ function PressQuizzesSection({ trackTemplateId }: { trackTemplateId: string }) {
     onSuccess: () => { toast.success('Quiz desativado!'); queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] }); setDeleteTarget(null) },
   })
 
-  const openCreate = () => { setEditing(null); setForm({ title: '', description: '', questionsJson: '', maxAttempts: 3, passingScore: 70 }); setModalOpen(true) }
-  const openEdit = (q: PressQuizTemplate) => { setEditing(q); setForm({ title: q.title, description: q.description || '', questionsJson: q.questionsJson ? JSON.stringify(q.questionsJson, null, 2) : '', maxAttempts: q.maxAttempts, passingScore: q.passingScore }); setModalOpen(true) }
+  const openCreate = () => { setEditing(null); setForm({ title: '', description: '', questions: [], maxAttempts: 3, passingScore: 70 }); setModalOpen(true) }
+  const openEdit = (q: PressQuizTemplate) => { setEditing(q); setForm({ title: q.title, description: q.description || '', questions: q.questionsJson || [], maxAttempts: q.maxAttempts, passingScore: q.passingScore }); setModalOpen(true) }
 
   return (
     <div>
@@ -462,8 +516,20 @@ function PressQuizzesSection({ trackTemplateId }: { trackTemplateId: string }) {
         <div className="space-y-4">
           <Input id="pqTitle" label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <Textarea id="pqDesc" label="Descrição" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <Textarea id="pqJson" label="Questões (JSON)" value={form.questionsJson} onChange={(e) => setForm({ ...form, questionsJson: e.target.value })} className="font-mono text-xs min-h-[200px]" />
-          <p className="text-xs text-muted">Formato: [{"{"}"question": "...", "options": ["A","B","C","D"], "correctIndex": 0{"}"}]</p>
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-text">Questões</label>
+            <AIButton
+              label="Gerar Quiz com IA"
+              onGenerate={() => generateQuiz({ title: form.title, description: form.description, count: 5 })}
+              onAccept={(raw) => {
+                try {
+                  const parsed = JSON.parse(raw)
+                  if (Array.isArray(parsed)) setForm({ ...form, questions: parsed })
+                } catch { toast.error('Formato inválido retornado pela IA') }
+              }}
+            />
+          </div>
+          <QuizBuilder value={form.questions} onChange={(questions) => setForm({ ...form, questions })} />
           <div className="grid grid-cols-2 gap-4">
             <Input id="pqAttempts" label="Máximo de tentativas" type="number" value={String(form.maxAttempts)} onChange={(e) => setForm({ ...form, maxAttempts: Number(e.target.value) })} />
             <Input id="pqScore" label="Nota de aprovação (%)" type="number" value={String(form.passingScore)} onChange={(e) => setForm({ ...form, passingScore: Number(e.target.value) })} />

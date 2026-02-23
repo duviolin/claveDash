@@ -11,6 +11,10 @@ import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedMod
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
+import { QuizBuilder } from '@/components/ui/QuizBuilder'
+import { AIButton } from '@/components/ui/AIButton'
+import { generateQuiz } from '@/api/ai'
+import { FileUpload } from '@/components/ui/FileUpload'
 import { Pagination } from '@/components/ui/Pagination'
 import type { AxiosError } from 'axios'
 import {
@@ -22,11 +26,14 @@ import {
   deleteDailyMissionTemplate,
   publishDailyMissionTemplate,
   createDailyMissionQuiz,
+  updateDailyMissionQuiz,
+  deleteDailyMissionQuiz,
+  listDailyMissionQuizzes,
 } from '@/api/dailyMissions'
 import { listCourses } from '@/api/courses'
 import { DAILY_MISSION_STATUS_LABELS, DAILY_MISSION_STATUS_VARIANT } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
-import type { DailyMissionTemplate, Course, DeactivationErrorDetails } from '@/types'
+import type { DailyMissionTemplate, DailyMissionQuiz, Course, DeactivationErrorDetails, QuizQuestion } from '@/types'
 import toast from 'react-hot-toast'
 
 const DAILY_MISSION_PAGE_LIMIT = 10
@@ -235,7 +242,16 @@ export function DailyMissionTemplatesPage() {
         <div className="space-y-4">
           {!editing && <Select id="dmCourseId" label="Curso" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} placeholder="Selecionar..." options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} />}
           <Input id="dmTitle" label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-          <Input id="dmVideo" label="URL do Vídeo" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} />
+          <FileUpload
+            fileType="videos"
+            entityType="daily-mission-template"
+            entityId={editing?.id || 'draft'}
+            currentValue={form.videoUrl || null}
+            onUploadComplete={(key) => setForm({ ...form, videoUrl: key })}
+            onRemove={() => setForm({ ...form, videoUrl: '' })}
+            label="Vídeo da Missão"
+          />
+          <Input id="dmVideo" label="Ou insira URL manualmente" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} placeholder="https://..." />
         </div>
       </Modal>
 
@@ -265,34 +281,100 @@ export function DailyMissionTemplatesPage() {
 function MissionQuizSection({ missionId }: { missionId: string }) {
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
-  const [form, setForm] = useState({ questionsJson: '', maxAttemptsPerDay: 3, allowRecoveryAttempt: false })
+  const [editing, setEditing] = useState<DailyMissionQuiz | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<DailyMissionQuiz | null>(null)
+  const [form, setForm] = useState({ questions: [] as QuizQuestion[], maxAttemptsPerDay: 3, allowRecoveryAttempt: false })
+
+  const { data: quizzes = [] } = useQuery({
+    queryKey: ['daily-mission-quizzes', missionId],
+    queryFn: () => listDailyMissionQuizzes(missionId),
+  })
 
   const createMut = useMutation({
-    mutationFn: () => {
-      let questions
-      try { questions = form.questionsJson ? JSON.parse(form.questionsJson) : undefined } catch { toast.error('JSON inválido'); throw new Error('Invalid JSON') }
-      return createDailyMissionQuiz(missionId, { questionsJson: questions, maxAttemptsPerDay: form.maxAttemptsPerDay, allowRecoveryAttempt: form.allowRecoveryAttempt })
-    },
+    mutationFn: () => createDailyMissionQuiz(missionId, {
+      questionsJson: form.questions.length > 0 ? form.questions : undefined,
+      maxAttemptsPerDay: form.maxAttemptsPerDay,
+      allowRecoveryAttempt: form.allowRecoveryAttempt,
+    }),
     onSuccess: () => {
       toast.success('Quiz criado!')
-      queryClient.invalidateQueries({ queryKey: ['daily-mission-templates'] })
+      queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', missionId] })
       setModalOpen(false)
     },
   })
+
+  const updateMut = useMutation({
+    mutationFn: () => updateDailyMissionQuiz(editing!.id, {
+      questionsJson: form.questions.length > 0 ? form.questions : undefined,
+      maxAttemptsPerDay: form.maxAttemptsPerDay,
+      allowRecoveryAttempt: form.allowRecoveryAttempt,
+    }),
+    onSuccess: () => {
+      toast.success('Quiz atualizado!')
+      queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', missionId] })
+      setEditing(null)
+      setModalOpen(false)
+    },
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: () => deleteDailyMissionQuiz(deleteTarget!.id),
+    onSuccess: () => {
+      toast.success('Quiz excluído!')
+      queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', missionId] })
+      setDeleteTarget(null)
+    },
+    onError: (error: unknown) => {
+      const err = error as AxiosError<{ message?: string }>
+      toast.error(err.response?.data?.message ?? 'Erro ao excluir quiz')
+      setDeleteTarget(null)
+    },
+  })
+
+  const openCreate = () => { setEditing(null); setForm({ questions: [], maxAttemptsPerDay: 3, allowRecoveryAttempt: false }); setModalOpen(true) }
+  const openEdit = (q: DailyMissionQuiz) => { setEditing(q); setForm({ questions: q.questionsJson || [], maxAttemptsPerDay: q.maxAttemptsPerDay, allowRecoveryAttempt: q.allowRecoveryAttempt }); setModalOpen(true) }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><HelpCircle className="h-4 w-4 text-warning" /> Quiz da Missão</h3>
-        <Button size="sm" variant="ghost" onClick={() => { setForm({ questionsJson: '', maxAttemptsPerDay: 3, allowRecoveryAttempt: false }); setModalOpen(true) }}><Plus className="h-3.5 w-3.5" /> Adicionar Quiz</Button>
+        <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /> Adicionar Quiz</Button>
       </div>
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Criar Quiz da Missão" size="lg" footer={
-        <><Button variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button><Button onClick={() => createMut.mutate()} isLoading={createMut.isPending}>Criar</Button></>
+      {quizzes.length > 0 && (
+        <div className="space-y-1">
+          {quizzes.map((q) => (
+            <div key={q.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+              <Badge variant="secondary" className="shrink-0">v{q.version}</Badge>
+              <span className="text-muted">{q.questionsJson?.length ?? 0} questões</span>
+              <span className="text-muted">{q.maxAttemptsPerDay} tentativas/dia</span>
+              {q.allowRecoveryAttempt && <Badge variant="info">Recuperação</Badge>}
+              <div className="flex-1" />
+              <button onClick={() => openEdit(q)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
+              <button onClick={() => setDeleteTarget(q)} className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer" title="Excluir"><Trash2 className="h-3.5 w-3.5" /></button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Editar Quiz da Missão' : 'Criar Quiz da Missão'} size="lg" footer={
+        <><Button variant="secondary" onClick={() => { setModalOpen(false); setEditing(null) }}>Cancelar</Button><Button onClick={() => editing ? updateMut.mutate() : createMut.mutate()} isLoading={createMut.isPending || updateMut.isPending}>{editing ? 'Salvar' : 'Criar'}</Button></>
       }>
         <div className="space-y-4">
-          <Textarea id="mqJson" label="Questões (JSON)" value={form.questionsJson} onChange={(e) => setForm({ ...form, questionsJson: e.target.value })} className="font-mono text-xs min-h-[200px]" />
-          <p className="text-xs text-muted">Formato: [{"{"}"question": "...", "options": ["A","B","C","D"], "correctIndex": 0{"}"}]</p>
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-text">Questões</label>
+            <AIButton
+              label="Gerar Quiz com IA"
+              onGenerate={() => generateQuiz({ title: 'Missão Diária', count: 5 })}
+              onAccept={(raw) => {
+                try {
+                  const parsed = JSON.parse(raw)
+                  if (Array.isArray(parsed)) setForm({ ...form, questions: parsed })
+                } catch { toast.error('Formato inválido retornado pela IA') }
+              }}
+            />
+          </div>
+          <QuizBuilder value={form.questions} onChange={(questions) => setForm({ ...form, questions })} />
           <div className="grid grid-cols-2 gap-4">
             <Input id="mqAttempts" label="Tentativas por dia" type="number" value={String(form.maxAttemptsPerDay)} onChange={(e) => setForm({ ...form, maxAttemptsPerDay: Number(e.target.value) })} />
             <label className="flex items-center gap-2 text-sm text-text cursor-pointer mt-6">
@@ -302,6 +384,8 @@ function MissionQuizSection({ missionId }: { missionId: string }) {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Excluir Quiz" message="Tem certeza que deseja excluir este quiz?" />
     </div>
   )
 }

@@ -56,3 +56,18 @@ export async function updateDailyMissionQuiz(id: string, payload: UpdateDailyMis
 export async function deleteDailyMissionQuiz(id: string) {
   await api.delete(`/daily-mission-quizzes/${id}`)
 }
+
+export async function listDailyMissionQuizzes(missionId: string) {
+  const { data } = await api.get<DailyMissionQuiz[]>(`/daily-mission-templates/${missionId}/quizzes`)
+  return data
+}
+
+export async function listDeletedDailyMissionQuizzes(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<DailyMissionQuiz>>('/daily-mission-quizzes/deleted', { params })
+  return data
+}
+
+export async function restoreDailyMissionQuiz(id: string) {
+  const { data } = await api.patch<DailyMissionQuiz>(`/daily-mission-quizzes/${id}/restore`)
+  return data
+}

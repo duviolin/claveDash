@@ -73,7 +73,7 @@ export function CoursesListPage() {
   const saveMutation = useMutation({
     mutationFn: () => {
       return editing
-        ? updateCourse(editing.id, { name: form.name, type: form.type })
+        ? updateCourse(editing.id, { name: form.name })
         : createCourse({ schoolId: form.schoolId, name: form.name, type: form.type })
     },
     onSuccess: () => {
@@ -283,6 +283,7 @@ export function CoursesListPage() {
               { value: 'MUSIC', label: 'Música' },
               { value: 'THEATER', label: 'Teatro' },
             ]}
+            disabled={!!editing}
           />
         </div>
       </Modal>
