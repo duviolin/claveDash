@@ -281,3 +281,17 @@ export interface DeactivationErrorDetails {
 export interface ApiError {
   error: string
 }
+
+export type ActorType = 'USER' | 'SYSTEM' | 'RULE_ENGINE'
+
+export interface DomainEvent {
+  id: string
+  type: string
+  actorId: string
+  actorName: string
+  actorType: ActorType
+  targetType: string
+  targetId: string
+  metadata: Record<string, unknown> | null
+  createdAt: string
+}

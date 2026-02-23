@@ -33,3 +33,18 @@ export function getInitials(name?: string | null): string {
     .join('')
     .toUpperCase()
 }
+
+export function timeAgo(date: string | Date): string {
+  const now = Date.now()
+  const past = new Date(date).getTime()
+  const diffSec = Math.floor((now - past) / 1000)
+
+  if (diffSec < 60) return 'agora'
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `há ${diffMin}min`
+  const diffHr = Math.floor(diffMin / 60)
+  if (diffHr < 24) return `há ${diffHr}h`
+  const diffDay = Math.floor(diffHr / 24)
+  if (diffDay < 7) return `há ${diffDay}d`
+  return formatDateTime(date)
+}

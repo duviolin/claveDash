@@ -1,4 +1,5 @@
 import { api } from './client'
+import type { DomainEvent } from '@/types'
 
 export interface DashboardStats {
   users: { total: number; students: number; teachers: number; directors: number; admins: number }
@@ -13,5 +14,10 @@ export interface DashboardStats {
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   const { data } = await api.get<DashboardStats>('/dashboard/stats')
+  return data
+}
+
+export async function getRecentEvents(limit: number = 20): Promise<DomainEvent[]> {
+  const { data } = await api.get<DomainEvent[]>('/dashboard/events/recent', { params: { limit } })
   return data
 }

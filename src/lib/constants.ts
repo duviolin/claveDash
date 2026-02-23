@@ -83,3 +83,173 @@ export const DAILY_MISSION_STATUS_VARIANT: Record<DailyMissionTemplateStatus, 'w
   PUBLISHED: 'success',
   ARCHIVED: 'error',
 }
+
+// ── Domain Events ───────────────────────────────────────────
+
+export const EVENT_TYPE_LABELS: Record<string, string> = {
+  USER_CREATED: 'Usuário criado',
+  USER_UPDATED: 'Usuário atualizado',
+  USER_SUSPENDED: 'Usuário suspenso',
+  USER_REACTIVATED: 'Usuário reativado',
+  USER_SOFT_DELETED: 'Usuário removido',
+  USER_RESTORED: 'Usuário restaurado',
+  PASSWORD_CHANGED: 'Senha alterada',
+
+  STUDENT_PROFILE_CREATED: 'Perfil de aluno criado',
+  STUDENT_PROFILE_UPDATED: 'Perfil de aluno atualizado',
+  TEACHER_PROFILE_CREATED: 'Perfil de professor criado',
+  TEACHER_PROFILE_UPDATED: 'Perfil de professor atualizado',
+  STUDENT_CONTEXT_ACTIVATED: 'Contexto de aluno ativado',
+  STUDENT_CONTEXT_DEACTIVATED: 'Contexto de aluno desativado',
+
+  SCHOOL_CREATED: 'Escola criada',
+  SCHOOL_UPDATED: 'Escola atualizada',
+  SCHOOL_ACTIVATED: 'Escola ativada',
+  SCHOOL_DEACTIVATED: 'Escola desativada',
+  SCHOOL_RESTORED: 'Escola restaurada',
+
+  COURSE_CREATED: 'Curso criado',
+  COURSE_UPDATED: 'Curso atualizado',
+  COURSE_ACTIVATED: 'Curso ativado',
+  COURSE_DEACTIVATED: 'Curso desativado',
+  COURSE_RESTORED: 'Curso restaurado',
+
+  SEASON_CREATED: 'Semestre criado',
+  SEASON_UPDATED: 'Semestre atualizado',
+  SEASON_STARTED: 'Semestre iniciado',
+  SEASON_CLOSED: 'Semestre encerrado',
+  SEASON_DEACTIVATED: 'Semestre desativado',
+  SEASON_RESTORED: 'Semestre restaurado',
+
+  CLASS_CREATED: 'Turma criada',
+  CLASS_UPDATED: 'Turma atualizada',
+  CLASS_DEACTIVATED: 'Turma desativada',
+  CLASS_RESTORED: 'Turma restaurada',
+  CLASS_STUDENT_ENROLLED: 'Aluno matriculado',
+  CLASS_STUDENT_TRANSFERRED: 'Aluno transferido',
+  CLASS_STUDENT_DROPPED: 'Aluno desligado',
+  CLASS_TEACHER_ASSIGNED: 'Professor atribuído',
+  CLASS_TEACHER_REMOVED: 'Professor removido',
+
+  PROJECT_TEMPLATE_CREATED: 'Template de projeto criado',
+  PROJECT_TEMPLATE_UPDATED: 'Template de projeto atualizado',
+  PROJECT_TEMPLATE_ACTIVATED: 'Template de projeto ativado',
+  PROJECT_TEMPLATE_DEACTIVATED: 'Template de projeto desativado',
+  PROJECT_TEMPLATE_RESTORED: 'Template de projeto restaurado',
+  PROJECT_INSTANTIATED: 'Projeto instanciado',
+  PROJECT_UPDATED: 'Projeto atualizado',
+  PROJECT_PUBLISHED: 'Projeto publicado',
+  PROJECT_UNPUBLISHED: 'Projeto despublicado',
+  PROJECT_COMPLETED: 'Projeto concluído',
+
+  TRACK_SCENE_TEMPLATE_CREATED: 'Cena de faixa criada',
+  TRACK_SCENE_TEMPLATE_UPDATED: 'Cena de faixa atualizada',
+  TRACK_SCENE_TEMPLATE_DELETED: 'Cena de faixa removida',
+  TRACK_SCENE_TEMPLATE_REORDERED: 'Cena de faixa reordenada',
+  TRACK_SCENE_TEMPLATE_RESTORED: 'Cena de faixa restaurada',
+  TRACK_MATERIAL_TEMPLATE_CREATED: 'Material de faixa criado',
+  TRACK_MATERIAL_TEMPLATE_UPDATED: 'Material de faixa atualizado',
+  TRACK_MATERIAL_TEMPLATE_DELETED: 'Material de faixa removido',
+  TRACK_MATERIAL_TEMPLATE_RESTORED: 'Material de faixa restaurado',
+
+  DAILY_MISSION_TEMPLATE_CREATED: 'Missão diária criada',
+  DAILY_MISSION_TEMPLATE_UPDATED: 'Missão diária atualizada',
+  DAILY_MISSION_TEMPLATE_DEACTIVATED: 'Missão diária desativada',
+  DAILY_MISSION_TEMPLATE_RESTORED: 'Missão diária restaurada',
+  DAILY_MISSION_TEMPLATE_PUBLISHED: 'Missão diária publicada',
+  DAILY_MISSION_QUIZ_CREATED: 'Quiz de missão criado',
+  DAILY_MISSION_QUIZ_UPDATED: 'Quiz de missão atualizado',
+  DAILY_MISSION_QUIZ_DEACTIVATED: 'Quiz de missão desativado',
+  DAILY_MISSION_QUIZ_RESTORED: 'Quiz de missão restaurado',
+  DAILY_MISSION_RELEASED: 'Missão diária liberada',
+  DAILY_MISSION_COMPLETED: 'Missão diária concluída',
+  DAILY_MISSION_COMPLETED_WITH_PENALTY: 'Missão concluída com penalidade',
+  DAILY_MISSION_SKIPPED: 'Missão diária pulada',
+
+  STUDY_TRACK_CATEGORY_CREATED: 'Categoria de estudo criada',
+  STUDY_TRACK_CATEGORY_UPDATED: 'Categoria de estudo atualizada',
+  STUDY_TRACK_CATEGORY_DEACTIVATED: 'Categoria de estudo desativada',
+  STUDY_TRACK_CATEGORY_RESTORED: 'Categoria de estudo restaurada',
+  STUDY_TRACK_TEMPLATE_CREATED: 'Template de estudo criado',
+  STUDY_TRACK_TEMPLATE_UPDATED: 'Template de estudo atualizado',
+  STUDY_TRACK_TEMPLATE_DEACTIVATED: 'Template de estudo desativado',
+  STUDY_TRACK_TEMPLATE_RESTORED: 'Template de estudo restaurado',
+
+  PRESS_QUIZ_TEMPLATE_CREATED: 'Template de quiz press criado',
+  PRESS_QUIZ_TEMPLATE_UPDATED: 'Template de quiz press atualizado',
+  PRESS_QUIZ_TEMPLATE_DEACTIVATED: 'Template de quiz press desativado',
+  PRESS_QUIZ_TEMPLATE_RESTORED: 'Template de quiz press restaurado',
+  PRESS_QUIZ_INSTANTIATED: 'Quiz press instanciado',
+  PRESS_QUIZ_UPDATED: 'Quiz press atualizado',
+  PRESS_QUIZ_ACTIVATED: 'Quiz press ativado',
+  PRESS_QUIZ_PUBLISHED: 'Quiz press publicado',
+  PRESS_QUIZ_ATTEMPTED: 'Quiz press tentado',
+  PRESS_QUIZ_PASSED: 'Quiz press aprovado',
+  PRESS_QUIZ_FAILED: 'Quiz press reprovado',
+
+  SUBMISSION_CREATED: 'Submissão criada',
+  SUBMISSION_REJECTED: 'Submissão rejeitada',
+  SUBMISSION_REVIEWED_POSITIVE: 'Avaliação positiva',
+  SUBMISSION_REVIEWED_CONSTRUCTIVE: 'Avaliação construtiva',
+  SUBMISSION_REVIEWED_CRITICAL: 'Avaliação crítica',
+
+  TRACK_SCENE_UPDATED: 'Cena atualizada',
+  TRACK_SCENE_PUBLISHED: 'Cena publicada',
+  TRACK_SCENE_ARCHIVED: 'Cena arquivada',
+  TRACK_SCENE_COMPLETED: 'Cena concluída',
+  TRACK_MATERIAL_UPDATED: 'Material atualizado',
+  STUDY_TRACK_UPDATED: 'Faixa de estudo atualizada',
+
+  TOUR_STARTED: 'Turnê iniciada',
+  TOUR_PAUSED: 'Turnê pausada',
+  TOUR_RESUMED: 'Turnê retomada',
+  TOUR_BROKEN: 'Turnê quebrada',
+  TOUR_FINISHED: 'Turnê finalizada',
+  STREAK_DAY_DONE: 'Dia de sequência concluído',
+  STREAK_DAY_MISSED: 'Dia de sequência perdido',
+  STREAK_DAY_PAUSED: 'Dia de sequência pausado',
+
+  FAN_EARNED: 'Fã conquistado',
+  FAN_LOST: 'Fã perdido',
+  FAN_ADJUSTED: 'Fãs ajustados',
+  FAN_RECALCULATED: 'Fãs recalculados',
+  FAN_RULE_APPLIED: 'Regra de fã aplicada',
+  CAREER_UPDATED: 'Carreira atualizada',
+  CAREER_LEVEL_UP: 'Nível de carreira subiu',
+  CAREER_RECALCULATED: 'Carreira recalculada',
+
+  STREAK_RULE_APPLIED: 'Regra de sequência aplicada',
+  STREAK_RECALCULATED: 'Sequência recalculada',
+
+  NOTIFICATION_READ: 'Notificação lida',
+  NOTIFICATION_ALL_READ: 'Notificações marcadas como lidas',
+
+  DOMAIN_EVENT_REPLAYED: 'Evento reprocessado',
+  PROJECTION_REBUILT: 'Projeção reconstruída',
+}
+
+export type EventAction = 'created' | 'updated' | 'deleted' | 'restored' | 'status' | 'system'
+
+export function getEventAction(type: string): EventAction {
+  if (type.includes('CREATED') || type.includes('ENROLLED') || type.includes('ASSIGNED') || type.includes('INSTANTIATED')) return 'created'
+  if (type.includes('UPDATED') || type.includes('CHANGED')) return 'updated'
+  if (type.includes('DELETED') || type.includes('DEACTIVATED') || type.includes('REMOVED') || type.includes('DROPPED') || type.includes('SOFT_DELETED') || type.includes('SUSPENDED')) return 'deleted'
+  if (type.includes('RESTORED') || type.includes('REACTIVATED')) return 'restored'
+  if (type.includes('REPLAYED') || type.includes('REBUILT') || type.includes('RECALCULATED')) return 'system'
+  return 'status'
+}
+
+export const EVENT_ACTION_COLORS: Record<EventAction, string> = {
+  created: 'bg-success',
+  updated: 'bg-info',
+  deleted: 'bg-error',
+  restored: 'bg-warning',
+  status: 'bg-accent',
+  system: 'bg-muted',
+}
+
+export const ACTOR_TYPE_LABELS: Record<string, string> = {
+  USER: 'Usuário',
+  SYSTEM: 'Sistema',
+  RULE_ENGINE: 'Motor de Regras',
+}
