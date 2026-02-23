@@ -1,17 +1,20 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { Modal } from '@/components/ui/Modal'
+import { Tabs } from '@/components/ui/Tabs'
+import { Modal, ConfirmModal } from '@/components/ui/Modal'
+import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Pagination } from '@/components/ui/Pagination'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { listCourses, listCoursesPaginated, createCourse, updateCourse } from '@/api/courses'
+import { listCourses, listCoursesPaginated, createCourse, updateCourse, deleteCourse, listDeletedCourses, restoreCourse } from '@/api/courses'
 import { listSchools } from '@/api/schools'
-import type { Course, CourseType, School } from '@/types'
+import { formatDate } from '@/lib/utils'
+import type { Course, CourseType, School, DeactivationErrorDetails, PaginatedResponse } from '@/types'
 import toast from 'react-hot-toast'
 
 const COURSES_PAGE_LIMIT = 10
@@ -23,11 +26,27 @@ export function CoursesListPage() {
   const [schoolFilter, setSchoolFilter] = useState('')
   const [page, setPage] = useState(1)
   const [form, setForm] = useState({ schoolId: '', name: '', type: 'MUSIC' as CourseType })
+  const [deleteTarget, setDeleteTarget] = useState<Course | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
+  const [activeTab, setActiveTab] = useState('active')
+  const [restoreTarget, setRestoreTarget] = useState<Course | null>(null)
+
+  const isTrash = activeTab === 'TRASH'
+
+  const handleTabChange = (key: string) => {
+    setActiveTab(key)
+    setPage(1)
+  }
 
   const setSchoolFilterAndResetPage = (value: string) => {
     setSchoolFilter(value)
     setPage(1)
   }
+
+  const courseTabs = [
+    { key: 'active', label: 'Ativos' },
+    { key: 'TRASH', label: 'Lixeira' },
+  ]
 
   const { data: schoolsResponse } = useQuery({
     queryKey: ['schools'],
@@ -36,11 +55,13 @@ export function CoursesListPage() {
   const schools = schoolsResponse?.data ?? []
 
   const { data: coursesResponse, isLoading } = useQuery({
-    queryKey: ['courses', schoolFilter || 'all', page],
+    queryKey: ['courses', isTrash ? 'deleted' : schoolFilter || 'all', page],
     queryFn: () =>
-      schoolFilter
-        ? listCoursesPaginated({ schoolId: schoolFilter, page, limit: COURSES_PAGE_LIMIT })
-        : listCourses(),
+      isTrash
+        ? listDeletedCourses({ page, limit: COURSES_PAGE_LIMIT })
+        : schoolFilter
+          ? listCoursesPaginated({ schoolId: schoolFilter, page, limit: COURSES_PAGE_LIMIT })
+          : listCourses(),
   })
 
   const courses = Array.isArray(coursesResponse)
@@ -58,6 +79,22 @@ export function CoursesListPage() {
       toast.success(editing ? 'Curso atualizado!' : 'Curso criado!')
       queryClient.invalidateQueries({ queryKey: ['courses'] })
       closeModal()
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteCourse(deleteTarget!.id),
+    onSuccess: () => {
+      toast.success('Curso desativado!')
+      queryClient.invalidateQueries({ queryKey: ['courses'] })
+      setDeleteTarget(null)
+    },
+    onError: (error: any) => {
+      const details = error.response?.data?.details
+      if (error.response?.status === 409 && details) {
+        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details })
+      }
+      setDeleteTarget(null)
     },
   })
 
@@ -103,30 +140,98 @@ export function CoursesListPage() {
       key: 'actions',
       header: 'Ações',
       render: (c: Course) => (
-        <button onClick={() => openEdit(c)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer">
-          <Pencil className="h-4 w-4" />
+        <div className="flex gap-1">
+          <button onClick={() => openEdit(c)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Editar">
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button onClick={() => setDeleteTarget(c)} className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer" title="Excluir">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ]
+
+  const trashColumns = [
+    {
+      key: 'name',
+      header: 'Nome',
+      render: (c: Course) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-text">{c.name}</span>
+          <Badge variant="error">Excluído</Badge>
+        </div>
+      ),
+    },
+    {
+      key: 'type',
+      header: 'Tipo',
+      render: (c: Course) => <Badge variant={c.type === 'MUSIC' ? 'accent' : 'info'}>{c.type}</Badge>,
+    },
+    {
+      key: 'school',
+      header: 'Escola',
+      render: (c: Course) => {
+        const school = schools.find((s: School) => s.id === c.schoolId)
+        return <span className="text-muted">{school?.name || '—'}</span>
+      },
+    },
+    {
+      key: 'deletedAt',
+      header: 'Excluído em',
+      render: (c: Course) => <span className="text-muted">{formatDate(c.updatedAt)}</span>,
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      render: (c: Course) => (
+        <button
+          onClick={() => setRestoreTarget(c)}
+          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
+          title="Restaurar"
+        >
+          <ArchiveRestore className="h-4 w-4" />
         </button>
       ),
     },
   ]
 
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreCourse(restoreTarget!.id),
+    onSuccess: () => {
+      toast.success('Curso restaurado!')
+      queryClient.invalidateQueries({ queryKey: ['courses'] })
+      setRestoreTarget(null)
+    },
+    onSettled: () => setRestoreTarget(null),
+  })
+
   return (
     <PageContainer
       title="Cursos"
       count={pagination?.total ?? courses.length}
-      action={<Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Curso</Button>}
+      action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Curso</Button> : undefined}
     >
-      <div className="flex items-center gap-4">
-        <Select
-          value={schoolFilter}
-          onChange={(e) => setSchoolFilterAndResetPage(e.target.value)}
-          placeholder="Todas as escolas"
-          options={schools.map((s: School) => ({ value: s.id, label: s.name }))}
-          className="max-w-xs"
-        />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs tabs={courseTabs} activeKey={activeTab} onChange={handleTabChange} />
+        {!isTrash && (
+          <Select
+            value={schoolFilter}
+            onChange={(e) => setSchoolFilterAndResetPage(e.target.value)}
+            placeholder="Todas as escolas"
+            options={schools.map((s: School) => ({ value: s.id, label: s.name }))}
+            className="max-w-xs"
+          />
+        )}
       </div>
 
-      <Table columns={columns} data={courses} keyExtractor={(c) => c.id} isLoading={isLoading} />
+      <Table
+        columns={isTrash ? trashColumns : columns}
+        data={courses}
+        keyExtractor={(c) => c.id}
+        isLoading={isLoading}
+        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhum curso encontrado'}
+      />
 
       {pagination && (
         <Pagination
@@ -180,6 +285,34 @@ export function CoursesListPage() {
           />
         </div>
       </Modal>
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteMutation.mutate()}
+        isLoading={deleteMutation.isPending}
+        title="Excluir Curso"
+        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? O curso será desativado.`}
+      />
+
+      <ConfirmModal
+        isOpen={!!restoreTarget}
+        onClose={() => setRestoreTarget(null)}
+        onConfirm={() => restoreMutation.mutate()}
+        isLoading={restoreMutation.isPending}
+        title="Restaurar Curso"
+        message={restoreTarget ? `Tem certeza que deseja restaurar "${restoreTarget.name}"?` : ''}
+        confirmLabel="Restaurar"
+        variant="primary"
+      />
+
+      <DeactivationBlockedModal
+        isOpen={!!blockedInfo}
+        onClose={() => setBlockedInfo(null)}
+        entityName={blockedInfo?.name ?? ''}
+        parentId={blockedInfo?.id ?? ''}
+        details={blockedInfo?.details ?? null}
+      />
     </PageContainer>
   )
 }

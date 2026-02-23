@@ -1,15 +1,21 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, Send, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react'
+import { Plus, Pencil, Trash2, Send, ChevronDown, ChevronRight, HelpCircle, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
+import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Tabs } from '@/components/ui/Tabs'
 import { Modal, ConfirmModal } from '@/components/ui/Modal'
+import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
+import { Pagination } from '@/components/ui/Pagination'
 import {
   listDailyMissionTemplates,
+  listDeletedDailyMissionTemplates,
+  restoreDailyMissionTemplate,
   createDailyMissionTemplate,
   updateDailyMissionTemplate,
   deleteDailyMissionTemplate,
@@ -18,25 +24,46 @@ import {
 } from '@/api/dailyMissions'
 import { listCourses } from '@/api/courses'
 import { DAILY_MISSION_STATUS_LABELS, DAILY_MISSION_STATUS_VARIANT } from '@/lib/constants'
-import type { DailyMissionTemplate, Course } from '@/types'
+import { formatDate } from '@/lib/utils'
+import type { DailyMissionTemplate, Course, DeactivationErrorDetails } from '@/types'
 import toast from 'react-hot-toast'
+
+const DAILY_MISSION_PAGE_LIMIT = 10
+const tabs = [
+  { key: 'active', label: 'Ativos' },
+  { key: 'TRASH', label: 'Lixeira' },
+]
 
 export function DailyMissionTemplatesPage() {
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<DailyMissionTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DailyMissionTemplate | null>(null)
+  const [restoreTarget, setRestoreTarget] = useState<DailyMissionTemplate | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
   const [courseFilter, setCourseFilter] = useState('')
   const [expandedMission, setExpandedMission] = useState<string | null>(null)
   const [form, setForm] = useState({ courseId: '', title: '', videoUrl: '' })
+  const [activeTab, setActiveTab] = useState('active')
+  const [page, setPage] = useState(1)
+
+  const isTrash = activeTab === 'TRASH'
 
   const { data: courses = [] } = useQuery({ queryKey: ['courses'], queryFn: () => listCourses() })
 
   const { data: missions = [], isLoading } = useQuery({
     queryKey: ['daily-mission-templates', courseFilter],
     queryFn: () => listDailyMissionTemplates(courseFilter || undefined),
-    enabled: !!courseFilter,
+    enabled: !!courseFilter && !isTrash,
   })
+
+  const { data: deletedResponse, isLoading: isLoadingDeleted } = useQuery({
+    queryKey: ['daily-mission-templates', 'deleted', page],
+    queryFn: () => listDeletedDailyMissionTemplates({ page, limit: DAILY_MISSION_PAGE_LIMIT }),
+    enabled: isTrash,
+  })
+  const deletedMissions = deletedResponse?.data ?? []
+  const pagination = deletedResponse?.pagination
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -67,18 +94,102 @@ export function DailyMissionTemplatesPage() {
       queryClient.invalidateQueries({ queryKey: ['daily-mission-templates'] })
       setDeleteTarget(null)
     },
+    onError: (error: any) => {
+      const details = error.response?.data?.details
+      if (error.response?.status === 409 && details) {
+        setBlockedInfo({ name: deleteTarget!.title, id: deleteTarget!.id, details })
+      }
+      setDeleteTarget(null)
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreDailyMissionTemplate(restoreTarget!.id),
+    onSuccess: () => {
+      toast.success('Missão restaurada!')
+      queryClient.invalidateQueries({ queryKey: ['daily-mission-templates'] })
+      setRestoreTarget(null)
+    },
   })
 
   const openCreate = () => { setEditing(null); setForm({ courseId: '', title: '', videoUrl: '' }); setModalOpen(true) }
   const openEdit = (m: DailyMissionTemplate) => { setEditing(m); setForm({ courseId: m.courseId, title: m.title, videoUrl: m.videoUrl || '' }); setModalOpen(true) }
   const closeModal = () => { setModalOpen(false); setEditing(null) }
 
+  const trashColumns = [
+    {
+      key: 'title',
+      header: 'Título',
+      render: (m: DailyMissionTemplate) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-text">{m.title}</span>
+          <Badge variant="error">Excluído</Badge>
+        </div>
+      ),
+    },
+    {
+      key: 'course',
+      header: 'Curso',
+      render: (m: DailyMissionTemplate) => {
+        const course = courses.find((c: Course) => c.id === m.courseId)
+        return <span className="text-muted">{course?.name ?? '—'}</span>
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (m: DailyMissionTemplate) => (
+        <Badge variant={DAILY_MISSION_STATUS_VARIANT[m.status]}>{DAILY_MISSION_STATUS_LABELS[m.status]}</Badge>
+      ),
+    },
+    {
+      key: 'deletedAt',
+      header: 'Excluído em',
+      render: (m: DailyMissionTemplate) => <span className="text-muted">{formatDate(m.updatedAt)}</span>,
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      render: (m: DailyMissionTemplate) => (
+        <button
+          onClick={() => setRestoreTarget(m)}
+          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
+          title="Restaurar"
+        >
+          <ArchiveRestore className="h-4 w-4" />
+        </button>
+      ),
+    },
+  ]
+
   return (
     <PageContainer
       title="Missões Diárias"
-      count={missions.length}
-      action={<Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Missão</Button>}
+      count={isTrash ? (pagination?.total ?? deletedMissions.length) : missions.length}
+      action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Missão</Button> : undefined}
     >
+      <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+
+      {isTrash ? (
+        <>
+          <Table
+            columns={trashColumns}
+            data={deletedMissions}
+            keyExtractor={(m) => m.id}
+            isLoading={isLoadingDeleted}
+            emptyMessage="A lixeira está vazia"
+          />
+          {pagination && (
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              onPageChange={setPage}
+            />
+          )}
+        </>
+      ) : (
+        <>
       <Select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} placeholder="Todos os cursos" options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} className="max-w-xs" />
 
       {isLoading ? (
@@ -114,6 +225,8 @@ export function DailyMissionTemplatesPage() {
           {missions.length === 0 && <p className="text-center text-sm text-muted py-8">Nenhuma missão encontrada</p>}
         </div>
       )}
+        </>
+      )}
 
       <Modal isOpen={modalOpen} onClose={closeModal} title={editing ? 'Editar Missão' : 'Criar Missão'} footer={
         <><Button variant="secondary" onClick={closeModal}>Cancelar</Button><Button onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>{editing ? 'Salvar' : 'Criar'}</Button></>
@@ -126,6 +239,24 @@ export function DailyMissionTemplatesPage() {
       </Modal>
 
       <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMutation.mutate()} isLoading={deleteMutation.isPending} title="Desativar Missão" message={`Desativar "${deleteTarget?.title}"?`} />
+
+      <ConfirmModal
+        isOpen={!!restoreTarget}
+        onClose={() => setRestoreTarget(null)}
+        onConfirm={() => restoreMutation.mutate()}
+        isLoading={restoreMutation.isPending}
+        title="Restaurar Missão"
+        message={`Tem certeza que deseja restaurar "${restoreTarget?.title}"?`}
+        confirmLabel="Restaurar"
+      />
+
+      <DeactivationBlockedModal
+        isOpen={!!blockedInfo}
+        onClose={() => setBlockedInfo(null)}
+        entityName={blockedInfo?.name ?? ''}
+        parentId={blockedInfo?.id ?? ''}
+        details={blockedInfo?.details ?? null}
+      />
     </PageContainer>
   )
 }

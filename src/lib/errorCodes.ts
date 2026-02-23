@@ -57,9 +57,7 @@ export const ERROR_HANDLERS: Record<string, ErrorHandler> = {
   // ── Conflict ──────────────────────────────────────
   CONFLICT_DUPLICATE: { message: 'Este registro já existe' },
   CONFLICT_ALREADY_EXISTS: { message: 'Registro já cadastrado' },
-  CONFLICT_INVALID_STATE: {
-    message: 'Operação não permitida no estado atual',
-  },
+  CONFLICT_INVALID_STATE: {},
 
   // ── Business ──────────────────────────────────────
   BUSINESS_SELF_ACTION: { message: 'Não é possível realizar esta ação em si mesmo' },

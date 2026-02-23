@@ -270,6 +270,14 @@ export interface MeResponse {
   }
 }
 
+export interface DeactivationErrorDetails {
+  childResource: string
+  count?: number
+  names?: string[]
+  studentsCount?: number
+  teachersCount?: number
+}
+
 export interface ApiError {
   error: string
 }

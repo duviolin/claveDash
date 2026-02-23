@@ -1,31 +1,48 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { Modal } from '@/components/ui/Modal'
+import { Tabs } from '@/components/ui/Tabs'
+import { Modal, ConfirmModal } from '@/components/ui/Modal'
+import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Pagination } from '@/components/ui/Pagination'
-import { listSchools, createSchool, updateSchool } from '@/api/schools'
+import { listSchools, createSchool, updateSchool, deleteSchool, listDeletedSchools, restoreSchool } from '@/api/schools'
 import { listUsers } from '@/api/users'
-import type { School, User } from '@/types'
+import { formatDate } from '@/lib/utils'
+import type { School, User, DeactivationErrorDetails } from '@/types'
 import toast from 'react-hot-toast'
 
 const SCHOOLS_PAGE_LIMIT = 10
 
+const tabs = [
+  { key: 'active', label: 'Ativas' },
+  { key: 'TRASH', label: 'Lixeira' },
+]
+
 export function SchoolsListPage() {
   const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState('active')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<School | null>(null)
   const [form, setForm] = useState({ name: '', directorId: '' })
+  const [deleteTarget, setDeleteTarget] = useState<School | null>(null)
+  const [restoreTarget, setRestoreTarget] = useState<School | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
   const [page, setPage] = useState(1)
 
+  const isTrash = activeTab === 'TRASH'
+
   const { data: schoolsResponse, isLoading } = useQuery({
-    queryKey: ['schools', page],
-    queryFn: () => listSchools({ page, limit: SCHOOLS_PAGE_LIMIT }),
+    queryKey: ['schools', activeTab, page],
+    queryFn: () =>
+      isTrash
+        ? listDeletedSchools({ page, limit: SCHOOLS_PAGE_LIMIT })
+        : listSchools({ page, limit: SCHOOLS_PAGE_LIMIT }),
   })
   const schools = schoolsResponse?.data ?? []
   const pagination = schoolsResponse?.pagination
@@ -51,6 +68,31 @@ export function SchoolsListPage() {
       toast.success(editing ? 'Escola atualizada!' : 'Escola criada!')
       queryClient.invalidateQueries({ queryKey: ['schools'] })
       closeModal()
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteSchool(deleteTarget!.id),
+    onSuccess: () => {
+      toast.success('Escola desativada!')
+      queryClient.invalidateQueries({ queryKey: ['schools'] })
+      setDeleteTarget(null)
+    },
+    onError: (error: any) => {
+      const details = error.response?.data?.details
+      if (error.response?.status === 409 && details) {
+        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details })
+      }
+      setDeleteTarget(null)
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreSchool(restoreTarget!.id),
+    onSuccess: () => {
+      toast.success('Escola restaurada!')
+      queryClient.invalidateQueries({ queryKey: ['schools'] })
+      setRestoreTarget(null)
     },
   })
 
@@ -96,11 +138,60 @@ export function SchoolsListPage() {
       key: 'actions',
       header: 'Ações',
       render: (s: School) => (
+        <div className="flex gap-1">
+          <button
+            onClick={() => openEdit(s)}
+            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
+            title="Editar"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setDeleteTarget(s)}
+            className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"
+            title="Excluir"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ]
+
+  const trashColumns = [
+    {
+      key: 'name',
+      header: 'Nome',
+      render: (s: School) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-text">{s.name}</span>
+          <Badge variant="error">Excluída</Badge>
+        </div>
+      ),
+    },
+    {
+      key: 'director',
+      header: 'Diretor',
+      render: (s: School) => {
+        const director = allDirectors.find((d) => d.id === s.directorId)
+        return <span className="text-muted">{director?.name || '—'}</span>
+      },
+    },
+    {
+      key: 'deletedAt',
+      header: 'Excluída em',
+      render: (s: School) => <span className="text-muted">{formatDate(s.updatedAt)}</span>,
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      render: (s: School) => (
         <button
-          onClick={() => openEdit(s)}
-          className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
+          onClick={() => setRestoreTarget(s)}
+          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
+          title="Restaurar"
         >
-          <Pencil className="h-4 w-4" />
+          <ArchiveRestore className="h-4 w-4" />
         </button>
       ),
     },
@@ -111,12 +202,21 @@ export function SchoolsListPage() {
       title="Escolas"
       count={pagination?.total ?? schools.length}
       action={
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" /> Criar Escola
-        </Button>
+        !isTrash ? (
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" /> Criar Escola
+          </Button>
+        ) : undefined
       }
     >
-      <Table columns={columns} data={schools} keyExtractor={(s) => s.id} isLoading={isLoading} />
+      <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+      <Table
+        columns={isTrash ? trashColumns : columns}
+        data={schools}
+        keyExtractor={(s) => s.id}
+        isLoading={isLoading}
+        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhuma escola encontrada'}
+      />
 
       {pagination && (
         <Pagination
@@ -158,6 +258,33 @@ export function SchoolsListPage() {
           />
         </div>
       </Modal>
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteMutation.mutate()}
+        isLoading={deleteMutation.isPending}
+        title="Excluir Escola"
+        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? A escola será desativada.`}
+      />
+
+      <ConfirmModal
+        isOpen={!!restoreTarget}
+        onClose={() => setRestoreTarget(null)}
+        onConfirm={() => restoreMutation.mutate()}
+        isLoading={restoreMutation.isPending}
+        title="Restaurar Escola"
+        message={`Tem certeza que deseja restaurar "${restoreTarget?.name}"?`}
+        confirmLabel="Restaurar"
+      />
+
+      <DeactivationBlockedModal
+        isOpen={!!blockedInfo}
+        onClose={() => setBlockedInfo(null)}
+        entityName={blockedInfo?.name ?? ''}
+        parentId={blockedInfo?.id ?? ''}
+        details={blockedInfo?.details ?? null}
+      />
     </PageContainer>
   )
 }

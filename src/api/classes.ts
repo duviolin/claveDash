@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { Class } from '@/types'
+import type { Class, PaginatedResponse } from '@/types'
 
 export async function listClasses(seasonId?: string) {
   const { data } = await api.get<Class[]>('/classes', { params: { seasonId } })
@@ -23,6 +23,16 @@ export async function updateClass(id: string, payload: { name?: string; maxStude
 
 export async function deleteClass(id: string) {
   const { data } = await api.delete(`/classes/${id}`)
+  return data
+}
+
+export async function listDeletedClasses(params: { page: number; limit: number }): Promise<PaginatedResponse<Class>> {
+  const { data } = await api.get<PaginatedResponse<Class>>('/classes/deleted', { params })
+  return data
+}
+
+export async function restoreClass(id: string) {
+  const { data } = await api.patch<Class>(`/classes/${id}/restore`)
   return data
 }
 

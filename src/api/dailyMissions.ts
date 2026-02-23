@@ -1,8 +1,18 @@
 import { api } from './client'
-import type { DailyMissionTemplate, DailyMissionQuiz, QuizQuestion } from '@/types'
+import type { DailyMissionTemplate, DailyMissionQuiz, QuizQuestion, PaginatedResponse } from '@/types'
 
 export async function listDailyMissionTemplates(courseId?: string) {
   const { data } = await api.get<DailyMissionTemplate[]>('/daily-mission-templates', { params: { courseId } })
+  return data
+}
+
+export async function listDeletedDailyMissionTemplates(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<DailyMissionTemplate>>('/daily-mission-templates/deleted', { params })
+  return data
+}
+
+export async function restoreDailyMissionTemplate(id: string) {
+  const { data } = await api.patch<DailyMissionTemplate>(`/daily-mission-templates/${id}/restore`)
   return data
 }
 

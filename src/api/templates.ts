@@ -1,6 +1,7 @@
 import { api } from './client'
 import type {
   ProjectTemplate,
+  PaginatedResponse,
   TrackSceneTemplate,
   TrackMaterialTemplate,
   TrackMaterialType,
@@ -34,6 +35,16 @@ export async function updateProjectTemplate(id: string, payload: { name?: string
 
 export async function deleteProjectTemplate(id: string) {
   const { data } = await api.delete(`/project-templates/${id}`)
+  return data
+}
+
+export async function listDeletedProjectTemplates(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<ProjectTemplate>>('/project-templates/deleted', { params })
+  return data
+}
+
+export async function restoreProjectTemplate(id: string) {
+  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${id}/restore`)
   return data
 }
 
@@ -92,6 +103,16 @@ export async function deleteMaterialTemplate(id: string) {
 // --- Study Track Categories ---
 export async function listStudyTrackCategories(courseId?: string) {
   const { data } = await api.get<StudyTrackCategory[]>('/study-track-categories', { params: { courseId } })
+  return data
+}
+
+export async function listDeletedStudyTrackCategories(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<StudyTrackCategory>>('/study-track-categories/deleted', { params })
+  return data
+}
+
+export async function restoreStudyTrackCategory(id: string) {
+  const { data } = await api.patch<StudyTrackCategory>(`/study-track-categories/${id}/restore`)
   return data
 }
 

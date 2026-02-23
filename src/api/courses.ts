@@ -30,3 +30,13 @@ export async function deleteCourse(id: string) {
   const { data } = await api.delete(`/courses/${id}`)
   return data
 }
+
+export async function listDeletedCourses(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<Course>>('/courses/deleted', { params })
+  return data
+}
+
+export async function restoreCourse(id: string) {
+  const { data } = await api.patch<Course>(`/courses/${id}/restore`)
+  return data
+}

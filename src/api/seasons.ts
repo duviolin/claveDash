@@ -1,6 +1,16 @@
 import { api } from './client'
 import type { Season, SeasonStatus, PaginatedResponse } from '@/types'
 
+export async function listDeletedSeasons(params: { page: number; limit: number }): Promise<PaginatedResponse<Season>> {
+  const { data } = await api.get<PaginatedResponse<Season>>('/seasons/deleted', { params })
+  return data
+}
+
+export async function restoreSeason(id: string): Promise<Season> {
+  const { data } = await api.patch<Season>(`/seasons/${id}/restore`)
+  return data
+}
+
 export async function listSeasons(courseId?: string) {
   const { data } = await api.get<Season[]>('/seasons', { params: { courseId } })
   return data
@@ -37,6 +47,5 @@ export async function updateSeason(id: string, payload: {
 }
 
 export async function deleteSeason(id: string) {
-  const { data } = await api.delete(`/seasons/${id}`)
-  return data
+  await api.delete(`/seasons/${id}`)
 }

@@ -1,36 +1,63 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Eye, Trash2 } from 'lucide-react'
+import { Plus, Eye, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { Tabs } from '@/components/ui/Tabs'
 import { Modal, ConfirmModal } from '@/components/ui/Modal'
+import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
-import { listProjectTemplates, createProjectTemplate, deleteProjectTemplate } from '@/api/templates'
+import { Pagination } from '@/components/ui/Pagination'
+import { listProjectTemplates, createProjectTemplate, deleteProjectTemplate, listDeletedProjectTemplates, restoreProjectTemplate } from '@/api/templates'
 import { listCourses } from '@/api/courses'
 import { PROJECT_TYPE_LABELS } from '@/lib/constants'
-import type { ProjectTemplate, ProjectType, Course } from '@/types'
+import { formatDate } from '@/lib/utils'
+import type { ProjectTemplate, ProjectType, Course, DeactivationErrorDetails } from '@/types'
 import toast from 'react-hot-toast'
+
+const TRASH_PAGE_LIMIT = 20
+
+const tabs = [
+  { key: 'active', label: 'Ativos' },
+  { key: 'TRASH', label: 'Lixeira' },
+]
 
 export function ProjectTemplatesListPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState('active')
+  const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<ProjectTemplate | null>(null)
+  const [restoreTarget, setRestoreTarget] = useState<ProjectTemplate | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
   const [courseFilter, setCourseFilter] = useState('')
   const [form, setForm] = useState({ courseId: '', name: '', type: 'ALBUM' as ProjectType, description: '' })
 
+  const isTrash = activeTab === 'TRASH'
+
   const { data: courses = [] } = useQuery({ queryKey: ['courses'], queryFn: () => listCourses() })
 
-  const { data: templates = [], isLoading } = useQuery({
+  const { data: templates = [], isLoading: isLoadingActive } = useQuery({
     queryKey: ['project-templates', courseFilter],
     queryFn: () => listProjectTemplates(courseFilter || undefined),
-    enabled: !!courseFilter,
+    enabled: !!courseFilter && !isTrash,
   })
+
+  const { data: deletedResponse, isLoading: isLoadingTrash } = useQuery({
+    queryKey: ['project-templates', 'deleted', page],
+    queryFn: () => listDeletedProjectTemplates({ page, limit: TRASH_PAGE_LIMIT }),
+    enabled: isTrash,
+  })
+
+  const templatesList = isTrash ? (deletedResponse?.data ?? []) : templates
+  const pagination = deletedResponse?.pagination
+  const isLoading = isTrash ? isLoadingTrash : isLoadingActive
 
   const createMutation = useMutation({
     mutationFn: () => createProjectTemplate({
@@ -52,6 +79,22 @@ export function ProjectTemplatesListPage() {
       toast.success('Template desativado!')
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
       setDeleteTarget(null)
+    },
+    onError: (error: any) => {
+      const details = error.response?.data?.details
+      if (error.response?.status === 409 && details) {
+        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details })
+      }
+      setDeleteTarget(null)
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreProjectTemplate(restoreTarget!.id),
+    onSuccess: () => {
+      toast.success('Template restaurado!')
+      queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+      setRestoreTarget(null)
     },
   })
 
@@ -95,21 +138,90 @@ export function ProjectTemplatesListPage() {
     },
   ]
 
+  const trashColumns = [
+    {
+      key: 'name',
+      header: 'Nome',
+      render: (t: ProjectTemplate) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-text">{t.name}</span>
+          <Badge variant="error">Excluído</Badge>
+        </div>
+      ),
+    },
+    {
+      key: 'type',
+      header: 'Tipo',
+      render: (t: ProjectTemplate) => <Badge variant={t.type === 'ALBUM' ? 'accent' : 'info'}>{PROJECT_TYPE_LABELS[t.type]}</Badge>,
+    },
+    {
+      key: 'course',
+      header: 'Curso',
+      render: (t: ProjectTemplate) => {
+        const course = courses.find((c: Course) => c.id === t.courseId)
+        return <span className="text-muted">{course?.name || '—'}</span>
+      },
+    },
+    {
+      key: 'deletedAt',
+      header: 'Excluído em',
+      render: (t: ProjectTemplate) => <span className="text-muted">{formatDate(t.updatedAt)}</span>,
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      render: (t: ProjectTemplate) => (
+        <button
+          onClick={() => setRestoreTarget(t)}
+          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
+          title="Restaurar"
+        >
+          <ArchiveRestore className="h-4 w-4" />
+        </button>
+      ),
+    },
+  ]
+
   return (
     <PageContainer
       title="Templates de Projeto"
-      count={templates.length}
-      action={<Button onClick={() => { setForm({ courseId: '', name: '', type: 'ALBUM', description: '' }); setModalOpen(true) }}><Plus className="h-4 w-4" /> Criar Template</Button>}
+      count={pagination?.total ?? templatesList.length}
+      action={
+        !isTrash ? (
+          <Button onClick={() => { setForm({ courseId: '', name: '', type: 'ALBUM', description: '' }); setModalOpen(true) }}>
+            <Plus className="h-4 w-4" /> Criar Template
+          </Button>
+        ) : undefined
+      }
     >
-      <Select
-        value={courseFilter}
-        onChange={(e) => setCourseFilter(e.target.value)}
-        placeholder="Todos os cursos"
-        options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
-        className="max-w-xs"
+      <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+
+      {!isTrash && (
+        <Select
+          value={courseFilter}
+          onChange={(e) => setCourseFilter(e.target.value)}
+          placeholder="Todos os cursos"
+          options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
+          className="max-w-xs"
+        />
+      )}
+
+      <Table
+        columns={isTrash ? trashColumns : columns}
+        data={templatesList}
+        keyExtractor={(t) => t.id}
+        isLoading={isLoading}
+        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhum template encontrado'}
       />
 
-      <Table columns={columns} data={templates} keyExtractor={(t) => t.id} isLoading={isLoading} />
+      {isTrash && pagination && (
+        <Pagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          onPageChange={setPage}
+        />
+      )}
 
       <Modal
         isOpen={modalOpen}
@@ -137,6 +249,24 @@ export function ProjectTemplatesListPage() {
         isLoading={deleteMutation.isPending}
         title="Desativar Template"
         message={`Tem certeza que deseja desativar "${deleteTarget?.name}"? Esta ação desativa o registro.`}
+      />
+
+      <ConfirmModal
+        isOpen={!!restoreTarget}
+        onClose={() => setRestoreTarget(null)}
+        onConfirm={() => restoreMutation.mutate()}
+        isLoading={restoreMutation.isPending}
+        title="Restaurar Template"
+        message={`Tem certeza que deseja restaurar "${restoreTarget?.name}"?`}
+        confirmLabel="Restaurar"
+      />
+
+      <DeactivationBlockedModal
+        isOpen={!!blockedInfo}
+        onClose={() => setBlockedInfo(null)}
+        entityName={blockedInfo?.name ?? ''}
+        parentId={blockedInfo?.id ?? ''}
+        details={blockedInfo?.details ?? null}
       />
     </PageContainer>
   )

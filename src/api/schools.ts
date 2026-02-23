@@ -25,3 +25,13 @@ export async function deleteSchool(id: string) {
   const { data } = await api.delete(`/schools/${id}`)
   return data
 }
+
+export async function listDeletedSchools(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<School>>('/schools/deleted', { params })
+  return data
+}
+
+export async function restoreSchool(id: string) {
+  const { data } = await api.patch<School>(`/schools/${id}/restore`)
+  return data
+}
