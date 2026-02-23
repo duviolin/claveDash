@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { Pagination } from '@/components/ui/Pagination'
+import type { AxiosError } from 'axios'
 import { listProjectTemplates, createProjectTemplate, deleteProjectTemplate, listDeletedProjectTemplates, restoreProjectTemplate } from '@/api/templates'
 import { listCourses } from '@/api/courses'
 import { PROJECT_TYPE_LABELS } from '@/lib/constants'
@@ -80,10 +81,10 @@ export function ProjectTemplatesListPage() {
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
       setDeleteTarget(null)
     },
-    onError: (error: any) => {
-      const details = error.response?.data?.details
-      if (error.response?.status === 409 && details) {
-        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details })
+    onError: (error: unknown) => {
+      const err = error as AxiosError<{ details: DeactivationErrorDetails }>
+      if (err.response?.status === 409 && err.response?.data?.details) {
+        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details: err.response.data.details })
       }
       setDeleteTarget(null)
     },

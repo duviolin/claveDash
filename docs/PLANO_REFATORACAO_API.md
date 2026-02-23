@@ -39,7 +39,9 @@
 
 ---
 
-## Gaps remanescentes (documentados no ROADMAP do backend)
+## Gaps remanescentes
 
-- Backend precisa expandir validação de soft delete para templates (Fase 8)
-- Frontend precisa expandir CHILD_NAV no DeactivationBlockedModal quando backend implementar
+- ~~Backend precisa expandir validação de soft delete para templates (Fase 8)~~ ✅ Concluído
+- ~~Frontend precisa expandir CHILD_NAV no DeactivationBlockedModal quando backend implementar~~ ✅ Concluído
+
+Todos os gaps da Fase 8 foram resolvidos em 23/02/2026.

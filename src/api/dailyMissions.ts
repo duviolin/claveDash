@@ -1,6 +1,13 @@
 import { api } from './client'
 import type { DailyMissionTemplate, DailyMissionQuiz, QuizQuestion, PaginatedResponse } from '@/types'
 
+/** Only fields that can be updated on a daily mission quiz (PATCH). */
+interface UpdateDailyMissionQuizPayload {
+  questionsJson?: QuizQuestion[] | null
+  maxAttemptsPerDay?: number
+  allowRecoveryAttempt?: boolean
+}
+
 export async function listDailyMissionTemplates(courseId?: string) {
   const { data } = await api.get<DailyMissionTemplate[]>('/daily-mission-templates', { params: { courseId } })
   return data
@@ -41,7 +48,7 @@ export async function createDailyMissionQuiz(missionId: string, payload: { quest
   return data
 }
 
-export async function updateDailyMissionQuiz(id: string, payload: Partial<DailyMissionQuiz>) {
+export async function updateDailyMissionQuiz(id: string, payload: UpdateDailyMissionQuizPayload) {
   const { data } = await api.patch<DailyMissionQuiz>(`/daily-mission-quizzes/${id}`, payload)
   return data
 }

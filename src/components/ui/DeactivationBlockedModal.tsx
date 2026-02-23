@@ -19,6 +19,17 @@ const CHILD_NAV: Record<string, { label: string; buildUrl: (parentId: string) =>
   students: { label: 'Alunos', buildUrl: (id) => `/classes/${id}` },
   teachers: { label: 'Professores', buildUrl: (id) => `/classes/${id}` },
   members: { label: 'Membros', buildUrl: (id) => `/classes/${id}` },
+  // Template entities (backend 409 childResource)
+  projectTemplates: { label: 'Templates de Projeto', buildUrl: (id) => `/templates/projects?courseId=${id}` },
+  dailyMissionTemplates: { label: 'Missões Diárias', buildUrl: (id) => `/templates/projects/${id}` },
+  studyTrackCategories: { label: 'Categorias de Trilha', buildUrl: (id) => `/templates/study-categories?courseId=${id}` },
+  trackSceneTemplates: { label: 'Cenas', buildUrl: (id) => `/templates/projects/${id}` },
+  projects: { label: 'Projetos', buildUrl: () => `/instances/projects` },
+  pressQuizTemplates: { label: 'Press Quizzes', buildUrl: (id) => `/templates/projects/${id}` },
+  studyTrackTemplates: { label: 'Trilhas de Estudo', buildUrl: (id) => `/templates/projects/${id}` },
+  trackMaterialTemplates: { label: 'Materiais', buildUrl: (id) => `/templates/projects/${id}` },
+  dailyMissionQuizzes: { label: 'Quizzes', buildUrl: (id) => `/templates/projects/${id}` },
+  schools: { label: 'Escolas', buildUrl: () => `/schools` },
 }
 
 export function DeactivationBlockedModal({

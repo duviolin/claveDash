@@ -11,6 +11,7 @@ import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedMod
 import { Pagination } from '@/components/ui/Pagination'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
+import type { AxiosError } from 'axios'
 import { listCourses, listCoursesPaginated, createCourse, updateCourse, deleteCourse, listDeletedCourses, restoreCourse } from '@/api/courses'
 import { listSchools } from '@/api/schools'
 import { formatDate } from '@/lib/utils'
@@ -89,10 +90,10 @@ export function CoursesListPage() {
       queryClient.invalidateQueries({ queryKey: ['courses'] })
       setDeleteTarget(null)
     },
-    onError: (error: any) => {
-      const details = error.response?.data?.details
-      if (error.response?.status === 409 && details) {
-        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details })
+    onError: (error: unknown) => {
+      const err = error as AxiosError<{ details: DeactivationErrorDetails }>
+      if (err.response?.status === 409 && err.response?.data?.details) {
+        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details: err.response.data.details })
       }
       setDeleteTarget(null)
     },

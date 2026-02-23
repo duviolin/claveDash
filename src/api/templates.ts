@@ -12,6 +12,75 @@ import type {
   QuizQuestion,
 } from '@/types'
 
+// Payload types for template APIs (only updatable fields)
+interface CreateTrackTemplatePayload {
+  title: string
+  artist?: string
+  description?: string
+  technicalInstruction?: string
+  lyrics?: string
+  unlockAfterTrackId?: string
+  demoRequired?: boolean
+  pressQuizRequired?: boolean
+}
+interface UpdateTrackTemplatePayload {
+  title?: string
+  artist?: string | null
+  description?: string | null
+  technicalInstruction?: string | null
+  lyrics?: string | null
+  unlockAfterTrackId?: string | null
+  demoRequired?: boolean
+  pressQuizRequired?: boolean
+}
+interface UpdateMaterialTemplatePayload {
+  type?: TrackMaterialType
+  title?: string
+  defaultContentUrl?: string | null
+  defaultTextContent?: string | null
+  isRequired?: boolean
+}
+interface UpdateStudyTrackCategoryPayload {
+  name?: string
+  key?: string
+  icon?: string | null
+  color?: string | null
+  description?: string | null
+}
+interface CreateStudyTrackTemplatePayload {
+  title: string
+  categoryId?: string
+  categoryKey?: string
+  description?: string
+  technicalNotes?: string
+  videoUrl?: string
+  audioUrl?: string
+  pdfUrl?: string
+  estimatedMinutes?: number
+  isRequired?: boolean
+  isVisible?: boolean
+}
+interface UpdateStudyTrackTemplatePayload {
+  title?: string
+  categoryId?: string | null
+  categoryKey?: string | null
+  description?: string | null
+  technicalNotes?: string | null
+  videoUrl?: string | null
+  audioUrl?: string | null
+  pdfUrl?: string | null
+  estimatedMinutes?: number
+  isRequired?: boolean
+  isVisible?: boolean
+}
+interface UpdatePressQuizTemplatePayload {
+  title?: string
+  description?: string | null
+  questionsJson?: QuizQuestion[] | null
+  maxAttempts?: number
+  passingScore?: number
+}
+
 // --- Project Templates ---
 export async function listProjectTemplates(courseId?: string) {
   const { data } = await api.get<ProjectTemplate[]>('/project-templates', { params: { courseId } })
@@ -58,12 +127,12 @@ export async function getTrackTemplate(id: string) {
   return data
 }
 
-export async function createTrackTemplate(projectTemplateId: string, payload: Partial<TrackSceneTemplate>) {
+export async function createTrackTemplate(projectTemplateId: string, payload: CreateTrackTemplatePayload) {
   const { data } = await api.post<TrackSceneTemplate>(`/project-templates/${projectTemplateId}/tracks`, payload)
   return data
 }
 
-export async function updateTrackTemplate(id: string, payload: Partial<TrackSceneTemplate>) {
+export async function updateTrackTemplate(id: string, payload: UpdateTrackTemplatePayload) {
   const { data } = await api.patch<TrackSceneTemplate>(`/track-templates/${id}`, payload)
   return data
 }
@@ -88,7 +157,7 @@ export async function createMaterialTemplate(trackTemplateId: string, payload: {
   return data
 }
 
-export async function updateMaterialTemplate(id: string, payload: Partial<TrackMaterialTemplate>) {
+export async function updateMaterialTemplate(id: string, payload: UpdateMaterialTemplatePayload) {
   const { data } = await api.patch<TrackMaterialTemplate>(`/material-templates/${id}`, payload)
   return data
 }
@@ -118,7 +187,7 @@ export async function createStudyTrackCategory(payload: { courseId: string; name
   return data
 }
 
-export async function updateStudyTrackCategory(id: string, payload: Partial<StudyTrackCategory>) {
+export async function updateStudyTrackCategory(id: string, payload: UpdateStudyTrackCategoryPayload) {
   const { data } = await api.patch<StudyTrackCategory>(`/study-track-categories/${id}`, payload)
   return data
 }
@@ -133,12 +202,12 @@ export async function listStudyTrackTemplates(trackTemplateId: string) {
   return data
 }
 
-export async function createStudyTrackTemplate(trackTemplateId: string, payload: Partial<StudyTrackTemplate>) {
+export async function createStudyTrackTemplate(trackTemplateId: string, payload: CreateStudyTrackTemplatePayload) {
   const { data } = await api.post<StudyTrackTemplate>(`/track-templates/${trackTemplateId}/study-tracks`, payload)
   return data
 }
 
-export async function updateStudyTrackTemplate(id: string, payload: Partial<StudyTrackTemplate>) {
+export async function updateStudyTrackTemplate(id: string, payload: UpdateStudyTrackTemplatePayload) {
   const { data } = await api.patch<StudyTrackTemplate>(`/study-track-templates/${id}`, payload)
   return data
 }
@@ -158,7 +227,7 @@ export async function createPressQuizTemplate(trackTemplateId: string, payload: 
   return data
 }
 
-export async function updatePressQuizTemplate(id: string, payload: Partial<PressQuizTemplate>) {
+export async function updatePressQuizTemplate(id: string, payload: UpdatePressQuizTemplatePayload) {
   const { data } = await api.patch<PressQuizTemplate>(`/press-quiz-templates/${id}`, payload)
   return data
 }
