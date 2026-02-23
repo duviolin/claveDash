@@ -9,10 +9,17 @@ alwaysApply: false
 ## UI Components (`components/ui/`)
 
 - Props: `interface XProps` no mesmo arquivo; estender HTML attrs quando fizer sentido (`ButtonHTMLAttributes`, etc.)
-- Form controls (`Input`, `Select`, `Textarea`): usar `forwardRef` + `displayName`
+- Form controls (`Input`, `Select`, `Textarea`, `PasswordInput`): usar `forwardRef` + `displayName`
 - Variantes: `Record<Variant, string>` + `cn(base, variantStyles[variant], className)`
 - SEMPRE aceitar `className?` para composicao
 - NUNCA usar estado interno para logica de negocio (componentes UI sao burros)
+
+### Catalogo de componentes UI
+- **Layout**: Button, Badge, Tabs, Pagination, EmptyState, Skeleton
+- **Form**: Input, Select, Textarea, PasswordInput
+- **Overlay**: Modal (inclui `ConfirmModal` exportado do mesmo arquivo), DeactivationBlockedModal
+- **Data**: Table
+- **AI**: AIButton (botao com loading para chamadas de IA)
 
 ## Layout Components (`components/layout/`)
 
@@ -34,6 +41,13 @@ Componente reutilizavel para exibir mensagem quando soft delete eh bloqueado por
 - Props: `isOpen`, `onClose`, `entityName`, `parentId`, `details: DeactivationErrorDetails`
 - Mapa `CHILD_NAV` converte `childResource` em label + URL para navegacao
 - SEMPRE adicionar novos `childResource` ao `CHILD_NAV` quando criar nova verificacao no backend
+
+### CHILD_NAV entries (16 resources mapeados)
+- `schools`, `courses`, `seasons`, `classes`, `students`, `teachers`, `members`
+- `projectTemplates`, `trackSceneTemplates`, `trackMaterialTemplates`
+- `studyTrackCategories`, `studyTrackTemplates`
+- `pressQuizTemplates`, `dailyMissionTemplates`, `dailyMissionQuizzes`
+- `projects` (instancias)
 
 ## ANTI-PATTERNS
 

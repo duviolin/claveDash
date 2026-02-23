@@ -53,6 +53,16 @@ export async function restoreX(id: string) {
 }
 ```
 
+## Modulos existentes
+
+- **CRUD admin**: `users.ts`, `schools.ts`, `courses.ts`, `seasons.ts`, `classes.ts`
+- **Templates**: `templates.ts` (multi-entidade: ProjectTemplate, TrackSceneTemplate, TrackMaterialTemplate, StudyTrackCategory, StudyTrackTemplate, PressQuizTemplate)
+- **Daily missions**: `dailyMissions.ts` (DailyMissionTemplate + DailyMissionQuiz)
+- **Instances**: `instances.ts` (Project, TrackScene, TrackMaterial, StudyTrack, PressQuiz)
+- **Auth/profile**: `auth.ts`, `profiles.ts`
+- **Infra**: `storage.ts`, `media.ts`, `notifications.ts`, `dashboard.ts`
+- **AI**: `ai.ts` (geracao de conteudo com IA)
+
 ## Convencoes
 
 - Naming: `listX`, `getX`, `createX`, `updateX`, `deleteX`, `restoreX`, `listDeletedX`, verbos especificos (`suspendUser`, `restoreUser`)
@@ -61,6 +71,7 @@ export async function restoreX(id: string) {
 - DELETE retorna void (backend envia 204) — NUNCA `const { data } = await api.delete(...)`
 - PATCH/POST retorna o objeto atualizado
 - NUNCA try/catch nos modulos (interceptor global cuida)
+- Multi-entidade: `templates.ts` agrupa sub-entidades de templates em um unico arquivo (exceção ao padrao de um arquivo por recurso)
 
 ## Tratamento de erro 409 (deactivation blocked)
 

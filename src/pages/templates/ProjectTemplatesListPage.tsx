@@ -189,7 +189,7 @@ export function ProjectTemplatesListPage() {
       count={pagination?.total ?? templatesList.length}
       action={
         !isTrash ? (
-          <Button onClick={() => { setForm({ courseId: '', name: '', type: 'ALBUM', description: '' }); setModalOpen(true) }}>
+          <Button onClick={() => { setForm({ courseId: courseFilter, name: '', type: 'ALBUM', description: '' }); setModalOpen(true) }}>
             <Plus className="h-4 w-4" /> Criar Template
           </Button>
         ) : undefined

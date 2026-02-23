@@ -50,7 +50,7 @@ export function SeasonsListPage() {
   const { data: seasons = [], isLoading: isLoadingActive } = useQuery({
     queryKey: ['seasons', courseFilter],
     queryFn: () => listSeasons(courseFilter || undefined),
-    enabled: !isTrash && !!courseFilter,
+    enabled: !isTrash,
   })
 
   const { data: deletedResponse, isLoading: isLoadingTrash } = useQuery({

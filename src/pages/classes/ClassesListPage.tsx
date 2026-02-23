@@ -45,7 +45,7 @@ export function ClassesListPage() {
   const { data: classes = [], isLoading: isLoadingActive } = useQuery({
     queryKey: ['classes', seasonFilter],
     queryFn: () => listClasses(seasonFilter || undefined),
-    enabled: !isTrash && !!seasonFilter,
+    enabled: !isTrash,
   })
 
   const { data: deletedResponse, isLoading: isLoadingTrash } = useQuery({
@@ -99,7 +99,7 @@ export function ClassesListPage() {
 
   const openCreate = () => {
     setEditing(null)
-    setForm({ seasonId: '', name: '', maxStudents: 30 })
+    setForm({ seasonId: seasonFilter, name: '', maxStudents: 30 })
     setModalOpen(true)
   }
 

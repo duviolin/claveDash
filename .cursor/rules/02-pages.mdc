@@ -83,13 +83,16 @@ const restoreMutation = useMutation({
 
 ## Modals obrigatorios
 
-- `Modal` para create/edit
-- `ConfirmModal` para delete e restore
+- `Modal` (de `@/components/ui/Modal`) para create/edit
+- `ConfirmModal` (exportado do mesmo `Modal.tsx`) para delete e restore
 - `DeactivationBlockedModal` para quando o delete retorna 409
 
-## Naming
+## Tipos de paginas
 
-- `XListPage` (lista), `XDetailPage` (detalhe/edicao), `XCreatePage` (criacao)
+- `XListPage` (lista com tabs Ativas/Lixeira): users, schools, courses, seasons, classes, projectTemplates, studyTrackCategories, dailyMissionTemplates
+- `XDetailPage` (detalhe/sub-entidades): ClassDetailPage, ProjectTemplateDetailPage
+- `XCreatePage` (criacao): UserCreatePage
+- **Outras**: DashboardPage, SettingsPage, StoragePage, ProjectInstancesPage
 - Arquivo = nome do componente: `UsersListPage.tsx`
 
 ## Data Fetching
