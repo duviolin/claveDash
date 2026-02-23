@@ -1,0 +1,48 @@
+---
+description: Padroes de paginas - list, detail, create
+globs: ["src/pages/**"]
+alwaysApply: false
+---
+
+# Pages - Padroes CORRETOS
+
+## Estrutura de List Page
+
+```tsx
+export function XListPage() {
+  // 1. Hooks: navigate, state (filters, pagination, modals)
+  // 2. useQuery para dados
+  // 3. Handlers (mutations inline com toast + refetch)
+  // 4. Definicao de columns
+  // 5. Return: PageContainer > Filters > Table > Pagination > Modals
+}
+```
+
+- Paginacao: `useQuery` com `queryKey` incluindo filtros e page
+- Filtros: `useState` local, resetar page ao mudar filtro
+- Acoes: `ConfirmModal` com estado `confirmAction` tipado
+- Contagem: `pagination?.total` no `PageContainer`
+
+## Estrutura de Detail/Create Page
+
+- Formularios com `useState` local (objeto form)
+- Submit: chamar API direto, `toast.success()`, `navigate()` no sucesso
+- Erros: interceptor global cuida (nao precisa try/catch)
+
+## Naming
+
+- `XListPage` (lista), `XDetailPage` (detalhe/edicao), `XCreatePage` (criacao)
+- Arquivo = nome do componente: `UsersListPage.tsx`
+
+## Data Fetching
+
+- `useQuery({ queryKey, queryFn })` para leitura
+- `useMutation({ mutationFn, onSuccess })` OU handler async para escrita
+- SEMPRE `queryClient.invalidateQueries()` ou `refetch()` apos mutacao
+- NUNCA importar `prisma` ou acessar DB (isso eh backend)
+
+## ANTI-PATTERNS
+
+- NAO usar `useEffect` para fetch (usar useQuery)
+- NAO duplicar logica de columns/filters entre paginas similares
+- NAO omitir estado de loading na Table (passar `isLoading`)

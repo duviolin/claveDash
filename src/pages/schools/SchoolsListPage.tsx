@@ -35,7 +35,12 @@ export function SchoolsListPage() {
     queryFn: () => listUsers({ role: 'DIRECTOR' }),
   })
 
-  const directors: User[] = Array.isArray(directorsData) ? directorsData : directorsData?.data ?? []
+  const allDirectors: User[] = Array.isArray(directorsData) ? directorsData : directorsData?.data ?? []
+
+  const assignedDirectorIds = new Set(
+    schools.filter((s) => s.directorId && s.id !== editing?.id).map((s) => s.directorId)
+  )
+  const directors = allDirectors.filter((d) => !assignedDirectorIds.has(d.id))
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -76,7 +81,7 @@ export function SchoolsListPage() {
       key: 'director',
       header: 'Diretor',
       render: (s: School) => {
-        const director = directors.find((d) => d.id === s.directorId)
+        const director = allDirectors.find((d) => d.id === s.directorId)
         return <span className="text-muted">{director?.name || '—'}</span>
       },
     },

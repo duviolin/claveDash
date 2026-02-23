@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { listProjectTemplates, createProjectTemplate, deleteProjectTemplate } from '@/api/templates'
 import { listCourses } from '@/api/courses'
+import { PROJECT_TYPE_LABELS } from '@/lib/constants'
 import type { ProjectTemplate, ProjectType, Course } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -63,7 +64,7 @@ export function ProjectTemplatesListPage() {
     {
       key: 'type',
       header: 'Tipo',
-      render: (t: ProjectTemplate) => <Badge variant={t.type === 'ALBUM' ? 'accent' : 'info'}>{t.type}</Badge>,
+      render: (t: ProjectTemplate) => <Badge variant={t.type === 'ALBUM' ? 'accent' : 'info'}>{PROJECT_TYPE_LABELS[t.type]}</Badge>,
     },
     {
       key: 'course',

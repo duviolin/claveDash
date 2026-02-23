@@ -1,0 +1,38 @@
+---
+description: Regras de workflow e integracao com o backend
+alwaysApply: true
+---
+
+# Workflow Obrigatorio
+
+## Apos CADA iteracao de codigo, verificar:
+
+1. **Types**: se criou/alterou entidade, atualizar `src/types/index.ts`
+2. **Constants**: se criou novo status/enum, adicionar labels e variants em `src/lib/constants.ts`
+3. **Error codes**: se backend tem novo error code, adicionar em `src/lib/errorCodes.ts`
+4. **Rules**: se o padrao mudou, atualizar a rule correspondente em `.cursor/rules/`
+
+## Ao criar codigo novo:
+
+- Seguir EXATAMENTE os padroes da rule da camada sendo editada (01 a 04)
+- Verificar se o endpoint ja existe no backend antes de criar chamada API
+
+## Integracao com Backend
+
+O backend vive em `c:\Users\eduar\Documents\claveBack` e tem suas proprias cursor rules:
+
+| Rule | Conteudo |
+|------|----------|
+| `00-project.md` | Stack, arquitetura, convencoes gerais |
+| `01-domain.md` | Entidades, use cases, repositorios, eventos |
+| `02-application.md` | Services, DTOs, ApplicationRunner |
+| `03-infrastructure.md` | Controllers, routes, repositories, middleware |
+| `04-prisma.md` | Schema, queries, migrations |
+| `06-workflow.md` | Workflow de atualizacao de docs/rules |
+
+Ao fazer mudancas full-stack:
+- Criar PRIMEIRO no backend (entity -> repo -> use case -> service -> controller -> route)
+- Depois no frontend (type -> api -> page/component)
+- Respeitar as rules de AMBOS os repos
+- Backend usa 204 para DELETE/deactivate (frontend NAO espera body)
+- Backend retorna DTO (frontend NAO acessa campos internos da entidade)

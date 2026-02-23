@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Pagination } from '@/components/ui/Pagination'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { listCoursesPaginated, createCourse, updateCourse } from '@/api/courses'
+import { listCourses, listCoursesPaginated, createCourse, updateCourse } from '@/api/courses'
 import { listSchools } from '@/api/schools'
 import type { Course, CourseType, School } from '@/types'
 import toast from 'react-hot-toast'
@@ -31,21 +31,22 @@ export function CoursesListPage() {
 
   const { data: schoolsResponse } = useQuery({
     queryKey: ['schools'],
-    queryFn: () => listSchools({ limit: 500 }),
+    queryFn: () => listSchools({ limit: 100 }),
   })
   const schools = schoolsResponse?.data ?? []
 
   const { data: coursesResponse, isLoading } = useQuery({
-    queryKey: ['courses', 'paginated', schoolFilter || 'all', page],
+    queryKey: ['courses', schoolFilter || 'all', page],
     queryFn: () =>
-      listCoursesPaginated({
-        schoolId: schoolFilter || undefined,
-        page,
-        limit: COURSES_PAGE_LIMIT,
-      }),
+      schoolFilter
+        ? listCoursesPaginated({ schoolId: schoolFilter, page, limit: COURSES_PAGE_LIMIT })
+        : listCourses(),
   })
-  const courses = coursesResponse?.data ?? []
-  const pagination = coursesResponse?.pagination
+
+  const courses = Array.isArray(coursesResponse)
+    ? coursesResponse
+    : coursesResponse?.data ?? []
+  const pagination = Array.isArray(coursesResponse) ? undefined : coursesResponse?.pagination
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -62,7 +63,7 @@ export function CoursesListPage() {
 
   const openCreate = () => {
     setEditing(null)
-    setForm({ schoolId: '', name: '', type: 'MUSIC' })
+    setForm({ schoolId: schoolFilter, name: '', type: 'MUSIC' })
     setModalOpen(true)
   }
 

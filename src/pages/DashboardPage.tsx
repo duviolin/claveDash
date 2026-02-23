@@ -46,7 +46,7 @@ export function DashboardPage() {
   const { data: stats } = useQuery({ queryKey: ['dashboard-stats'], queryFn: getDashboardStats })
 
   return (
-    <PageContainer title="Dashboard">
+    <PageContainer title="Painel">
       <p className="text-muted -mt-2">
         Bem-vindo, <span className="text-text font-medium">{user?.name || user?.email}</span>! Aqui está o resumo da plataforma.
       </p>

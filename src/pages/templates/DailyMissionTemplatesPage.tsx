@@ -17,14 +17,9 @@ import {
   createDailyMissionQuiz,
 } from '@/api/dailyMissions'
 import { listCourses } from '@/api/courses'
-import type { DailyMissionTemplate, DailyMissionTemplateStatus, Course } from '@/types'
+import { DAILY_MISSION_STATUS_LABELS, DAILY_MISSION_STATUS_VARIANT } from '@/lib/constants'
+import type { DailyMissionTemplate, Course } from '@/types'
 import toast from 'react-hot-toast'
-
-const statusVariant: Record<DailyMissionTemplateStatus, 'warning' | 'success' | 'error'> = {
-  DRAFT: 'warning',
-  PUBLISHED: 'success',
-  ARCHIVED: 'error',
-}
 
 export function DailyMissionTemplatesPage() {
   const queryClient = useQueryClient()
@@ -98,7 +93,7 @@ export function DailyMissionTemplatesPage() {
                 </button>
                 <span className="text-xs text-muted font-mono w-6">{mission.order}</span>
                 <span className="font-medium text-text flex-1">{mission.title}</span>
-                <Badge variant={statusVariant[mission.status]}>{mission.status}</Badge>
+                <Badge variant={DAILY_MISSION_STATUS_VARIANT[mission.status]}>{DAILY_MISSION_STATUS_LABELS[mission.status]}</Badge>
                 <div className="flex gap-1">
                   {mission.status === 'DRAFT' && (
                     <button onClick={() => publishMutation.mutate(mission.id)} className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer" title="Publicar">

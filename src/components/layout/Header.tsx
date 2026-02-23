@@ -3,10 +3,11 @@ import { LogOut, ChevronRight } from 'lucide-react'
 import { useLocation, Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { getInitials } from '@/lib/utils'
+import { ROLE_LABELS, ROLE_BADGE_VARIANT } from '@/lib/constants'
 import { NotificationBell } from './NotificationBell'
 
 const routeLabels: Record<string, string> = {
-  dashboard: 'Dashboard',
+  dashboard: 'Painel',
   users: 'Usuários',
   schools: 'Escolas',
   courses: 'Cursos',
@@ -17,7 +18,7 @@ const routeLabels: Record<string, string> = {
   'daily-missions': 'Missões Diárias',
   'study-categories': 'Categorias de Trilha',
   instances: 'Instanciação',
-  storage: 'Storage',
+  storage: 'Armazenamento',
   settings: 'Configurações',
   new: 'Novo',
 }
@@ -53,12 +54,7 @@ function Breadcrumb() {
 export function Header() {
   const { user, logout } = useAuth()
 
-  const roleBadgeVariant = {
-    ADMIN: 'accent' as const,
-    TEACHER: 'info' as const,
-    STUDENT: 'success' as const,
-    DIRECTOR: 'warning' as const,
-  }
+  const roleBadgeVariant = ROLE_BADGE_VARIANT
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface/80 backdrop-blur-sm px-6">
@@ -75,7 +71,7 @@ export function Header() {
             <div className="text-right">
               <p className="text-sm font-medium text-text">{user.name || user.email}</p>
               <Badge variant={roleBadgeVariant[user.role]} className="text-[10px]">
-                {user.role}
+                {ROLE_LABELS[user.role]}
               </Badge>
             </div>
             <button

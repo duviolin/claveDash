@@ -1,0 +1,56 @@
+---
+description: Padroes da camada API - client, modulos e tipos
+globs: ["src/api/**"]
+alwaysApply: false
+---
+
+# API Layer - Padroes CORRETOS
+
+## Client (`api/client.ts`)
+
+- Axios instance com `baseURL` de `VITE_API_URL`
+- Request interceptor: `Authorization: Bearer <token>` de localStorage
+- Response interceptor: erro tratado com `ERROR_HANDLERS` de `@/lib/errorCodes`, toast.error, redirect/logout
+- NUNCA modificar o client sem entender o fluxo de erro global
+
+## Modulos (um arquivo por dominio)
+
+```tsx
+import { api } from './client'
+import type { X, PaginatedResponse } from '@/types'
+
+export async function listX(params?: ListXParams): Promise<PaginatedResponse<X>> {
+  const { data } = await api.get<PaginatedResponse<X>>('/x', { params })
+  return data
+}
+
+export async function createX(payload: CreateXPayload) {
+  const { data } = await api.post<X>('/x', payload)
+  return data
+}
+
+export async function updateX(id: string, payload: UpdateXPayload) {
+  const { data } = await api.patch<X>(`/x/${id}`, payload)
+  return data
+}
+
+export async function deleteX(id: string) {
+  await api.delete(`/x/${id}`)  // 204 sem body
+}
+```
+
+## Convencoes
+
+- Naming: `listX`, `getX`, `createX`, `updateX`, `deleteX`, verbos especificos (`suspendUser`, `restoreUser`)
+- Payload types: `interface` no mesmo arquivo (`CreateXPayload`, `UpdateXPayload`, `ListXParams`)
+- Response types: importar de `@/types` (`X`, `PaginatedResponse<X>`)
+- DELETE retorna void (backend envia 204)
+- PATCH/POST retorna o objeto atualizado
+- NUNCA try/catch nos modulos (interceptor global cuida)
+
+## Backend Reference
+
+Os endpoints seguem o padrao REST do backend (`c:\Users\eduar\Documents\claveBack`):
+- POST = criar (201), GET = listar/buscar (200), PATCH = atualizar (200), DELETE = soft delete (204)
+- Paginacao: `?page=1&limit=10` retorna `{ data, pagination: { page, limit, total, totalPages } }`
+- Consultar rules do backend (`.cursor/rules/03-infrastructure.md`) para detalhes de rotas

@@ -23,6 +23,7 @@ export interface User {
   email: string
   role: UserRole
   status: UserStatus
+  isActive: boolean
   mustChangePassword: boolean
   createdAt: string
   updatedAt: string

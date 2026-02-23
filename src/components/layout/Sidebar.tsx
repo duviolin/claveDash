@@ -38,7 +38,7 @@ interface CollapsibleGroup {
 const navGroups: NavGroup[] = [
   {
     items: [
-      { label: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+      { label: 'Painel', path: '/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
     ],
   },
   {
@@ -72,7 +72,7 @@ const instancesGroup: CollapsibleGroup = {
 }
 
 const bottomItems: NavItem[] = [
-  { label: 'Storage', path: '/storage', icon: <Cloud className="h-4 w-4" /> },
+  { label: 'Armazenamento', path: '/storage', icon: <Cloud className="h-4 w-4" /> },
   { label: 'Configurações', path: '/settings', icon: <Settings className="h-4 w-4" /> },
 ]
 

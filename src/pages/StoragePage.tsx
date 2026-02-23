@@ -61,7 +61,7 @@ export function StoragePage() {
   const orphanList = orphans?.orphans ?? []
 
   return (
-    <PageContainer title="Storage">
+    <PageContainer title="Armazenamento">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-xl border border-border bg-surface p-6 space-y-4">
           <h2 className="text-lg font-semibold text-text flex items-center gap-2">

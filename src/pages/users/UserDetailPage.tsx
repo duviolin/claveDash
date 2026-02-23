@@ -7,15 +7,8 @@ import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { getUser, updateUser } from '@/api/users'
 import { formatDateTime } from '@/lib/utils'
-import type { UserRole } from '@/types'
+import { ROLE_LABELS, ROLE_BADGE_VARIANT, USER_STATUS_LABELS } from '@/lib/constants'
 import toast from 'react-hot-toast'
-
-const roleVariant: Record<UserRole, 'accent' | 'info' | 'success' | 'warning'> = {
-  ADMIN: 'accent',
-  TEACHER: 'info',
-  STUDENT: 'success',
-  DIRECTOR: 'warning',
-}
 
 export function UserDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -64,8 +57,8 @@ export function UserDetailPage() {
     <PageContainer title="Editar Usuário">
       <div className="max-w-lg">
         <div className="mb-4 flex items-center gap-3">
-          <Badge variant={roleVariant[user.role]}>{user.role}</Badge>
-          <Badge variant={user.status === 'ACTIVE' ? 'success' : 'error'}>{user.status}</Badge>
+          <Badge variant={ROLE_BADGE_VARIANT[user.role]}>{ROLE_LABELS[user.role]}</Badge>
+          <Badge variant={user.status === 'ACTIVE' ? 'success' : 'error'}>{USER_STATUS_LABELS[user.status]}</Badge>
           <span className="text-xs text-muted">Criado em {formatDateTime(user.createdAt)}</span>
         </div>
 

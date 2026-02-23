@@ -34,12 +34,13 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-none" />
       <div
         className={cn(
-          'w-full mx-4 rounded-xl bg-surface border border-border shadow-2xl',
+          'relative w-full mx-4 rounded-xl bg-surface border border-border shadow-2xl',
           sizeStyles[size]
         )}
       >

@@ -13,14 +13,9 @@ import { instantiateProject, listProjects, updateProject, publishProject, unpubl
 import { listProjectTemplates } from '@/api/templates'
 import { listClasses } from '@/api/classes'
 import { listSeasons } from '@/api/seasons'
-import type { Project, ProjectStatus, ProjectTemplate, Season } from '@/types'
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_VARIANT } from '@/lib/constants'
+import type { Project, ProjectTemplate, Season } from '@/types'
 import toast from 'react-hot-toast'
-
-const statusVariant: Record<ProjectStatus, 'warning' | 'success' | 'info'> = {
-  DRAFT: 'warning',
-  ACTIVE: 'success',
-  COMPLETED: 'info',
-}
 
 export function ProjectInstancesPage() {
   const queryClient = useQueryClient()
@@ -69,7 +64,7 @@ export function ProjectInstancesPage() {
 
   const columns = [
     { key: 'name', header: 'Nome', render: (p: Project) => <span className="font-medium text-text">{p.name}</span> },
-    { key: 'status', header: 'Status', render: (p: Project) => <Badge variant={statusVariant[p.status]}>{p.status}</Badge> },
+    { key: 'status', header: 'Status', render: (p: Project) => <Badge variant={PROJECT_STATUS_VARIANT[p.status]}>{PROJECT_STATUS_LABELS[p.status]}</Badge> },
     {
       key: 'visible',
       header: 'Visível',

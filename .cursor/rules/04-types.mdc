@@ -1,0 +1,37 @@
+---
+description: Padroes de tipos e constantes compartilhadas
+globs: ["src/types/**", "src/lib/**"]
+alwaysApply: false
+---
+
+# Types e Constants - Padroes CORRETOS
+
+## Types (`types/index.ts`)
+
+- TODOS os tipos compartilhados vivem em `src/types/index.ts` (arquivo unico)
+- `type` para unions/enums: `type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'DIRECTOR'`
+- `interface` para objetos: `interface User { id: string; name: string; ... }`
+- `PaginatedResponse<T>` generico para respostas paginadas
+- Datas como `string` (ISO) no frontend (backend envia Date, Axios serializa)
+- SEMPRE que criar/alterar entidade no backend, atualizar o tipo correspondente aqui
+- NUNCA duplicar tipos (importar de `@/types`)
+
+## Constants (`lib/constants.ts`)
+
+- Labels: `Record<XType, string>` (ex: `ROLE_LABELS`, `USER_STATUS_LABELS`)
+- Badge variants: `Record<XType, BadgeVariant>` (ex: `ROLE_BADGE_VARIANT`, `SEASON_STATUS_VARIANT`)
+- Options para Select: `Object.entries(LABELS).map(([value, label]) => ({ value, label }))`
+- SEMPRE adicionar labels/variants ao criar novo status ou enum
+- NUNCA hardcodar labels em paginas/componentes
+
+## Utils (`lib/utils.ts`)
+
+- `cn(...classes)`: clsx + tailwind-merge (SEMPRE usar para compor classes)
+- `formatDate(iso)`: formato pt-BR curto
+- `formatDateTime(iso)`: formato pt-BR com hora
+- `getInitials(name)`: iniciais para avatars
+
+## Error Codes (`lib/errorCodes.ts`)
+
+- `ERROR_HANDLERS: Record<string, { message, action? }>` consumido pelo interceptor Axios
+- Ao criar novo codigo de erro no backend, adicionar handler aqui

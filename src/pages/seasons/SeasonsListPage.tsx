@@ -11,14 +11,9 @@ import { Select } from '@/components/ui/Select'
 import { listSeasons, createSeason, updateSeason } from '@/api/seasons'
 import { listCourses } from '@/api/courses'
 import { formatDate } from '@/lib/utils'
+import { SEASON_STATUS_LABELS, SEASON_STATUS_VARIANT } from '@/lib/constants'
 import type { Season, SeasonStatus, Course } from '@/types'
 import toast from 'react-hot-toast'
-
-const statusVariant: Record<SeasonStatus, 'warning' | 'success' | 'error'> = {
-  PLANNED: 'warning',
-  ACTIVE: 'success',
-  CLOSED: 'error',
-}
 
 export function SeasonsListPage() {
   const queryClient = useQueryClient()
@@ -62,7 +57,7 @@ export function SeasonsListPage() {
 
   const openCreate = () => {
     setEditing(null)
-    setForm({ courseId: '', name: '', startDate: '', endDate: '', status: 'PLANNED' })
+    setForm({ courseId: courseFilter, name: '', startDate: '', endDate: '', status: 'PLANNED' })
     setModalOpen(true)
   }
 
@@ -104,7 +99,7 @@ export function SeasonsListPage() {
     {
       key: 'status',
       header: 'Status',
-      render: (s: Season) => <Badge variant={statusVariant[s.status]}>{s.status}</Badge>,
+      render: (s: Season) => <Badge variant={SEASON_STATUS_VARIANT[s.status]}>{SEASON_STATUS_LABELS[s.status]}</Badge>,
     },
     {
       key: 'actions',

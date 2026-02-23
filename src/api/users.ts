@@ -49,3 +49,17 @@ export async function reactivateUser(id: string) {
   const { data } = await api.patch(`/users/${id}/reactivate`)
   return data
 }
+
+export async function softDeleteUser(id: string) {
+  await api.delete(`/users/${id}`)
+}
+
+export async function restoreUser(id: string) {
+  const { data } = await api.patch(`/users/${id}/restore`)
+  return data
+}
+
+export async function listDeletedUsers(params?: { page?: number; limit?: number }): Promise<PaginatedResponse<User>> {
+  const { data } = await api.get<PaginatedResponse<User>>('/users/deleted', { params })
+  return data
+}
