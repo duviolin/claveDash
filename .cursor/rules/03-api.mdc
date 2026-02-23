@@ -35,18 +35,45 @@ export async function updateX(id: string, payload: UpdateXPayload) {
 }
 
 export async function deleteX(id: string) {
-  await api.delete(`/x/${id}`)  // 204 sem body
+  await api.delete(`/x/${id}`)  // 204 sem body — NUNCA retornar data
+}
+```
+
+## Soft Delete / Restore / Lixeira
+
+```tsx
+export async function listDeletedX(params: { page: number; limit: number }): Promise<PaginatedResponse<X>> {
+  const { data } = await api.get<PaginatedResponse<X>>('/x/deleted', { params })
+  return data
+}
+
+export async function restoreX(id: string) {
+  const { data } = await api.patch<X>(`/x/${id}/restore`)
+  return data
 }
 ```
 
 ## Convencoes
 
-- Naming: `listX`, `getX`, `createX`, `updateX`, `deleteX`, verbos especificos (`suspendUser`, `restoreUser`)
+- Naming: `listX`, `getX`, `createX`, `updateX`, `deleteX`, `restoreX`, `listDeletedX`, verbos especificos (`suspendUser`, `restoreUser`)
 - Payload types: `interface` no mesmo arquivo (`CreateXPayload`, `UpdateXPayload`, `ListXParams`)
 - Response types: importar de `@/types` (`X`, `PaginatedResponse<X>`)
-- DELETE retorna void (backend envia 204)
+- DELETE retorna void (backend envia 204) — NUNCA `const { data } = await api.delete(...)`
 - PATCH/POST retorna o objeto atualizado
 - NUNCA try/catch nos modulos (interceptor global cuida)
+
+## Tratamento de erro 409 (deactivation blocked)
+
+Nas pages, quando o delete retorna 409, capturar `details` no `onError`:
+```tsx
+onError: (error: unknown) => {
+  const axiosError = error as { response?: { status?: number; data?: { details?: DeactivationErrorDetails } } }
+  if (axiosError.response?.status === 409 && axiosError.response.data?.details) {
+    setBlockedInfo({ ... })
+  }
+}
+```
+NUNCA usar `error: any` — sempre `error: unknown` com type assertion.
 
 ## Backend Reference
 

@@ -27,8 +27,7 @@ export async function updateCourse(id: string, payload: { name?: string; type?: 
 }
 
 export async function deleteCourse(id: string) {
-  const { data } = await api.delete(`/courses/${id}`)
-  return data
+  await api.delete(`/courses/${id}`)
 }
 
 export async function listDeletedCourses(params: { page: number; limit: number }) {

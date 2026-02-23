@@ -28,6 +28,13 @@ alwaysApply: false
 
 Labels e variants centralizados em `@/lib/constants.ts`, NUNCA inline.
 
+## DeactivationBlockedModal
+
+Componente reutilizavel para exibir mensagem quando soft delete eh bloqueado por filhos ativos.
+- Props: `isOpen`, `onClose`, `entityName`, `parentId`, `details: DeactivationErrorDetails`
+- Mapa `CHILD_NAV` converte `childResource` em label + URL para navegacao
+- SEMPRE adicionar novos `childResource` ao `CHILD_NAV` quando criar nova verificacao no backend
+
 ## ANTI-PATTERNS
 
 - NAO criar componentes com logica de negocio em `ui/`

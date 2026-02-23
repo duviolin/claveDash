@@ -15,7 +15,7 @@ src/
   api/          -> Modulos HTTP por dominio (um arquivo por recurso)
   components/
     layout/     -> AppLayout, Header, Sidebar, PageContainer, NotificationBell
-    ui/         -> Componentes reutilizaveis (Button, Table, Modal, Badge, etc.)
+    ui/         -> Componentes reutilizaveis (Button, Table, Modal, Badge, Pagination, DeactivationBlockedModal, etc.)
   contexts/     -> AuthContext (unico context, useAuth())
   lib/          -> utils (cn, formatDate), constants (labels/variants), errorCodes
   pages/        -> Paginas organizadas por dominio (users/, schools/, courses/, etc.)
@@ -32,11 +32,14 @@ Fluxo: Route -> Page -> useQuery/mutation (API) -> Componentes UI
 - **Componentes**: sempre funcionais, props tipadas com `interface XProps`
 - **Styling**: Tailwind classes via `cn()` de `@/lib/utils` (clsx + tailwind-merge)
 - **Tipos**: strict mode, sem `any`, tipos centralizados em `@/types/index.ts`
-- **Erros**: tratamento global no interceptor Axios (toast.error automatico)
+- **Erros**: tratamento global no interceptor Axios (toast.error automatico). 409 tratado localmente com `DeactivationBlockedModal`
 - **Formularios**: estado local com `useState` (react-hook-form/zod estao instalados mas NAO sao usados)
 - **Toasts**: `toast.success()` para sucesso, erros tratados pelo interceptor
 - **Idioma**: UI em portugues (labels, mensagens, placeholders)
 - **Tema**: dark mode via CSS variables (--color-bg, --color-surface, --color-text, etc.)
+- **Soft delete**: Todas list pages tem tabs Ativas/Lixeira, delete + restore mutations, DeactivationBlockedModal
+- **Delete**: SEMPRE void (backend envia 204). NUNCA `const { data } = await api.delete(...)`
+- **Error handlers**: SEMPRE `error: unknown` com type assertion (NUNCA `error: any`)
 
 ## Backend
 O backend esta em `c:\Users\eduar\Documents\claveBack` com suas proprias cursor rules em `.cursor/rules/`. Ao fazer mudancas que envolvam backend, consultar as rules de la (00 a 06).

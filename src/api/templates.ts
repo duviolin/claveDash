@@ -34,8 +34,7 @@ export async function updateProjectTemplate(id: string, payload: { name?: string
 }
 
 export async function deleteProjectTemplate(id: string) {
-  const { data } = await api.delete(`/project-templates/${id}`)
-  return data
+  await api.delete(`/project-templates/${id}`)
 }
 
 export async function listDeletedProjectTemplates(params: { page: number; limit: number }) {
@@ -70,8 +69,7 @@ export async function updateTrackTemplate(id: string, payload: Partial<TrackScen
 }
 
 export async function deleteTrackTemplate(id: string) {
-  const { data } = await api.delete(`/track-templates/${id}`)
-  return data
+  await api.delete(`/track-templates/${id}`)
 }
 
 export async function reorderTrackTemplates(items: { id: string; order: number }[]) {
@@ -96,8 +94,7 @@ export async function updateMaterialTemplate(id: string, payload: Partial<TrackM
 }
 
 export async function deleteMaterialTemplate(id: string) {
-  const { data } = await api.delete(`/material-templates/${id}`)
-  return data
+  await api.delete(`/material-templates/${id}`)
 }
 
 // --- Study Track Categories ---
@@ -127,8 +124,7 @@ export async function updateStudyTrackCategory(id: string, payload: Partial<Stud
 }
 
 export async function deleteStudyTrackCategory(id: string) {
-  const { data } = await api.delete(`/study-track-categories/${id}`)
-  return data
+  await api.delete(`/study-track-categories/${id}`)
 }
 
 // --- Study Track Templates ---
@@ -148,8 +144,7 @@ export async function updateStudyTrackTemplate(id: string, payload: Partial<Stud
 }
 
 export async function deleteStudyTrackTemplate(id: string) {
-  const { data } = await api.delete(`/study-track-templates/${id}`)
-  return data
+  await api.delete(`/study-track-templates/${id}`)
 }
 
 // --- Press Quiz Templates ---
@@ -169,6 +164,5 @@ export async function updatePressQuizTemplate(id: string, payload: Partial<Press
 }
 
 export async function deletePressQuizTemplate(id: string) {
-  const { data } = await api.delete(`/press-quiz-templates/${id}`)
-  return data
+  await api.delete(`/press-quiz-templates/${id}`)
 }

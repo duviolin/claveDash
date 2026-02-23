@@ -22,8 +22,7 @@ export async function updateSchool(id: string, payload: { name?: string; directo
 }
 
 export async function deleteSchool(id: string) {
-  const { data } = await api.delete(`/schools/${id}`)
-  return data
+  await api.delete(`/schools/${id}`)
 }
 
 export async function listDeletedSchools(params: { page: number; limit: number }) {

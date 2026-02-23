@@ -11,11 +11,20 @@ alwaysApply: true
 2. **Constants**: se criou novo status/enum, adicionar labels e variants em `src/lib/constants.ts`
 3. **Error codes**: se backend tem novo error code, adicionar em `src/lib/errorCodes.ts`
 4. **Rules**: se o padrao mudou, atualizar a rule correspondente em `.cursor/rules/`
+5. **DeactivationBlockedModal**: se backend adicionou nova verificacao de filhos, adicionar `childResource` no `CHILD_NAV`
 
 ## Ao criar codigo novo:
 
 - Seguir EXATAMENTE os padroes da rule da camada sendo editada (01 a 04)
 - Verificar se o endpoint ja existe no backend antes de criar chamada API
+
+## Ao criar List Page:
+
+- SEMPRE incluir tabs Ativas/Lixeira
+- SEMPRE incluir `deleteMutation` com tratamento de 409 + `restoreMutation`
+- SEMPRE incluir `DeactivationBlockedModal`
+- DELETE functions SEMPRE retornam void (backend envia 204)
+- Error handlers usam `error: unknown` com type assertion (NUNCA `error: any`)
 
 ## Integracao com Backend
 
@@ -24,10 +33,10 @@ O backend vive em `c:\Users\eduar\Documents\claveBack` e tem suas proprias curso
 | Rule | Conteudo |
 |------|----------|
 | `00-project.md` | Stack, arquitetura, convencoes gerais |
-| `01-domain.md` | Entidades, use cases, repositorios, eventos |
+| `01-domain.md` | Entidades, use cases, repositorios, eventos, soft delete |
 | `02-application.md` | Services, DTOs, ApplicationRunner |
 | `03-infrastructure.md` | Controllers, routes, repositories, middleware |
-| `04-prisma.md` | Schema, queries, migrations |
+| `04-prisma.md` | Schema, queries, migrations, entidades com/sem soft delete |
 | `06-workflow.md` | Workflow de atualizacao de docs/rules |
 
 Ao fazer mudancas full-stack:
@@ -36,3 +45,4 @@ Ao fazer mudancas full-stack:
 - Respeitar as rules de AMBOS os repos
 - Backend usa 204 para DELETE/deactivate (frontend NAO espera body)
 - Backend retorna DTO (frontend NAO acessa campos internos da entidade)
+- Backend retorna 409 + details quando soft delete eh bloqueado por filhos ativos

@@ -22,8 +22,7 @@ export async function updateClass(id: string, payload: { name?: string; maxStude
 }
 
 export async function deleteClass(id: string) {
-  const { data } = await api.delete(`/classes/${id}`)
-  return data
+  await api.delete(`/classes/${id}`)
 }
 
 export async function listDeletedClasses(params: { page: number; limit: number }): Promise<PaginatedResponse<Class>> {

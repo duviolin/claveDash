@@ -27,8 +27,7 @@ export async function updateDailyMissionTemplate(id: string, payload: { title?: 
 }
 
 export async function deleteDailyMissionTemplate(id: string) {
-  const { data } = await api.delete(`/daily-mission-templates/${id}`)
-  return data
+  await api.delete(`/daily-mission-templates/${id}`)
 }
 
 export async function publishDailyMissionTemplate(id: string) {
@@ -48,6 +47,5 @@ export async function updateDailyMissionQuiz(id: string, payload: Partial<DailyM
 }
 
 export async function deleteDailyMissionQuiz(id: string) {
-  const { data } = await api.delete(`/daily-mission-quizzes/${id}`)
-  return data
+  await api.delete(`/daily-mission-quizzes/${id}`)
 }

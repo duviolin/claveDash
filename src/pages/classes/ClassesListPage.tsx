@@ -78,12 +78,22 @@ export function ClassesListPage() {
       queryClient.invalidateQueries({ queryKey: ['classes'] })
       setDeleteTarget(null)
     },
-    onError: (error: any) => {
-      const details = error.response?.data?.details
-      if (error.response?.status === 409 && details) {
+    onError: (error: unknown) => {
+      const axiosError = error as { response?: { status?: number; data?: { details?: DeactivationErrorDetails } } }
+      const details = axiosError.response?.data?.details
+      if (axiosError.response?.status === 409 && details) {
         setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details })
       }
       setDeleteTarget(null)
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreClass(restoreTarget!.id),
+    onSuccess: () => {
+      toast.success('Turma restaurada!')
+      queryClient.invalidateQueries({ queryKey: ['classes'] })
+      setRestoreTarget(null)
     },
   })
 

@@ -11,7 +11,8 @@ alwaysApply: false
 - TODOS os tipos compartilhados vivem em `src/types/index.ts` (arquivo unico)
 - `type` para unions/enums: `type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'DIRECTOR'`
 - `interface` para objetos: `interface User { id: string; name: string; ... }`
-- `PaginatedResponse<T>` generico para respostas paginadas
+- `PaginatedResponse<T>` generico para respostas paginadas: `{ data: T[]; pagination: { page, limit, total, totalPages } }`
+- `DeactivationErrorDetails` para response 409: `{ childResource: string; count?: number; names?: string[]; studentsCount?: number; teachersCount?: number }`
 - Datas como `string` (ISO) no frontend (backend envia Date, Axios serializa)
 - SEMPRE que criar/alterar entidade no backend, atualizar o tipo correspondente aqui
 - NUNCA duplicar tipos (importar de `@/types`)
@@ -35,3 +36,4 @@ alwaysApply: false
 
 - `ERROR_HANDLERS: Record<string, { message, action? }>` consumido pelo interceptor Axios
 - Ao criar novo codigo de erro no backend, adicionar handler aqui
+- `CONFLICT_INVALID_STATE`: handler sem message (details sao tratados localmente no onError da mutation)
