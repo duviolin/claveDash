@@ -18,6 +18,7 @@ import { listProjectTemplates, createProjectTemplate, deleteProjectTemplate, lis
 import { listCourses } from '@/api/courses'
 import { PROJECT_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
+import { FileUpload } from '@/components/ui/FileUpload'
 import type { ProjectTemplate, ProjectType, Course, DeactivationErrorDetails } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -38,7 +39,7 @@ export function ProjectTemplatesListPage() {
   const [restoreTarget, setRestoreTarget] = useState<ProjectTemplate | null>(null)
   const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
   const [courseFilter, setCourseFilter] = useState('')
-  const [form, setForm] = useState({ courseId: '', name: '', type: 'ALBUM' as ProjectType, description: '' })
+  const [form, setForm] = useState({ courseId: '', name: '', type: 'ALBUM' as ProjectType, description: '', coverImage: '' })
 
   const isTrash = activeTab === 'TRASH'
 
@@ -66,6 +67,7 @@ export function ProjectTemplatesListPage() {
       name: form.name,
       type: form.type,
       description: form.description || undefined,
+      coverImage: form.coverImage || undefined,
     }),
     onSuccess: () => {
       toast.success('Template criado!')
@@ -189,7 +191,7 @@ export function ProjectTemplatesListPage() {
       count={pagination?.total ?? templatesList.length}
       action={
         !isTrash ? (
-          <Button onClick={() => { setForm({ courseId: courseFilter, name: '', type: 'ALBUM', description: '' }); setModalOpen(true) }}>
+          <Button onClick={() => { setForm({ courseId: courseFilter, name: '', type: 'ALBUM', description: '', coverImage: '' }); setModalOpen(true) }}>
             <Plus className="h-4 w-4" /> Criar Template
           </Button>
         ) : undefined
@@ -240,6 +242,15 @@ export function ProjectTemplatesListPage() {
           <Input id="ptName" label="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <Select id="ptType" label="Tipo" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as ProjectType })} options={[{ value: 'ALBUM', label: 'Álbum' }, { value: 'PLAY', label: 'Peça' }]} />
           <Textarea id="ptDesc" label="Descrição" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <FileUpload
+            fileType="images"
+            entityType="project-template"
+            entityId="draft"
+            currentValue={form.coverImage || null}
+            onUploadComplete={(key) => setForm({ ...form, coverImage: key })}
+            onRemove={() => setForm({ ...form, coverImage: '' })}
+            label="Imagem de Capa"
+          />
         </div>
       </Modal>
 

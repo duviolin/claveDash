@@ -5,6 +5,7 @@ import type {
   ProjectStatus,
   ProjectType,
   DailyMissionTemplateStatus,
+  TrackMaterialType,
 } from '@/types'
 
 // ── Roles ──────────────────────────────────────────────────
@@ -68,6 +69,24 @@ export const PROJECT_STATUS_VARIANT: Record<ProjectStatus, 'warning' | 'success'
 export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
   ALBUM: 'Álbum',
   PLAY: 'Peça',
+}
+
+// ── Track Material Type ─────────────────────────────────────
+
+export const TRACK_MATERIAL_TYPE_LABELS: Record<TrackMaterialType, string> = {
+  TEXT: 'Texto',
+  PDF: 'PDF',
+  AUDIO: 'Áudio',
+  VIDEO: 'Vídeo',
+  LINK: 'Link',
+}
+
+export const TRACK_MATERIAL_TYPE_VARIANT: Record<TrackMaterialType, 'accent' | 'info' | 'warning' | 'success' | 'error'> = {
+  PDF: 'error',
+  AUDIO: 'accent',
+  VIDEO: 'info',
+  TEXT: 'success',
+  LINK: 'warning',
 }
 
 // ── Daily Mission Status ───────────────────────────────────

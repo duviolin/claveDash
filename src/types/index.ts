@@ -92,11 +92,13 @@ export interface TrackSceneTemplate {
   technicalInstruction: string | null
   lyrics: string | null
   order: number
+  unlockAfterTrackId: string | null
   demoRequired: boolean
   pressQuizRequired: boolean
   isActive: boolean
   version: number
   createdAt: string
+  updatedAt: string
 }
 
 export interface TrackMaterialTemplate {

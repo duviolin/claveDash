@@ -92,7 +92,7 @@ export async function getProjectTemplate(id: string) {
   return data
 }
 
-export async function createProjectTemplate(payload: { courseId: string; name: string; type: ProjectType; description?: string }) {
+export async function createProjectTemplate(payload: { courseId: string; name: string; type: ProjectType; description?: string; coverImage?: string }) {
   const { data } = await api.post<ProjectTemplate>('/project-templates', payload)
   return data
 }
@@ -162,7 +162,7 @@ export async function listMaterialTemplates(trackTemplateId: string) {
   return data
 }
 
-export async function createMaterialTemplate(trackTemplateId: string, payload: { type: TrackMaterialType; title: string; defaultContentUrl?: string; defaultTextContent?: string }) {
+export async function createMaterialTemplate(trackTemplateId: string, payload: { type: TrackMaterialType; title: string; defaultContentUrl?: string; defaultTextContent?: string; isRequired?: boolean }) {
   const { data } = await api.post<TrackMaterialTemplate>(`/track-templates/${trackTemplateId}/materials`, payload)
   return data
 }
