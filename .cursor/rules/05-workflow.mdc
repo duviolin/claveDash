@@ -30,19 +30,36 @@ alwaysApply: true
 
 O backend vive em `c:\Users\eduar\Documents\claveBack` e tem suas proprias cursor rules:
 
-| Rule | Conteudo |
-|------|----------|
-| `00-project.md` | Stack, arquitetura, convencoes gerais |
-| `01-domain.md` | Entidades, use cases, repositorios, eventos, soft delete |
-| `02-application.md` | Services, DTOs, ApplicationRunner |
-| `03-infrastructure.md` | Controllers, routes, repositories, middleware |
-| `04-prisma.md` | Schema, queries, migrations, entidades com/sem soft delete |
-| `06-workflow.md` | Workflow de atualizacao de docs/rules |
+| Rule | Conteudo | Consultar quando... |
+|------|----------|---------------------|
+| `00-project.md` | Stack, arquitetura, convencoes gerais | Precisar de contexto geral do backend |
+| `01-domain.md` | Entidades, use cases, repositorios, eventos | Verificar cadeia de soft delete, campos de entidade |
+| `02-application.md` | Services, DTOs, ApplicationRunner | Entender formato de DTOs que a API retorna |
+| `03-infrastructure.md` | Controllers, routes, repositories, middleware | Verificar endpoints, validacoes, status codes |
+| `04-prisma.md` | Schema, queries, migrations | Ver entidades com/sem soft delete, campos disponiveis |
+| `06-workflow.md` | Workflow de atualizacao de docs/rules | Entender processo de mudancas no backend |
 
-Ao fazer mudancas full-stack:
-- Criar PRIMEIRO no backend (entity -> repo -> use case -> service -> controller -> route)
-- Depois no frontend (type -> api -> page/component)
-- Respeitar as rules de AMBOS os repos
-- Backend usa 204 para DELETE/deactivate (frontend NAO espera body)
+### Ordem de criacao full-stack
+
+1. **Backend**: entity -> repository interface -> use case -> service/DTO -> controller -> route
+2. **Frontend**: type em `@/types` -> api module -> page/component
+
+### Contrato de API (backend -> frontend)
+
+- DELETE retorna **204 sem body** — frontend usa `await api.delete()` (void)
+- POST retorna **201 + body** — frontend usa `const { data } = await api.post<T>()`
+- PATCH retorna **200 + body** — frontend usa `const { data } = await api.patch<T>()`
+- GET retorna **200 + body** — frontend usa `const { data } = await api.get<T>()`
+- Paginacao: `?page=1&limit=10` -> `{ data: T[], pagination: { page, limit, total, totalPages } }`
+- Erros: `{ error: string, code: string, details?: object }` — codigo mapeado em `errorCodes.ts`
+- 409 bloqueado: `{ error, code: "CONFLICT_INVALID_STATE", details: { childResource, count, names? } }`
 - Backend retorna DTO (frontend NAO acessa campos internos da entidade)
-- Backend retorna 409 + details quando soft delete eh bloqueado por filhos ativos
+- Auth: JWT via `Authorization: Bearer <token>`, roles: ADMIN, DIRECTOR, TEACHER, STUDENT
+
+### Como consultar o backend
+
+Para verificar endpoints, DTOs ou schema, LER diretamente os arquivos do backend:
+- Routes: `c:\Users\eduar\Documents\claveBack\src\infrastructure\routes\`
+- DTOs: `c:\Users\eduar\Documents\claveBack\src\application\dto\`
+- Schema: `c:\Users\eduar\Documents\claveBack\prisma\schema.prisma`
+- Rules: `c:\Users\eduar\Documents\claveBack\.cursor\rules\`

@@ -41,5 +41,31 @@ Fluxo: Route -> Page -> useQuery/mutation (API) -> Componentes UI
 - **Delete**: SEMPRE void (backend envia 204). NUNCA `const { data } = await api.delete(...)`
 - **Error handlers**: SEMPRE `error: unknown` com type assertion (NUNCA `error: any`)
 
-## Backend
-O backend esta em `c:\Users\eduar\Documents\claveBack` com suas proprias cursor rules em `.cursor/rules/`. Ao fazer mudancas que envolvam backend, consultar as rules de la (00 a 06).
+## Backend (`c:\Users\eduar\Documents\claveBack`)
+
+Stack: Node.js 20+ | TypeScript 5.9 | Express 5.2 | Prisma 7.2 | PostgreSQL (Neon) | JWT + bcrypt | Cloudflare R2 (S3)
+Arquitetura: Clean Architecture + DDD + Event Sourcing
+Fluxo: Route -> Controller -> Service -> UseCase -> Repository -> DB
+
+### Cursor Rules do Backend (`.cursor/rules/`)
+
+| Rule | Descricao | Quando consultar |
+|------|-----------|------------------|
+| `00-project.md` | Stack, arquitetura, convencoes gerais | Contexto geral, roles, status HTTP |
+| `01-domain.md` | Entidades, use cases, repositorios, eventos | Cadeia de verificacao de filhos (soft delete) |
+| `02-application.md` | Services, DTOs, ApplicationRunner | Formato dos DTOs retornados pela API |
+| `03-infrastructure.md` | Controllers, routes, repositories, middleware | Endpoints, rotas, validacao, paginacao |
+| `04-prisma.md` | Schema, queries, migrations | Entidades com/sem soft delete, campos disponiveis |
+| `06-workflow.md` | Workflow de atualizacao de docs/rules | Processo de mudancas no backend |
+
+### Convencoes do Backend que afetam o Frontend
+
+- **Status HTTP**: POST=201, GET=200, PATCH=200, DELETE=204 (sem body)
+- **Paginacao**: `{ data: T[], pagination: { page, limit, total, totalPages } }`
+- **Erros**: `{ error: string, code: string, details?: object }` — mensagens em INGLES
+- **409 bloqueado**: `{ error, code: "CONFLICT_INVALID_STATE", details: { childResource, count, names?, studentsCount?, teachersCount? } }`
+- **Auth**: JWT no header `Authorization: Bearer <token>`, roles: ADMIN, DIRECTOR, TEACHER, STUDENT
+- **Soft delete**: `isActive` flag, GET `/deleted` para lixeira, PATCH `/:id/restore` para restaurar
+- **DTOs**: Backend SEMPRE retorna DTO (nunca entidade raw). Frontend mapeia DTO para tipos em `@/types`
+
+Ao fazer mudancas full-stack, LER as rules do backend diretamente em `c:\Users\eduar\Documents\claveBack\.cursor\rules\`.

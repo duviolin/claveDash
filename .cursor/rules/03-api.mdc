@@ -75,9 +75,37 @@ onError: (error: unknown) => {
 ```
 NUNCA usar `error: any` — sempre `error: unknown` com type assertion.
 
-## Backend Reference
+## Backend Reference (`c:\Users\eduar\Documents\claveBack`)
 
-Os endpoints seguem o padrao REST do backend (`c:\Users\eduar\Documents\claveBack`):
-- POST = criar (201), GET = listar/buscar (200), PATCH = atualizar (200), DELETE = soft delete (204)
-- Paginacao: `?page=1&limit=10` retorna `{ data, pagination: { page, limit, total, totalPages } }`
-- Consultar rules do backend (`.cursor/rules/03-infrastructure.md`) para detalhes de rotas
+### Padrao REST do Backend
+
+| Metodo | Status | Body de resposta | Funcao frontend |
+|--------|--------|------------------|-----------------|
+| POST | 201 | Objeto criado (DTO) | `const { data } = await api.post<T>()` |
+| GET | 200 | Objeto(s) ou paginado | `const { data } = await api.get<T>()` |
+| PATCH | 200 | Objeto atualizado (DTO) | `const { data } = await api.patch<T>()` |
+| DELETE | 204 | Sem body | `await api.delete()` (void) |
+
+### Endpoints padrao por recurso
+
+- `POST /x` — criar (201)
+- `GET /x` — listar ativos (200, paginado com `?page=&limit=`)
+- `GET /x/:id` — buscar por ID (200)
+- `PATCH /x/:id` — atualizar (200)
+- `DELETE /x/:id` — soft delete (204)
+- `GET /x/deleted` — listar inativos/lixeira (200, paginado)
+- `PATCH /x/:id/restore` — restaurar (200)
+
+### Formato de paginacao
+
+`?page=1&limit=10` retorna `{ data: T[], pagination: { page, limit, total, totalPages } }`
+
+### Formato de erro
+
+`{ error: string, code: string, details?: object }` — `code` mapeado em `@/lib/errorCodes.ts`
+
+### Como verificar endpoints
+
+- Rules: `c:\Users\eduar\Documents\claveBack\.cursor\rules\03-infrastructure.md`
+- Routes: `c:\Users\eduar\Documents\claveBack\src\infrastructure\routes\`
+- DTOs: `c:\Users\eduar\Documents\claveBack\src\application\dto\`
