@@ -157,7 +157,7 @@
 |---|---|---|
 | `ProjectTemplate` | `courseId -> Course` | `version`, `isActive`, gera `Project` instanciado |
 | `TrackSceneTemplate` | `projectTemplateId -> ProjectTemplate` | `order`, `unlockAfterTrackId`, `demoRequired`, `pressQuizRequired`, `isActive`, `version` |
-| `TrackMaterialTemplate` | `trackSceneTemplateId -> TrackSceneTemplate` | `type`, `defaultContentUrl`, `defaultTextContent`, `isRequired`, `isActive`, `version` |
+| `TrackMaterialTemplate` | `trackSceneTemplateId -> TrackSceneTemplate` | `type`, `defaultContentUrl`, `defaultTextContent`, `isActive`, `version` |
 | `StudyTrackTemplate` | `trackSceneTemplateId -> TrackSceneTemplate` | `estimatedMinutes`, `isRequired` (sempre `true`), `isActive` |
 | `PressQuizTemplate` | `trackSceneTemplateId -> TrackSceneTemplate` | `questionsJson`, `maxAttempts`, `passingScore`, `version`, `isActive` |
 | `DailyMissionTemplate` | `courseId -> Course` | `order`, `status`, `isActive` |
