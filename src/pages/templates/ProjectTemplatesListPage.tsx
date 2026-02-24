@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Eye, Trash2, ArchiveRestore } from 'lucide-react'
+import { Plus, Eye, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
@@ -14,7 +14,7 @@ import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { Pagination } from '@/components/ui/Pagination'
 import type { AxiosError } from 'axios'
-import { listProjectTemplates, createProjectTemplate, deleteProjectTemplate, listDeletedProjectTemplates, restoreProjectTemplate } from '@/api/templates'
+import { listProjectTemplates, createProjectTemplate, updateProjectTemplate, deleteProjectTemplate, listDeletedProjectTemplates, restoreProjectTemplate } from '@/api/templates'
 import { listCourses } from '@/api/courses'
 import { PROJECT_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
@@ -35,6 +35,7 @@ export function ProjectTemplatesListPage() {
   const [activeTab, setActiveTab] = useState('active')
   const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
+  const [editingTarget, setEditingTarget] = useState<ProjectTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ProjectTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<ProjectTemplate | null>(null)
   const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
@@ -48,7 +49,7 @@ export function ProjectTemplatesListPage() {
   const { data: templates = [], isLoading: isLoadingActive } = useQuery({
     queryKey: ['project-templates', courseFilter],
     queryFn: () => listProjectTemplates(courseFilter || undefined),
-    enabled: !!courseFilter && !isTrash,
+    enabled: !isTrash,
   })
 
   const { data: deletedResponse, isLoading: isLoadingTrash } = useQuery({
@@ -73,6 +74,22 @@ export function ProjectTemplatesListPage() {
       toast.success('Template criado!')
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
       setModalOpen(false)
+      setEditingTarget(null)
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: () => updateProjectTemplate(editingTarget!.id, {
+      courseId: form.courseId,
+      name: form.name,
+      description: form.description || undefined,
+      coverImage: form.coverImage || undefined,
+    }),
+    onSuccess: () => {
+      toast.success('Template atualizado!')
+      queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+      setModalOpen(false)
+      setEditingTarget(null)
     },
   })
 
@@ -133,6 +150,23 @@ export function ProjectTemplatesListPage() {
           <button onClick={() => navigate(`/templates/projects/${t.id}`)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Detalhes">
             <Eye className="h-4 w-4" />
           </button>
+          <button
+            onClick={() => {
+              setEditingTarget(t)
+              setForm({
+                courseId: t.courseId,
+                name: t.name,
+                type: t.type,
+                description: t.description || '',
+                coverImage: t.coverImage || '',
+              })
+              setModalOpen(true)
+            }}
+            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
+            title="Editar"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
           <button onClick={() => setDeleteTarget(t)} className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer" title="Desativar">
             <Trash2 className="h-4 w-4" />
           </button>
@@ -191,7 +225,7 @@ export function ProjectTemplatesListPage() {
       count={pagination?.total ?? templatesList.length}
       action={
         !isTrash ? (
-          <Button onClick={() => { setForm({ courseId: courseFilter, name: '', type: 'ALBUM', description: '', coverImage: '' }); setModalOpen(true) }}>
+          <Button onClick={() => { setEditingTarget(null); setForm({ courseId: courseFilter, name: '', type: 'ALBUM', description: '', coverImage: '' }); setModalOpen(true) }}>
             <Plus className="h-4 w-4" /> Criar Template
           </Button>
         ) : undefined
@@ -228,12 +262,14 @@ export function ProjectTemplatesListPage() {
 
       <Modal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Criar Template de Projeto"
+        onClose={() => { setModalOpen(false); setEditingTarget(null) }}
+        title={editingTarget ? 'Editar Template de Projeto' : 'Criar Template de Projeto'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button onClick={() => createMutation.mutate()} isLoading={createMutation.isPending}>Criar</Button>
+            <Button variant="secondary" onClick={() => { setModalOpen(false); setEditingTarget(null) }}>Cancelar</Button>
+            <Button onClick={() => (editingTarget ? updateMutation.mutate() : createMutation.mutate())} isLoading={createMutation.isPending || updateMutation.isPending}>
+              {editingTarget ? 'Salvar' : 'Criar'}
+            </Button>
           </>
         }
       >

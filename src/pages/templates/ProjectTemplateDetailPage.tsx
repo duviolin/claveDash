@@ -13,6 +13,7 @@ import { FileUpload } from '@/components/ui/FileUpload'
 import { QuizBuilder } from '@/components/ui/QuizBuilder'
 import { AIButton } from '@/components/ui/AIButton'
 import { generateQuiz } from '@/api/ai'
+import { presignDownload } from '@/api/storage'
 import {
   getProjectTemplate,
   updateProjectTemplate,
@@ -58,6 +59,17 @@ export function ProjectTemplateDetailPage() {
     enabled: !!id,
   })
 
+  const { data: coverImageUrl } = useQuery({
+    queryKey: ['project-template-cover-image', template?.coverImage],
+    queryFn: async () => {
+      if (!template?.coverImage) return null
+      const { downloadUrl } = await presignDownload(template.coverImage)
+      return downloadUrl
+    },
+    enabled: !!template?.coverImage,
+    staleTime: 5 * 60 * 1000,
+  })
+
   const updateProjectMutation = useMutation({
     mutationFn: () => updateProjectTemplate(id!, { name: projectForm.name, description: projectForm.description || undefined, coverImage: projectForm.coverImage || undefined }),
     onSuccess: () => {
@@ -73,9 +85,28 @@ export function ProjectTemplateDetailPage() {
 
   return (
     <PageContainer
-      title={template.name}
+      title={
+        <div className="flex items-center gap-3">
+          {template.coverImage && (
+            <div className="overflow-hidden rounded-md border border-border bg-surface-2">
+              {coverImageUrl ? (
+                <img
+                  src={coverImageUrl}
+                  alt={`Capa do template ${template.name}`}
+                  className="h-10 w-14 object-cover"
+                />
+              ) : (
+                <div className="flex h-10 w-14 items-center justify-center text-[10px] text-muted">
+                  ...
+                </div>
+              )}
+            </div>
+          )}
+          <span>{template.name}</span>
+        </div>
+      }
       action={
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant={template.type === 'ALBUM' ? 'accent' : 'info'}>{template.type}</Badge>
           <Badge variant="default">v{template.version}</Badge>
           <Button size="sm" variant="secondary" onClick={() => { setProjectForm({ name: template.name, description: template.description || '', coverImage: template.coverImage || '' }); setEditingProject(true) }}>
@@ -125,7 +156,7 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
   const [editingTrack, setEditingTrack] = useState<TrackSceneTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TrackSceneTemplate | null>(null)
   const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
-  const [form, setForm] = useState({ title: '', artist: '', description: '', technicalInstruction: '', lyrics: '', unlockAfterTrackId: '', demoRequired: false, pressQuizRequired: false })
+  const [form, setForm] = useState({ title: '', artist: '', description: '', technicalInstruction: '', lyrics: '', unlockAfterTrackId: '' })
 
   const sortedTracks = [...tracks].sort((a, b) => a.order - b.order)
 
@@ -137,8 +168,6 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
       technicalInstruction: form.technicalInstruction || undefined,
       lyrics: form.lyrics || undefined,
       unlockAfterTrackId: form.unlockAfterTrackId || undefined,
-      demoRequired: form.demoRequired,
-      pressQuizRequired: form.pressQuizRequired,
     }),
     onSuccess: () => {
       toast.success('Faixa criada!')
@@ -156,8 +185,6 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
       technicalInstruction: form.technicalInstruction || null,
       lyrics: form.lyrics || null,
       unlockAfterTrackId: form.unlockAfterTrackId || null,
-      demoRequired: form.demoRequired,
-      pressQuizRequired: form.pressQuizRequired,
     }),
     onSuccess: () => {
       toast.success('Faixa atualizada!')
@@ -183,7 +210,7 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
     },
   })
 
-  const resetForm = () => setForm({ title: '', artist: '', description: '', technicalInstruction: '', lyrics: '', unlockAfterTrackId: '', demoRequired: false, pressQuizRequired: false })
+  const resetForm = () => setForm({ title: '', artist: '', description: '', technicalInstruction: '', lyrics: '', unlockAfterTrackId: '' })
 
   const openEdit = (t: TrackSceneTemplate) => {
     setEditingTrack(t)
@@ -194,8 +221,6 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
       technicalInstruction: t.technicalInstruction || '',
       lyrics: t.lyrics || '',
       unlockAfterTrackId: t.unlockAfterTrackId || '',
-      demoRequired: t.demoRequired,
-      pressQuizRequired: t.pressQuizRequired,
     })
   }
 
@@ -218,8 +243,8 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
             {expandedTrack === track.id ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
             <span className="font-medium text-text flex-1">{track.title}</span>
             {track.artist && <span className="text-sm text-muted">{track.artist}</span>}
-            {track.demoRequired && <Badge variant="warning">Demo</Badge>}
-            {track.pressQuizRequired && <Badge variant="info">Quiz</Badge>}
+            <Badge variant="warning">Demo</Badge>
+            <Badge variant="info">Quiz</Badge>
             <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => openEdit(track)} className="rounded-lg p-1 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
               <button onClick={() => setDeleteTarget(track)} className="rounded-lg p-1 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -270,7 +295,7 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
 
 function TrackFormModal({ isOpen, onClose, title, form, setForm, onSubmit, isLoading, submitLabel, tracks, editingTrackId }: {
   isOpen: boolean; onClose: () => void; title: string
-  form: { title: string; artist: string; description: string; technicalInstruction: string; lyrics: string; unlockAfterTrackId: string; demoRequired: boolean; pressQuizRequired: boolean }
+  form: { title: string; artist: string; description: string; technicalInstruction: string; lyrics: string; unlockAfterTrackId: string }
   setForm: (f: typeof form) => void; onSubmit: () => void; isLoading: boolean; submitLabel: string
   tracks: TrackSceneTemplate[]; editingTrackId?: string
 }) {
@@ -281,7 +306,7 @@ function TrackFormModal({ isOpen, onClose, title, form, setForm, onSubmit, isLoa
       <><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button onClick={onSubmit} isLoading={isLoading}>{submitLabel}</Button></>
     }>
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input id="ttTitle" label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <Input id="ttArtist" label="Artista" value={form.artist} onChange={(e) => setForm({ ...form, artist: e.target.value })} />
         </div>
@@ -298,15 +323,8 @@ function TrackFormModal({ isOpen, onClose, title, form, setForm, onSubmit, isLoa
             options={availableTracks.map(t => ({ value: t.id, label: `${t.order}. ${t.title}` }))}
           />
         )}
-        <div className="flex gap-6">
-          <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
-            <input type="checkbox" checked={form.demoRequired} onChange={(e) => setForm({ ...form, demoRequired: e.target.checked })} className="accent-accent" />
-            Demo obrigatória
-          </label>
-          <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
-            <input type="checkbox" checked={form.pressQuizRequired} onChange={(e) => setForm({ ...form, pressQuizRequired: e.target.checked })} className="accent-accent" />
-            Quiz da coletiva obrigatório
-          </label>
+        <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-muted">
+          Demo e Quiz da coletiva são obrigatórios para todas as faixas.
         </div>
       </div>
     </Modal>
@@ -319,7 +337,7 @@ function MaterialsSection({ trackTemplateId }: { trackTemplateId: string }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<TrackMaterialTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TrackMaterialTemplate | null>(null)
-  const [form, setForm] = useState({ type: 'TEXT' as TrackMaterialType, title: '', defaultContentUrl: '', defaultTextContent: '', isRequired: false })
+  const [form, setForm] = useState({ type: 'TEXT' as TrackMaterialType, title: '', defaultContentUrl: '', defaultTextContent: '' })
 
   const { data: materials = [] } = useQuery({
     queryKey: ['material-templates', trackTemplateId],
@@ -327,12 +345,12 @@ function MaterialsSection({ trackTemplateId }: { trackTemplateId: string }) {
   })
 
   const createMut = useMutation({
-    mutationFn: () => createMaterialTemplate(trackTemplateId, { type: form.type, title: form.title, defaultContentUrl: form.defaultContentUrl || undefined, defaultTextContent: form.defaultTextContent || undefined, isRequired: form.isRequired }),
+    mutationFn: () => createMaterialTemplate(trackTemplateId, { type: form.type, title: form.title, defaultContentUrl: form.defaultContentUrl || undefined, defaultTextContent: form.defaultTextContent || undefined }),
     onSuccess: () => { toast.success('Material criado!'); queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] }); setModalOpen(false) },
   })
 
   const updateMut = useMutation({
-    mutationFn: () => updateMaterialTemplate(editing!.id, { title: form.title, defaultContentUrl: form.defaultContentUrl || undefined, defaultTextContent: form.defaultTextContent || undefined, isRequired: form.isRequired }),
+    mutationFn: () => updateMaterialTemplate(editing!.id, { title: form.title, defaultContentUrl: form.defaultContentUrl || undefined, defaultTextContent: form.defaultTextContent || undefined }),
     onSuccess: () => { toast.success('Material atualizado!'); queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] }); setEditing(null); setModalOpen(false) },
   })
 
@@ -341,8 +359,8 @@ function MaterialsSection({ trackTemplateId }: { trackTemplateId: string }) {
     onSuccess: () => { toast.success('Material desativado!'); queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] }); setDeleteTarget(null) },
   })
 
-  const openCreate = () => { setEditing(null); setForm({ type: 'TEXT', title: '', defaultContentUrl: '', defaultTextContent: '', isRequired: false }); setModalOpen(true) }
-  const openEdit = (m: TrackMaterialTemplate) => { setEditing(m); setForm({ type: m.type, title: m.title, defaultContentUrl: m.defaultContentUrl || '', defaultTextContent: m.defaultTextContent || '', isRequired: m.isRequired }); setModalOpen(true) }
+  const openCreate = () => { setEditing(null); setForm({ type: 'TEXT', title: '', defaultContentUrl: '', defaultTextContent: '' }); setModalOpen(true) }
+  const openEdit = (m: TrackMaterialTemplate) => { setEditing(m); setForm({ type: m.type, title: m.title, defaultContentUrl: m.defaultContentUrl || '', defaultTextContent: m.defaultTextContent || '' }); setModalOpen(true) }
 
   return (
     <div>
@@ -356,7 +374,6 @@ function MaterialsSection({ trackTemplateId }: { trackTemplateId: string }) {
             <div key={m.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
               <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
               <span className="flex-1 text-text">{m.title}</span>
-              {m.isRequired && <Badge variant="warning">Obrigatório</Badge>}
               <button onClick={() => openEdit(m)} className="text-muted hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
               <button onClick={() => setDeleteTarget(m)} className="text-muted hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
             </div>
@@ -384,10 +401,6 @@ function MaterialsSection({ trackTemplateId }: { trackTemplateId: string }) {
           )}
           {form.type === 'LINK' && <Input id="matUrl" label="URL do Link" value={form.defaultContentUrl} onChange={(e) => setForm({ ...form, defaultContentUrl: e.target.value })} placeholder="https://..." />}
           {form.type === 'TEXT' && <Textarea id="matText" label="Conteúdo" value={form.defaultTextContent} onChange={(e) => setForm({ ...form, defaultTextContent: e.target.value })} />}
-          <label className="flex items-center gap-2 text-sm text-text cursor-pointer">
-            <input type="checkbox" checked={form.isRequired} onChange={(e) => setForm({ ...form, isRequired: e.target.checked })} className="accent-accent" />
-            Material obrigatório
-          </label>
         </div>
       </Modal>
 

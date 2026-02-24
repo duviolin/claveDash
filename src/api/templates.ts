@@ -20,8 +20,6 @@ interface CreateTrackTemplatePayload {
   technicalInstruction?: string
   lyrics?: string
   unlockAfterTrackId?: string
-  demoRequired?: boolean
-  pressQuizRequired?: boolean
 }
 interface UpdateTrackTemplatePayload {
   title?: string
@@ -30,15 +28,12 @@ interface UpdateTrackTemplatePayload {
   technicalInstruction?: string | null
   lyrics?: string | null
   unlockAfterTrackId?: string | null
-  demoRequired?: boolean
-  pressQuizRequired?: boolean
 }
 interface UpdateMaterialTemplatePayload {
   type?: TrackMaterialType
   title?: string
   defaultContentUrl?: string | null
   defaultTextContent?: string | null
-  isRequired?: boolean
 }
 interface UpdateStudyTrackCategoryPayload {
   name?: string
@@ -97,7 +92,7 @@ export async function createProjectTemplate(payload: { courseId: string; name: s
   return data
 }
 
-export async function updateProjectTemplate(id: string, payload: { name?: string; description?: string; coverImage?: string }) {
+export async function updateProjectTemplate(id: string, payload: { courseId?: string; name?: string; description?: string; coverImage?: string }) {
   const { data } = await api.patch<ProjectTemplate>(`/project-templates/${id}`, payload)
   return data
 }
@@ -162,7 +157,7 @@ export async function listMaterialTemplates(trackTemplateId: string) {
   return data
 }
 
-export async function createMaterialTemplate(trackTemplateId: string, payload: { type: TrackMaterialType; title: string; defaultContentUrl?: string; defaultTextContent?: string; isRequired?: boolean }) {
+export async function createMaterialTemplate(trackTemplateId: string, payload: { type: TrackMaterialType; title: string; defaultContentUrl?: string; defaultTextContent?: string }) {
   const { data } = await api.post<TrackMaterialTemplate>(`/track-templates/${trackTemplateId}/materials`, payload)
   return data
 }

@@ -109,7 +109,6 @@ export interface TrackMaterialTemplate {
   defaultContentUrl: string | null
   defaultTextContent: string | null
   order: number
-  isRequired: boolean
   isActive: boolean
   version: number
   createdAt: string

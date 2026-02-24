@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import type { StorageConfig } from '@/types'
 import toast from 'react-hot-toast'
 
-export type FileUploadFileType = 'avatars' | 'demos' | 'videos' | 'materials' | 'documents'
+export type FileUploadFileType = 'images' | 'avatars' | 'demos' | 'videos' | 'materials' | 'documents'
 
 interface FileUploadProps {
   fileType: FileUploadFileType
@@ -59,7 +59,8 @@ export function FileUpload({
 
   useEffect(() => {
     const keyToPreview = currentValue ?? justUploadedKey
-    if (fileType !== 'avatars' || !keyToPreview) {
+    const supportsImagePreview = fileType === 'avatars' || fileType === 'images'
+    if (!supportsImagePreview || !keyToPreview) {
       setPreviewUrl(null)
       return
     }
@@ -195,7 +196,7 @@ export function FileUpload({
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500/20">
                 <Check className="h-5 w-5 text-green-500" />
               </div>
-            ) : fileType === 'avatars' && previewUrl ? (
+            ) : (fileType === 'avatars' || fileType === 'images') && previewUrl ? (
               <img
                 src={previewUrl}
                 alt="Preview"
