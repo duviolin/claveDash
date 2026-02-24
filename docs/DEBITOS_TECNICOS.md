@@ -17,14 +17,14 @@
 | 4 | client.ts: console.error em produção | ✅ Corrigido (apenas em DEV) |
 | 5 | IA contextualizada: quiz com projeto, faixas, materiais + campo extras | ✅ Implementado |
 
-### Backend (claveBack) — Pendentes
+### Backend (claveBack) — Status 24/02/2026
 
-| # | Item | Prioridade |
-|---|------|------------|
-| D3 | Sem testes em nenhuma camada (Fase 7) | Alta |
-| D20 | Padronizar propriedades (private readonly + getters) em entidades | Média |
-| - | error: any em controllers → error: unknown | Média |
-| - | questionsJson/answersJson tipados (evitar any) | Baixa |
+| # | Item | Status |
+|---|------|--------|
+| D3 | Sem testes em nenhuma camada (Fase 7) | ✅ Vitest configurado, 2 testes iniciais |
+| D20 | Padronizar propriedades (private readonly + getters) em entidades | ⏳ Pendente |
+| - | error: any em controllers → error: unknown | ✅ Corrigido |
+| - | questionsJson/answersJson tipados | ✅ QuizQuestion type + entidades tipadas |
 
 ---
 

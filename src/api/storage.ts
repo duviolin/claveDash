@@ -27,11 +27,6 @@ export async function presignDownload(key: string): Promise<{ downloadUrl: strin
   return data.data
 }
 
-export async function deleteFile(key: string) {
-  const { data } = await api.delete(`/storage/file/${key}`)
-  return data
-}
-
 export async function getStorageConfig(fileType: string): Promise<StorageConfig> {
   const { data } = await api.get<{ success: boolean; data: StorageConfig }>(`/storage/config/${fileType}`)
   return data.data
