@@ -10,7 +10,6 @@ import { Modal, ConfirmModal } from '@/components/ui/Modal'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { Textarea } from '@/components/ui/Textarea'
 import { QuizBuilder } from '@/components/ui/QuizBuilder'
 import { AIButton } from '@/components/ui/AIButton'
 import { generateQuiz } from '@/api/ai'
@@ -62,7 +61,7 @@ export function DailyMissionTemplatesPage() {
   const { data: missions = [], isLoading } = useQuery({
     queryKey: ['daily-mission-templates', courseFilter],
     queryFn: () => listDailyMissionTemplates(courseFilter || undefined),
-    enabled: !!courseFilter && !isTrash,
+    enabled: !isTrash,
   })
 
   const { data: deletedResponse, isLoading: isLoadingDeleted } = useQuery({
@@ -225,7 +224,7 @@ export function DailyMissionTemplatesPage() {
               </div>
               {expandedMission === mission.id && (
                 <div className="border-t border-border px-4 py-4 bg-surface-2/30">
-                  <MissionQuizSection missionId={mission.id} />
+                  <MissionQuizSection missionId={mission.id} mission={mission} />
                 </div>
               )}
             </div>
@@ -278,7 +277,7 @@ export function DailyMissionTemplatesPage() {
   )
 }
 
-function MissionQuizSection({ missionId }: { missionId: string }) {
+function MissionQuizSection({ missionId, mission }: { missionId: string; mission: DailyMissionTemplate }) {
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<DailyMissionQuiz | null>(null)
@@ -345,7 +344,7 @@ function MissionQuizSection({ missionId }: { missionId: string }) {
         <div className="space-y-1">
           {quizzes.map((q) => (
             <div key={q.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
-              <Badge variant="secondary" className="shrink-0">v{q.version}</Badge>
+              <Badge variant="default" className="shrink-0">v{q.version}</Badge>
               <span className="text-muted">{q.questionsJson?.length ?? 0} questões</span>
               <span className="text-muted">{q.maxAttemptsPerDay} tentativas/dia</span>
               {q.allowRecoveryAttempt && <Badge variant="info">Recuperação</Badge>}
@@ -365,7 +364,14 @@ function MissionQuizSection({ missionId }: { missionId: string }) {
             <label className="block text-sm font-medium text-text">Questões</label>
             <AIButton
               label="Gerar Quiz com IA"
-              onGenerate={() => generateQuiz({ title: 'Missão Diária', count: 5 })}
+              extraInputLabel="Instruções extras (opcional)"
+              extraInputPlaceholder="Ex.: foco em prática diária, dificuldade iniciante..."
+              onGenerate={(userExtra) => generateQuiz({
+                title: mission.title,
+                count: 5,
+                project: { name: mission.title, description: `Missão diária do curso` },
+                userExtra: userExtra || undefined,
+              })}
               onAccept={(raw) => {
                 try {
                   const parsed = JSON.parse(raw)

@@ -261,7 +261,7 @@ export async function deletePressQuizTemplate(id: string) {
   await api.delete(`/press-quiz-templates/${id}`)
 }
 
-export async function listDeletedPressQuizTemplates(params: { page: number; limit: number }) {
+export async function listDeletedPressQuizTemplates(params: { page: number; limit: number; trackSceneTemplateId?: string }) {
   const { data } = await api.get<PaginatedResponse<PressQuizTemplate>>('/press-quiz-templates/deleted', { params })
   return data
 }

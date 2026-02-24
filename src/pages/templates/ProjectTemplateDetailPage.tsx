@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, GripVertical, Music, FileText, BookOpen, HelpCircle } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, GripVertical, Music, FileText, BookOpen, HelpCircle, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Modal, ConfirmModal } from '@/components/ui/Modal'
+import { Tabs } from '@/components/ui/Tabs'
+import { Pagination } from '@/components/ui/Pagination'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
@@ -31,13 +33,15 @@ import {
   deleteStudyTrackTemplate,
   listStudyTrackCategories,
   listPressQuizTemplates,
+  listDeletedPressQuizTemplates,
   createPressQuizTemplate,
   updatePressQuizTemplate,
   deletePressQuizTemplate,
+  restorePressQuizTemplate,
 } from '@/api/templates'
 import type { AxiosError } from 'axios'
 import { TRACK_MATERIAL_TYPE_LABELS, TRACK_MATERIAL_TYPE_VARIANT } from '@/lib/constants'
-import type { TrackSceneTemplate, TrackMaterialTemplate, TrackMaterialType, StudyTrackTemplate, StudyTrackCategory, PressQuizTemplate, DeactivationErrorDetails, QuizQuestion } from '@/types'
+import type { ProjectTemplate, TrackSceneTemplate, TrackMaterialTemplate, TrackMaterialType, StudyTrackTemplate, StudyTrackCategory, PressQuizTemplate, DeactivationErrorDetails, QuizQuestion } from '@/types'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import toast from 'react-hot-toast'
 
@@ -117,7 +121,7 @@ export function ProjectTemplateDetailPage() {
     >
       {template.description && <p className="text-sm text-muted -mt-4 mb-4">{template.description}</p>}
 
-      <TracksList projectTemplateId={id!} tracks={tracks} courseId={template!.courseId} />
+      <TracksList projectTemplateId={id!} tracks={tracks} courseId={template!.courseId} template={template} />
 
       <Modal
         isOpen={editingProject}
@@ -149,7 +153,7 @@ export function ProjectTemplateDetailPage() {
 }
 
 // ---- Tracks List ----
-function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId: string; tracks: TrackSceneTemplate[]; courseId: string }) {
+function TracksList({ projectTemplateId, tracks, courseId, template }: { projectTemplateId: string; tracks: TrackSceneTemplate[]; courseId: string; template?: ProjectTemplate }) {
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
@@ -159,6 +163,14 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
   const [form, setForm] = useState({ title: '', artist: '', description: '', technicalInstruction: '', lyrics: '', unlockAfterTrackId: '' })
 
   const sortedTracks = [...tracks].sort((a, b) => a.order - b.order)
+  const refreshTemplateVersion = async () => {
+    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateId], (current) => {
+      if (!current) return current
+      return { ...current, version: current.version + 1 }
+    })
+    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateId], exact: true, type: 'active' })
+    queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+  }
 
   const createMutation = useMutation({
     mutationFn: () => createTrackTemplate(projectTemplateId, {
@@ -169,9 +181,10 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
       lyrics: form.lyrics || undefined,
       unlockAfterTrackId: form.unlockAfterTrackId || undefined,
     }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Faixa criada!')
       queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateId] })
+      await refreshTemplateVersion()
       setCreateOpen(false)
       resetForm()
     },
@@ -186,9 +199,10 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
       lyrics: form.lyrics || null,
       unlockAfterTrackId: form.unlockAfterTrackId || null,
     }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Faixa atualizada!')
       queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateId] })
+      await refreshTemplateVersion()
       setEditingTrack(null)
       resetForm()
     },
@@ -196,9 +210,10 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteTrackTemplate(deleteTarget!.id),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Faixa desativada!')
       queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateId] })
+      await refreshTemplateVersion()
       setDeleteTarget(null)
     },
     onError: (error: unknown) => {
@@ -260,9 +275,9 @@ function TracksList({ projectTemplateId, tracks, courseId }: { projectTemplateId
                 return prereq ? <div><p className="text-xs font-medium text-muted uppercase">Pré-requisito</p><p className="text-sm text-text mt-1">Desbloqueia após: {prereq.title}</p></div> : null
               })()}
 
-              <MaterialsSection trackTemplateId={track.id} />
-              <StudyTracksSection trackTemplateId={track.id} courseId={courseId} />
-              <PressQuizzesSection trackTemplateId={track.id} />
+              <MaterialsSection trackTemplateId={track.id} projectTemplateId={projectTemplateId} />
+              <StudyTracksSection trackTemplateId={track.id} courseId={courseId} projectTemplateId={projectTemplateId} />
+              <PressQuizzesSection trackTemplateId={track.id} projectTemplateId={projectTemplateId} track={track} template={template} />
             </div>
           )}
         </div>
@@ -332,12 +347,20 @@ function TrackFormModal({ isOpen, onClose, title, form, setForm, onSubmit, isLoa
 }
 
 // ---- Materials Section ----
-function MaterialsSection({ trackTemplateId }: { trackTemplateId: string }) {
+function MaterialsSection({ trackTemplateId, projectTemplateId }: { trackTemplateId: string; projectTemplateId: string }) {
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<TrackMaterialTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TrackMaterialTemplate | null>(null)
   const [form, setForm] = useState({ type: 'TEXT' as TrackMaterialType, title: '', defaultContentUrl: '', defaultTextContent: '' })
+  const refreshTemplateVersion = async () => {
+    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateId], (current) => {
+      if (!current) return current
+      return { ...current, version: current.version + 1 }
+    })
+    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateId], exact: true, type: 'active' })
+    queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+  }
 
   const { data: materials = [] } = useQuery({
     queryKey: ['material-templates', trackTemplateId],
@@ -346,17 +369,33 @@ function MaterialsSection({ trackTemplateId }: { trackTemplateId: string }) {
 
   const createMut = useMutation({
     mutationFn: () => createMaterialTemplate(trackTemplateId, { type: form.type, title: form.title, defaultContentUrl: form.defaultContentUrl || undefined, defaultTextContent: form.defaultTextContent || undefined }),
-    onSuccess: () => { toast.success('Material criado!'); queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] }); setModalOpen(false) },
+    onSuccess: async () => {
+      toast.success('Material criado!')
+      queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] })
+      await refreshTemplateVersion()
+      setModalOpen(false)
+    },
   })
 
   const updateMut = useMutation({
     mutationFn: () => updateMaterialTemplate(editing!.id, { title: form.title, defaultContentUrl: form.defaultContentUrl || undefined, defaultTextContent: form.defaultTextContent || undefined }),
-    onSuccess: () => { toast.success('Material atualizado!'); queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] }); setEditing(null); setModalOpen(false) },
+    onSuccess: async () => {
+      toast.success('Material atualizado!')
+      queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] })
+      await refreshTemplateVersion()
+      setEditing(null)
+      setModalOpen(false)
+    },
   })
 
   const deleteMut = useMutation({
     mutationFn: () => deleteMaterialTemplate(deleteTarget!.id),
-    onSuccess: () => { toast.success('Material desativado!'); queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] }); setDeleteTarget(null) },
+    onSuccess: async () => {
+      toast.success('Material desativado!')
+      queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] })
+      await refreshTemplateVersion()
+      setDeleteTarget(null)
+    },
   })
 
   const openCreate = () => { setEditing(null); setForm({ type: 'TEXT', title: '', defaultContentUrl: '', defaultTextContent: '' }); setModalOpen(true) }
@@ -410,12 +449,20 @@ function MaterialsSection({ trackTemplateId }: { trackTemplateId: string }) {
 }
 
 // ---- Study Tracks Section ----
-function StudyTracksSection({ trackTemplateId, courseId }: { trackTemplateId: string; courseId: string }) {
+function StudyTracksSection({ trackTemplateId, courseId, projectTemplateId }: { trackTemplateId: string; courseId: string; projectTemplateId: string }) {
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<StudyTrackTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StudyTrackTemplate | null>(null)
   const [form, setForm] = useState({ title: '', categoryId: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true })
+  const refreshTemplateVersion = async () => {
+    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateId], (current) => {
+      if (!current) return current
+      return { ...current, version: current.version + 1 }
+    })
+    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateId], exact: true, type: 'active' })
+    queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+  }
 
   const { data: studyTracks = [] } = useQuery({
     queryKey: ['study-track-templates', trackTemplateId],
@@ -433,7 +480,12 @@ function StudyTracksSection({ trackTemplateId, courseId }: { trackTemplateId: st
       videoUrl: form.videoUrl || undefined, audioUrl: form.audioUrl || undefined, pdfUrl: form.pdfUrl || undefined,
       estimatedMinutes: form.estimatedMinutes, isRequired: form.isRequired, isVisible: form.isVisible,
     }),
-    onSuccess: () => { toast.success('Trilha criada!'); queryClient.invalidateQueries({ queryKey: ['study-track-templates', trackTemplateId] }); setModalOpen(false) },
+    onSuccess: async () => {
+      toast.success('Trilha criada!')
+      queryClient.invalidateQueries({ queryKey: ['study-track-templates', trackTemplateId] })
+      await refreshTemplateVersion()
+      setModalOpen(false)
+    },
   })
 
   const updateMut = useMutation({
@@ -442,12 +494,23 @@ function StudyTracksSection({ trackTemplateId, courseId }: { trackTemplateId: st
       videoUrl: form.videoUrl || undefined, audioUrl: form.audioUrl || undefined, pdfUrl: form.pdfUrl || undefined,
       estimatedMinutes: form.estimatedMinutes, isRequired: form.isRequired, isVisible: form.isVisible,
     }),
-    onSuccess: () => { toast.success('Trilha atualizada!'); queryClient.invalidateQueries({ queryKey: ['study-track-templates', trackTemplateId] }); setEditing(null); setModalOpen(false) },
+    onSuccess: async () => {
+      toast.success('Trilha atualizada!')
+      queryClient.invalidateQueries({ queryKey: ['study-track-templates', trackTemplateId] })
+      await refreshTemplateVersion()
+      setEditing(null)
+      setModalOpen(false)
+    },
   })
 
   const deleteMut = useMutation({
     mutationFn: () => deleteStudyTrackTemplate(deleteTarget!.id),
-    onSuccess: () => { toast.success('Trilha desativada!'); queryClient.invalidateQueries({ queryKey: ['study-track-templates', trackTemplateId] }); setDeleteTarget(null) },
+    onSuccess: async () => {
+      toast.success('Trilha desativada!')
+      queryClient.invalidateQueries({ queryKey: ['study-track-templates', trackTemplateId] })
+      await refreshTemplateVersion()
+      setDeleteTarget(null)
+    },
   })
 
   const openCreate = () => { setEditing(null); setForm({ title: '', categoryId: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true }); setModalOpen(true) }
@@ -511,18 +574,59 @@ function StudyTracksSection({ trackTemplateId, courseId }: { trackTemplateId: st
   )
 }
 
+const QUIZ_TRASH_PAGE_LIMIT = 20
+
 // ---- Press Quizzes Section ----
-function PressQuizzesSection({ trackTemplateId }: { trackTemplateId: string }) {
+function PressQuizzesSection({ trackTemplateId, projectTemplateId, track, template }: { trackTemplateId: string; projectTemplateId: string; track: TrackSceneTemplate; template?: ProjectTemplate }) {
   const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState('active')
+  const [trashPage, setTrashPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<PressQuizTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PressQuizTemplate | null>(null)
+  const [restoreTarget, setRestoreTarget] = useState<PressQuizTemplate | null>(null)
   const [form, setForm] = useState({ title: '', description: '', questions: [] as QuizQuestion[], maxAttempts: 3, passingScore: 70 })
+  const refreshTemplateVersion = async () => {
+    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateId], (current) => {
+      if (!current) return current
+      return { ...current, version: current.version + 1 }
+    })
+    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateId], exact: true, type: 'active' })
+    queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+  }
+
+  const isTrash = activeTab === 'TRASH'
 
   const { data: quizzes = [] } = useQuery({
     queryKey: ['press-quiz-templates', trackTemplateId],
     queryFn: () => listPressQuizTemplates(trackTemplateId),
+    enabled: !isTrash,
   })
+
+  const { data: materials = [] } = useQuery({
+    queryKey: ['material-templates', trackTemplateId],
+    queryFn: () => listMaterialTemplates(trackTemplateId),
+    enabled: modalOpen,
+  })
+
+  const { data: studyTracks = [] } = useQuery({
+    queryKey: ['study-track-templates', trackTemplateId],
+    queryFn: () => listStudyTrackTemplates(trackTemplateId),
+    enabled: modalOpen,
+  })
+
+  const { data: deletedResponse } = useQuery({
+    queryKey: ['press-quiz-templates', 'deleted', trackTemplateId, trashPage],
+    queryFn: () => listDeletedPressQuizTemplates({
+      page: trashPage,
+      limit: QUIZ_TRASH_PAGE_LIMIT,
+      trackSceneTemplateId: trackTemplateId,
+    }),
+    enabled: isTrash,
+  })
+
+  const deletedQuizzes = deletedResponse?.data ?? []
+  const pagination = deletedResponse?.pagination
 
   const createMut = useMutation({
     mutationFn: () => createPressQuizTemplate(trackTemplateId, {
@@ -532,7 +636,12 @@ function PressQuizzesSection({ trackTemplateId }: { trackTemplateId: string }) {
       maxAttempts: form.maxAttempts,
       passingScore: form.passingScore,
     }),
-    onSuccess: () => { toast.success('Quiz criado!'); queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] }); setModalOpen(false) },
+    onSuccess: async () => {
+      toast.success('Quiz criado!')
+      queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] })
+      await refreshTemplateVersion()
+      setModalOpen(false)
+    },
   })
 
   const updateMut = useMutation({
@@ -543,12 +652,35 @@ function PressQuizzesSection({ trackTemplateId }: { trackTemplateId: string }) {
       maxAttempts: form.maxAttempts,
       passingScore: form.passingScore,
     }),
-    onSuccess: () => { toast.success('Quiz atualizado!'); queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] }); setEditing(null); setModalOpen(false) },
+    onSuccess: async () => {
+      toast.success('Quiz atualizado!')
+      queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] })
+      await refreshTemplateVersion()
+      setEditing(null)
+      setModalOpen(false)
+    },
   })
 
   const deleteMut = useMutation({
     mutationFn: () => deletePressQuizTemplate(deleteTarget!.id),
-    onSuccess: () => { toast.success('Quiz desativado!'); queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] }); setDeleteTarget(null) },
+    onSuccess: async () => {
+      toast.success('Quiz desativado!')
+      queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] })
+      queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', 'deleted', trackTemplateId] })
+      await refreshTemplateVersion()
+      setDeleteTarget(null)
+    },
+  })
+
+  const restoreMut = useMutation({
+    mutationFn: () => restorePressQuizTemplate(restoreTarget!.id),
+    onSuccess: async () => {
+      toast.success('Quiz restaurado!')
+      queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] })
+      queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', 'deleted', trackTemplateId] })
+      await refreshTemplateVersion()
+      setRestoreTarget(null)
+    },
   })
 
   const openCreate = () => { setEditing(null); setForm({ title: '', description: '', questions: [], maxAttempts: 3, passingScore: 70 }); setModalOpen(true) }
@@ -557,21 +689,66 @@ function PressQuizzesSection({ trackTemplateId }: { trackTemplateId: string }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><HelpCircle className="h-4 w-4 text-warning" /> Quizzes ({quizzes.length})</h3>
-        <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /></Button>
+        <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><HelpCircle className="h-4 w-4 text-warning" /> Quizzes</h3>
+        {!isTrash && <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /></Button>}
       </div>
-      {quizzes.length > 0 && (
-        <div className="space-y-1">
-          {quizzes.map((q) => (
-            <div key={q.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
-              <span className="flex-1 text-text">{q.title}</span>
-              <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
-              <span className="text-xs text-muted">{q.passingScore}%</span>
-              <button onClick={() => openEdit(q)} className="text-muted hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-              <button onClick={() => setDeleteTarget(q)} className="text-muted hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+
+      <Tabs
+        tabs={[
+          { key: 'active', label: 'Ativos', count: quizzes.length },
+          { key: 'TRASH', label: 'Lixeira', count: pagination?.total ?? deletedQuizzes.length },
+        ]}
+        activeKey={activeTab}
+        onChange={(key) => { setActiveTab(key); setTrashPage(1) }}
+      />
+
+      {!isTrash && (
+        <>
+          {quizzes.length > 0 ? (
+            <div className="space-y-1 mt-2">
+              {quizzes.map((q) => (
+                <div key={q.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+                  <span className="flex-1 text-text">{q.title}</span>
+                  <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
+                  <span className="text-xs text-muted">{q.passingScore}%</span>
+                  <button onClick={() => openEdit(q)} className="text-muted hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setDeleteTarget(q)} className="text-muted hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          ) : (
+            <p className="text-sm text-muted mt-2">Nenhum quiz ativo</p>
+          )}
+        </>
+      )}
+
+      {isTrash && (
+        <>
+          {deletedQuizzes.length > 0 ? (
+            <>
+              <div className="space-y-1 mt-2">
+                {deletedQuizzes.map((q) => (
+                  <div key={q.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+                    <span className="flex-1 text-text">{q.title}</span>
+                    <Badge variant="error" className="text-[10px]">Excluído</Badge>
+                    <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
+                    <button onClick={() => setRestoreTarget(q)} className="text-muted hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+              {pagination && pagination.totalPages > 1 && (
+                <Pagination
+                  page={trashPage}
+                  totalPages={pagination.totalPages}
+                  total={pagination.total}
+                  onPageChange={setTrashPage}
+                />
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+          )}
+        </>
       )}
 
       <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Editar Quiz' : 'Criar Quiz'} size="lg" footer={
@@ -585,7 +762,18 @@ function PressQuizzesSection({ trackTemplateId }: { trackTemplateId: string }) {
             <label className="block text-sm font-medium text-text">Questões</label>
             <AIButton
               label="Gerar Quiz com IA"
-              onGenerate={() => generateQuiz({ title: form.title, description: form.description, count: 5 })}
+              extraInputLabel="Instruções extras (opcional)"
+              extraInputPlaceholder="Ex.: foco em teoria musical, dificuldade intermediária, questões sobre a letra..."
+              onGenerate={(userExtra) => generateQuiz({
+                title: form.title || track.title,
+                description: form.description,
+                count: 5,
+                project: template ? { name: template.name, type: template.type, description: template.description } : undefined,
+                track: { title: track.title, artist: track.artist, description: track.description, technicalInstruction: track.technicalInstruction, lyrics: track.lyrics },
+                materials: materials.map((m) => ({ title: m.title, type: m.type })),
+                studyTracks: studyTracks.map((st) => ({ title: st.title, description: st.description, technicalNotes: st.technicalNotes })),
+                userExtra: userExtra || undefined,
+              })}
               onAccept={(raw) => {
                 try {
                   const parsed = JSON.parse(raw)
@@ -603,6 +791,7 @@ function PressQuizzesSection({ trackTemplateId }: { trackTemplateId: string }) {
       </Modal>
 
       <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Desativar Quiz" message={`Desativar "${deleteTarget?.title}"?`} />
+      <ConfirmModal isOpen={!!restoreTarget} onClose={() => setRestoreTarget(null)} onConfirm={() => restoreMut.mutate()} isLoading={restoreMut.isPending} title="Restaurar Quiz" message={`Restaurar "${restoreTarget?.title}"?`} confirmLabel="Restaurar" />
     </div>
   )
 }
