@@ -45,3 +45,19 @@
 - ~~Frontend precisa expandir CHILD_NAV no DeactivationBlockedModal quando backend implementar~~ ✅ Concluído
 
 Todos os gaps da Fase 8 foram resolvidos em 23/02/2026.
+
+---
+
+## Refatoração 24/02/2026 — IA contextualizada + correções auditoria
+
+| Etapa | Escopo | Status |
+|-------|--------|--------|
+| IA contextualizada | Quiz com projeto, faixas, materiais + campo extras do usuário | ✅ |
+| UsersListPage | DeactivationBlockedModal para 409 | ✅ |
+| classes.ts | removeTeacher/removeStudent → void (DELETE 204) | ✅ |
+| client.ts | console.error apenas em DEV | ✅ |
+| DailyMissionTemplatesPage | Filtro courseFilter opcional | ✅ |
+| CoursesListPage | Query tipada (active/deleted separados) | ✅ |
+| Docs | DEBITOS_TECNICOS.md, rules atualizadas | ✅ |
+
+Ver `docs/DEBITOS_TECNICOS.md` para débitos remanescentes (backend).
