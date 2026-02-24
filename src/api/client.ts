@@ -28,7 +28,9 @@ api.interceptors.response.use(
     const method = error.config?.method?.toUpperCase()
     const code: string | undefined = data?.code
 
-    console.error(`[API] ${method} ${url} → ${status || 'NETWORK'}`, code || data?.error || error.message)
+    if (import.meta.env.DEV) {
+      console.error(`[API] ${method} ${url} → ${status || 'NETWORK'}`, code || data?.error || error.message)
+    }
 
     if (!status) {
       toast.error(`Erro de conexão: não foi possível conectar ao servidor`)

@@ -15,7 +15,7 @@ import type { AxiosError } from 'axios'
 import { listCourses, listCoursesPaginated, createCourse, updateCourse, deleteCourse, listDeletedCourses, restoreCourse } from '@/api/courses'
 import { listSchools } from '@/api/schools'
 import { formatDate } from '@/lib/utils'
-import type { Course, CourseType, School, DeactivationErrorDetails, PaginatedResponse } from '@/types'
+import type { Course, CourseType, School, DeactivationErrorDetails } from '@/types'
 import toast from 'react-hot-toast'
 
 const COURSES_PAGE_LIMIT = 10
@@ -55,20 +55,24 @@ export function CoursesListPage() {
   })
   const schools = schoolsResponse?.data ?? []
 
-  const { data: coursesResponse, isLoading } = useQuery({
-    queryKey: ['courses', isTrash ? 'deleted' : schoolFilter || 'all', page],
-    queryFn: () =>
-      isTrash
-        ? listDeletedCourses({ page, limit: COURSES_PAGE_LIMIT })
-        : schoolFilter
-          ? listCoursesPaginated({ schoolId: schoolFilter, page, limit: COURSES_PAGE_LIMIT })
-          : listCourses(),
+  const { data: activeResponse, isLoading: isLoadingActive } = useQuery({
+    queryKey: ['courses', schoolFilter || 'all', page],
+    queryFn: async (): Promise<{ data: Course[]; pagination?: { page: number; totalPages: number; total: number } }> =>
+      schoolFilter
+        ? listCoursesPaginated({ schoolId: schoolFilter, page, limit: COURSES_PAGE_LIMIT })
+        : listCourses().then((data) => ({ data })),
+    enabled: !isTrash,
   })
 
-  const courses = Array.isArray(coursesResponse)
-    ? coursesResponse
-    : coursesResponse?.data ?? []
-  const pagination = Array.isArray(coursesResponse) ? undefined : coursesResponse?.pagination
+  const { data: deletedResponse, isLoading: isLoadingTrash } = useQuery({
+    queryKey: ['courses', 'deleted', page],
+    queryFn: () => listDeletedCourses({ page, limit: COURSES_PAGE_LIMIT }),
+    enabled: isTrash,
+  })
+
+  const courses = isTrash ? (deletedResponse?.data ?? []) : (activeResponse?.data ?? [])
+  const pagination = isTrash ? deletedResponse?.pagination : activeResponse?.pagination
+  const isLoading = isTrash ? isLoadingTrash : isLoadingActive
 
   const saveMutation = useMutation({
     mutationFn: () => {

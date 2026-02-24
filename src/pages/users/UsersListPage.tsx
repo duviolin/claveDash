@@ -9,11 +9,13 @@ import { Badge } from '@/components/ui/Badge'
 import { Tabs } from '@/components/ui/Tabs'
 import { Input } from '@/components/ui/Input'
 import { ConfirmModal } from '@/components/ui/Modal'
+import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Pagination } from '@/components/ui/Pagination'
 import { listUsers, suspendUser, reactivateUser, softDeleteUser, restoreUser, listDeletedUsers } from '@/api/users'
 import { formatDate } from '@/lib/utils'
 import { ROLE_LABELS, ROLE_BADGE_VARIANT, USER_STATUS_LABELS } from '@/lib/constants'
-import type { User, UserRole, PaginatedResponse } from '@/types'
+import type { User, UserRole, PaginatedResponse, DeactivationErrorDetails } from '@/types'
+import type { AxiosError } from 'axios'
 import toast from 'react-hot-toast'
 
 const roleTabs = [
@@ -36,6 +38,7 @@ export function UsersListPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [confirmAction, setConfirmAction] = useState<{ user: User; action: 'suspend' | 'reactivate' | 'delete' | 'restore' } | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
 
   const isTrash = roleFilter === 'TRASH'
 
@@ -103,6 +106,16 @@ export function UsersListPage() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['users'], refetchType: 'all' })
+    },
+    onError: (error: unknown, { user, action }) => {
+      if (action === 'delete') {
+        const err = error as AxiosError<{ error?: string; details?: DeactivationErrorDetails }>
+        if (err.response?.status === 409 && err.response?.data?.details) {
+          setBlockedInfo({ name: user.name, id: user.id, details: err.response.data.details })
+        } else {
+          toast.error(err.response?.data?.error ?? 'Erro ao excluir usuário')
+        }
+      }
     },
     onSettled: () => {
       setConfirmAction(null)
@@ -304,6 +317,14 @@ export function UsersListPage() {
         message={currentConfirm?.message(confirmAction?.user.name ?? '') ?? ''}
         confirmLabel={currentConfirm?.label ?? ''}
         variant={currentConfirm?.variant ?? 'primary'}
+      />
+
+      <DeactivationBlockedModal
+        isOpen={!!blockedInfo}
+        onClose={() => setBlockedInfo(null)}
+        entityName={blockedInfo?.name ?? ''}
+        parentId={blockedInfo?.id ?? ''}
+        details={blockedInfo?.details ?? null}
       />
     </PageContainer>
   )

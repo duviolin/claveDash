@@ -40,9 +40,8 @@ export async function addTeacher(classId: string, teacherId: string) {
   return data
 }
 
-export async function removeTeacher(classId: string, teacherId: string) {
-  const { data } = await api.delete(`/classes/${classId}/teachers/${teacherId}`)
-  return data
+export async function removeTeacher(classId: string, teacherId: string): Promise<void> {
+  await api.delete(`/classes/${classId}/teachers/${teacherId}`)
 }
 
 export async function addStudent(classId: string, studentId: string) {
@@ -50,9 +49,8 @@ export async function addStudent(classId: string, studentId: string) {
   return data
 }
 
-export async function removeStudent(classId: string, studentId: string) {
-  const { data } = await api.delete(`/classes/${classId}/students/${studentId}`)
-  return data
+export async function removeStudent(classId: string, studentId: string): Promise<void> {
+  await api.delete(`/classes/${classId}/students/${studentId}`)
 }
 
 export async function listClassTeachers(classId: string) {
