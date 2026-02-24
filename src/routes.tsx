@@ -14,7 +14,6 @@ import { ClassesListPage } from '@/pages/classes/ClassesListPage'
 import { ClassDetailPage } from '@/pages/classes/ClassDetailPage'
 import { ProjectTemplatesListPage } from '@/pages/templates/ProjectTemplatesListPage'
 import { ProjectTemplateDetailPage } from '@/pages/templates/ProjectTemplateDetailPage'
-import { StudyTrackCategoriesPage } from '@/pages/templates/StudyTrackCategoriesPage'
 import { DailyMissionTemplatesPage } from '@/pages/templates/DailyMissionTemplatesPage'
 import { ProjectInstancesPage } from '@/pages/instances/ProjectInstancesPage'
 import { StoragePage } from '@/pages/StoragePage'
@@ -45,7 +44,6 @@ export const router = createBrowserRouter([
       // Templates
       { path: 'templates/projects', element: <ProjectTemplatesListPage /> },
       { path: 'templates/projects/:id', element: <ProjectTemplateDetailPage /> },
-      { path: 'templates/study-categories', element: <StudyTrackCategoriesPage /> },
       { path: 'templates/daily-missions', element: <DailyMissionTemplatesPage /> },
       // Instances
       { path: 'instances/projects', element: <ProjectInstancesPage /> },

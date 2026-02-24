@@ -16,7 +16,6 @@ const routeLabels: Record<string, string> = {
   templates: 'Templates',
   projects: 'Projetos',
   'daily-missions': 'Missões Diárias',
-  'study-categories': 'Categorias de Trilha',
   instances: 'Instanciação',
   storage: 'Armazenamento',
   settings: 'Configurações',

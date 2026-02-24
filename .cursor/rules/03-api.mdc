@@ -56,7 +56,7 @@ export async function restoreX(id: string) {
 ## Modulos existentes
 
 - **CRUD admin**: `users.ts`, `schools.ts`, `courses.ts`, `seasons.ts`, `classes.ts`
-- **Templates**: `templates.ts` (multi-entidade: ProjectTemplate, TrackSceneTemplate, TrackMaterialTemplate, StudyTrackCategory, StudyTrackTemplate, PressQuizTemplate)
+- **Templates**: `templates.ts` (multi-entidade: ProjectTemplate, TrackSceneTemplate, TrackMaterialTemplate, StudyTrackTemplate, PressQuizTemplate)
 - **Daily missions**: `dailyMissions.ts` (DailyMissionTemplate + DailyMissionQuiz)
 - **Instances**: `instances.ts` (Project, TrackScene, TrackMaterial, StudyTrack, PressQuiz)
 - **Auth/profile**: `auth.ts`, `profiles.ts`

@@ -22,7 +22,6 @@ const CHILD_NAV: Record<string, { label: string; buildUrl: (parentId: string) =>
   // Template entities (backend 409 childResource)
   projectTemplates: { label: 'Templates de Projeto', buildUrl: (id) => `/templates/projects?courseId=${id}` },
   dailyMissionTemplates: { label: 'Missões Diárias', buildUrl: (id) => `/templates/daily-missions?courseId=${id}` },
-  studyTrackCategories: { label: 'Categorias de Trilha', buildUrl: (id) => `/templates/study-categories?courseId=${id}` },
   trackSceneTemplates: { label: 'Cenas', buildUrl: (id) => `/templates/projects/${id}` },
   projects: { label: 'Projetos', buildUrl: () => `/instances/projects` },
   pressQuizTemplates: { label: 'Press Quizzes', buildUrl: (id) => `/templates/projects/${id}` },

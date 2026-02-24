@@ -6,7 +6,6 @@ import type {
   TrackMaterialTemplate,
   TrackMaterialType,
   StudyTrackTemplate,
-  StudyTrackCategory,
   PressQuizTemplate,
   ProjectType,
   QuizQuestion,
@@ -35,17 +34,8 @@ interface UpdateMaterialTemplatePayload {
   defaultContentUrl?: string | null
   defaultTextContent?: string | null
 }
-interface UpdateStudyTrackCategoryPayload {
-  name?: string
-  key?: string
-  icon?: string | null
-  color?: string | null
-  description?: string | null
-}
 interface CreateStudyTrackTemplatePayload {
   title: string
-  categoryId?: string
-  categoryKey?: string
   description?: string
   technicalNotes?: string
   videoUrl?: string
@@ -57,8 +47,6 @@ interface CreateStudyTrackTemplatePayload {
 }
 interface UpdateStudyTrackTemplatePayload {
   title?: string
-  categoryId?: string | null
-  categoryKey?: string | null
   description?: string | null
   technicalNotes?: string | null
   videoUrl?: string | null
@@ -179,36 +167,6 @@ export async function listDeletedMaterialTemplates(params: { page: number; limit
 export async function restoreMaterialTemplate(id: string) {
   const { data } = await api.patch<TrackMaterialTemplate>(`/material-templates/${id}/restore`)
   return data
-}
-
-// --- Study Track Categories ---
-export async function listStudyTrackCategories(courseId?: string) {
-  const { data } = await api.get<StudyTrackCategory[]>('/study-track-categories', { params: { courseId } })
-  return data
-}
-
-export async function listDeletedStudyTrackCategories(params: { page: number; limit: number }) {
-  const { data } = await api.get<PaginatedResponse<StudyTrackCategory>>('/study-track-categories/deleted', { params })
-  return data
-}
-
-export async function restoreStudyTrackCategory(id: string) {
-  const { data } = await api.patch<StudyTrackCategory>(`/study-track-categories/${id}/restore`)
-  return data
-}
-
-export async function createStudyTrackCategory(payload: { courseId: string; name: string; key: string; icon?: string; color?: string; description?: string }) {
-  const { data } = await api.post<StudyTrackCategory>('/study-track-categories', payload)
-  return data
-}
-
-export async function updateStudyTrackCategory(id: string, payload: UpdateStudyTrackCategoryPayload) {
-  const { data } = await api.patch<StudyTrackCategory>(`/study-track-categories/${id}`, payload)
-  return data
-}
-
-export async function deleteStudyTrackCategory(id: string) {
-  await api.delete(`/study-track-categories/${id}`)
 }
 
 // --- Study Track Templates ---

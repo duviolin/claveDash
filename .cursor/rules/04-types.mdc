@@ -21,7 +21,7 @@ alwaysApply: false
 `UserRole`, `UserStatus`, `CourseType`, `SeasonStatus`, `ProjectType`, `ProjectStatus`, `TrackSceneStatus`, `TrackMaterialType`, `DailyMissionTemplateStatus`, `SubmissionStatus`
 
 ### Interfaces existentes (entidades)
-`AuthUser`, `User`, `School`, `Course`, `Season`, `Class`, `ProjectTemplate`, `TrackSceneTemplate`, `TrackMaterialTemplate`, `StudyTrackCategory`, `StudyTrackTemplate`, `PressQuizTemplate`, `DailyMissionTemplate`, `DailyMissionQuiz`, `Project`, `StudentProfile`, `TeacherProfile`, `Notification`
+`AuthUser`, `User`, `School`, `Course`, `Season`, `Class`, `ProjectTemplate`, `TrackSceneTemplate`, `TrackMaterialTemplate`, `StudyTrackTemplate`, `PressQuizTemplate`, `DailyMissionTemplate`, `DailyMissionQuiz`, `Project`, `StudentProfile`, `TeacherProfile`, `Notification`
 
 ### Interfaces utilitarias
 `PaginatedResponse<T>`, `DeactivationErrorDetails`, `QuizQuestion`, `StorageConfig`, `PresignUploadResponse`, `MeResponse`, `ApiError`

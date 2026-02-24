@@ -89,7 +89,7 @@ const restoreMutation = useMutation({
 
 ## Tipos de paginas
 
-- `XListPage` (lista com tabs Ativas/Lixeira): users, schools, courses, seasons, classes, projectTemplates, studyTrackCategories, dailyMissionTemplates
+- `XListPage` (lista com tabs Ativas/Lixeira): users, schools, courses, seasons, classes, projectTemplates, dailyMissionTemplates
 - `XDetailPage` (detalhe/sub-entidades): ClassDetailPage, ProjectTemplateDetailPage
 - `XCreatePage` (criacao): UserCreatePage
 - **Outras**: DashboardPage, SettingsPage, StoragePage, ProjectInstancesPage

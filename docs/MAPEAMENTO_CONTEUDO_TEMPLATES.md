@@ -18,7 +18,7 @@
 
 | Camada | Arquivo | O que cobre |
 |---|---|---|
-| Router | `src/routes.tsx` | Rotas: `/templates/projects`, `/templates/projects/:id`, `/templates/study-categories`, `/templates/daily-missions` |
+| Router | `src/routes.tsx` | Rotas: `/templates/projects`, `/templates/projects/:id`, `/templates/daily-missions` |
 | Sidebar | `src/components/layout/Sidebar.tsx` | Menu Conteúdo > Templates |
 
 ### Páginas de templates
@@ -27,14 +27,13 @@
 |---|---|---|
 | Lista de templates de projeto | `src/pages/templates/ProjectTemplatesListPage.tsx` | Ativos/Lixeira, criar, desativar, restaurar |
 | Detalhe de template de projeto | `src/pages/templates/ProjectTemplateDetailPage.tsx` | Edição, faixas, materiais, trilhas, press quizzes |
-| Categorias de trilha | `src/pages/templates/StudyTrackCategoriesPage.tsx` | Ativos/Lixeira, CRUD |
 | Missões diárias | `src/pages/templates/DailyMissionTemplatesPage.tsx` | Ativos/Lixeira, CRUD, publish, quizzes |
 
 ### API modules (integração HTTP)
 
 | Arquivo | Escopo |
 |---|---|
-| `src/api/templates.ts` | ProjectTemplate, TrackSceneTemplate, TrackMaterialTemplate, StudyTrackCategory, StudyTrackTemplate, PressQuizTemplate |
+| `src/api/templates.ts` | ProjectTemplate, TrackSceneTemplate, TrackMaterialTemplate, StudyTrackTemplate, PressQuizTemplate |
 | `src/api/dailyMissions.ts` | DailyMissionTemplate e DailyMissionQuiz |
 | `src/api/storage.ts` | Presign/upload/download/config |
 | `src/api/media.ts` | Bind de mídia em recursos |
@@ -71,7 +70,6 @@
 - `src/infrastructure/routes/projectTemplateRoutes.ts`
 - `src/infrastructure/routes/trackSceneTemplateRoutes.ts`
 - `src/infrastructure/routes/trackMaterialTemplateRoutes.ts`
-- `src/infrastructure/routes/studyTrackCategoryRoutes.ts`
 - `src/infrastructure/routes/studyTrackTemplateRoutes.ts`
 - `src/infrastructure/routes/pressQuizTemplateRoutes.ts`
 - `src/infrastructure/routes/dailyMissionTemplateRoutes.ts`
@@ -82,7 +80,6 @@
 - `src/infrastructure/controllers/ProjectTemplateController.ts`
 - `src/infrastructure/controllers/TrackSceneTemplateController.ts`
 - `src/infrastructure/controllers/TrackMaterialTemplateController.ts`
-- `src/infrastructure/controllers/StudyTrackCategoryController.ts`
 - `src/infrastructure/controllers/StudyTrackTemplateController.ts`
 - `src/infrastructure/controllers/PressQuizTemplateController.ts`
 - `src/infrastructure/controllers/DailyMissionTemplateController.ts` (inclui quizzes)
@@ -93,7 +90,6 @@
 - `src/application/services/ProjectTemplateService.ts`
 - `src/application/services/TrackSceneTemplateService.ts`
 - `src/application/services/TrackMaterialTemplateService.ts`
-- `src/application/services/StudyTrackCategoryService.ts`
 - `src/application/services/StudyTrackTemplateService.ts`
 - `src/application/services/PressQuizTemplateService.ts`
 - `src/application/services/DailyMissionTemplateService.ts`
@@ -106,7 +102,6 @@
 - `src/domain/projectTemplate/entities/ProjectTemplate.ts`
 - `src/domain/trackSceneTemplate/entities/TrackSceneTemplate.ts`
 - `src/domain/trackMaterialTemplate/entities/TrackMaterialTemplate.ts`
-- `src/domain/studyTrackCategory/entities/StudyTrackCategory.ts`
 - `src/domain/studyTrackTemplate/entities/StudyTrackTemplate.ts`
 - `src/domain/pressQuizTemplate/entities/PressQuizTemplate.ts`
 - `src/domain/dailyMissionTemplate/entities/DailyMissionTemplate.ts`
@@ -117,7 +112,6 @@
 - `src/domain/projectTemplate/usecases/`
 - `src/domain/trackSceneTemplate/usecases/`
 - `src/domain/trackMaterialTemplate/usecases/`
-- `src/domain/studyTrackCategory/usecases/`
 - `src/domain/studyTrackTemplate/usecases/`
 - `src/domain/pressQuizTemplate/usecases/`
 - `src/domain/dailyMissionTemplate/usecases/`
@@ -128,7 +122,6 @@
 - `src/domain/projectTemplate/repositories/IProjectTemplateRepository.ts`
 - `src/domain/trackSceneTemplate/repositories/ITrackSceneTemplateRepository.ts`
 - `src/domain/trackMaterialTemplate/repositories/ITrackMaterialTemplateRepository.ts`
-- `src/domain/studyTrackCategory/repositories/IStudyTrackCategoryRepository.ts`
 - `src/domain/studyTrackTemplate/repositories/IStudyTrackTemplateRepository.ts`
 - `src/domain/pressQuizTemplate/repositories/IPressQuizTemplateRepository.ts`
 - `src/domain/dailyMissionTemplate/repositories/IDailyMissionTemplateRepository.ts`
@@ -139,7 +132,6 @@
 - `src/infrastructure/repositories/ProjectTemplateRepository.ts`
 - `src/infrastructure/repositories/TrackSceneTemplateRepository.ts`
 - `src/infrastructure/repositories/TrackMaterialTemplateRepository.ts`
-- `src/infrastructure/repositories/StudyTrackCategoryRepository.ts`
 - `src/infrastructure/repositories/StudyTrackTemplateRepository.ts`
 - `src/infrastructure/repositories/PressQuizTemplateRepository.ts`
 - `src/infrastructure/repositories/DailyMissionTemplateRepository.ts`
@@ -150,7 +142,6 @@
 - `src/application/dto/ProjectTemplateDTO.ts`
 - `src/application/dto/TrackSceneTemplateDTO.ts`
 - `src/application/dto/TrackMaterialTemplateDTO.ts`
-- `src/application/dto/StudyTrackCategoryDTO.ts`
 - `src/application/dto/StudyTrackTemplateDTO.ts`
 - `src/application/dto/PressQuizTemplateDTO.ts`
 - `src/application/dto/DailyMissionTemplateDTO.ts`
@@ -167,8 +158,7 @@
 | `ProjectTemplate` | `courseId -> Course` | `version`, `isActive`, gera `Project` instanciado |
 | `TrackSceneTemplate` | `projectTemplateId -> ProjectTemplate` | `order`, `unlockAfterTrackId`, `demoRequired`, `pressQuizRequired`, `isActive`, `version` |
 | `TrackMaterialTemplate` | `trackSceneTemplateId -> TrackSceneTemplate` | `type`, `defaultContentUrl`, `defaultTextContent`, `isRequired`, `isActive`, `version` |
-| `StudyTrackCategory` | `courseId -> Course` | `key` única por curso (`@@unique([courseId, key])`), `isActive` |
-| `StudyTrackTemplate` | `trackSceneTemplateId -> TrackSceneTemplate`, `categoryId -> StudyTrackCategory?` | `estimatedMinutes`, `isRequired`, `isVisible`, `isActive` |
+| `StudyTrackTemplate` | `trackSceneTemplateId -> TrackSceneTemplate` | `estimatedMinutes`, `isRequired`, `isVisible`, `isActive` |
 | `PressQuizTemplate` | `trackSceneTemplateId -> TrackSceneTemplate` | `questionsJson`, `maxAttempts`, `passingScore`, `version`, `isActive` |
 | `DailyMissionTemplate` | `courseId -> Course` | `order`, `status`, `isActive` |
 | `DailyMissionQuiz` | `dailyMissionId -> DailyMissionTemplate` | `questionsJson`, `maxAttemptsPerDay`, `allowRecoveryAttempt`, `version`, `isActive` |
@@ -212,15 +202,6 @@
 - `PATCH /material-templates/:id`
 - `DELETE /material-templates/:id`
 - `PATCH /material-templates/:id/restore`
-
-### StudyTrackCategory
-
-- `POST /study-track-categories`
-- `GET /study-track-categories`
-- `GET /study-track-categories/deleted`
-- `PATCH /study-track-categories/:id`
-- `DELETE /study-track-categories/:id`
-- `PATCH /study-track-categories/:id/restore`
 
 ### StudyTrackTemplate
 
@@ -288,5 +269,4 @@ Quando precisar entender/corrigir algo de templates, seguir esta ordem:
 - **Template de projeto:** `ProjectTemplatesListPage.tsx` + `ProjectTemplateDetailPage.tsx` + `projectTemplateRoutes.ts` + `ProjectTemplateController.ts`
 - **Faixas/materiais/trilhas/quizzes de press:** `ProjectTemplateDetailPage.tsx` + `templates.ts` + rotas/controllers específicos
 - **Missões diárias:** `DailyMissionTemplatesPage.tsx` + `dailyMissions.ts` + `dailyMissionTemplateRoutes.ts` + `DailyMissionTemplateController.ts`
-- **Categorias de trilha:** `StudyTrackCategoriesPage.tsx` + `studyTrackCategoryRoutes.ts` + `StudyTrackCategoryController.ts`
 - **Upload/mídia:** `FileUpload.tsx` + `storage.ts` + `StorageController.ts` + `StorageService.ts`

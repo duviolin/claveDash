@@ -31,7 +31,6 @@ import {
   createStudyTrackTemplate,
   updateStudyTrackTemplate,
   deleteStudyTrackTemplate,
-  listStudyTrackCategories,
   listPressQuizTemplates,
   listDeletedPressQuizTemplates,
   createPressQuizTemplate,
@@ -41,7 +40,7 @@ import {
 } from '@/api/templates'
 import type { AxiosError } from 'axios'
 import { TRACK_MATERIAL_TYPE_LABELS, TRACK_MATERIAL_TYPE_VARIANT } from '@/lib/constants'
-import type { ProjectTemplate, TrackSceneTemplate, TrackMaterialTemplate, TrackMaterialType, StudyTrackTemplate, StudyTrackCategory, PressQuizTemplate, DeactivationErrorDetails, QuizQuestion } from '@/types'
+import type { ProjectTemplate, TrackSceneTemplate, TrackMaterialTemplate, TrackMaterialType, StudyTrackTemplate, PressQuizTemplate, DeactivationErrorDetails, QuizQuestion } from '@/types'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import toast from 'react-hot-toast'
 
@@ -121,7 +120,7 @@ export function ProjectTemplateDetailPage() {
     >
       {template.description && <p className="text-sm text-muted -mt-4 mb-4">{template.description}</p>}
 
-      <TracksList projectTemplateId={id!} tracks={tracks} courseId={template!.courseId} template={template} />
+      <TracksList projectTemplateId={id!} tracks={tracks} template={template} />
 
       <Modal
         isOpen={editingProject}
@@ -153,7 +152,7 @@ export function ProjectTemplateDetailPage() {
 }
 
 // ---- Tracks List ----
-function TracksList({ projectTemplateId, tracks, courseId, template }: { projectTemplateId: string; tracks: TrackSceneTemplate[]; courseId: string; template?: ProjectTemplate }) {
+function TracksList({ projectTemplateId, tracks, template }: { projectTemplateId: string; tracks: TrackSceneTemplate[]; template?: ProjectTemplate }) {
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
@@ -276,7 +275,7 @@ function TracksList({ projectTemplateId, tracks, courseId, template }: { project
               })()}
 
               <MaterialsSection trackTemplateId={track.id} projectTemplateId={projectTemplateId} />
-              <StudyTracksSection trackTemplateId={track.id} courseId={courseId} projectTemplateId={projectTemplateId} />
+              <StudyTracksSection trackTemplateId={track.id} projectTemplateId={projectTemplateId} />
               <PressQuizzesSection trackTemplateId={track.id} projectTemplateId={projectTemplateId} track={track} template={template} />
             </div>
           )}
@@ -449,12 +448,12 @@ function MaterialsSection({ trackTemplateId, projectTemplateId }: { trackTemplat
 }
 
 // ---- Study Tracks Section ----
-function StudyTracksSection({ trackTemplateId, courseId, projectTemplateId }: { trackTemplateId: string; courseId: string; projectTemplateId: string }) {
+function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTemplateId: string; projectTemplateId: string }) {
   const queryClient = useQueryClient()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<StudyTrackTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StudyTrackTemplate | null>(null)
-  const [form, setForm] = useState({ title: '', categoryId: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true })
+  const [form, setForm] = useState({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true })
   const refreshTemplateVersion = async () => {
     queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateId], (current) => {
       if (!current) return current
@@ -469,14 +468,9 @@ function StudyTracksSection({ trackTemplateId, courseId, projectTemplateId }: { 
     queryFn: () => listStudyTrackTemplates(trackTemplateId),
   })
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['study-track-categories', courseId],
-    queryFn: () => listStudyTrackCategories(courseId),
-  })
-
   const createMut = useMutation({
     mutationFn: () => createStudyTrackTemplate(trackTemplateId, {
-      title: form.title, categoryId: form.categoryId || undefined, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
+      title: form.title, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
       videoUrl: form.videoUrl || undefined, audioUrl: form.audioUrl || undefined, pdfUrl: form.pdfUrl || undefined,
       estimatedMinutes: form.estimatedMinutes, isRequired: form.isRequired, isVisible: form.isVisible,
     }),
@@ -490,7 +484,7 @@ function StudyTracksSection({ trackTemplateId, courseId, projectTemplateId }: { 
 
   const updateMut = useMutation({
     mutationFn: () => updateStudyTrackTemplate(editing!.id, {
-      title: form.title, categoryId: form.categoryId || undefined, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
+      title: form.title, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
       videoUrl: form.videoUrl || undefined, audioUrl: form.audioUrl || undefined, pdfUrl: form.pdfUrl || undefined,
       estimatedMinutes: form.estimatedMinutes, isRequired: form.isRequired, isVisible: form.isVisible,
     }),
@@ -513,8 +507,8 @@ function StudyTracksSection({ trackTemplateId, courseId, projectTemplateId }: { 
     },
   })
 
-  const openCreate = () => { setEditing(null); setForm({ title: '', categoryId: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true }); setModalOpen(true) }
-  const openEdit = (st: StudyTrackTemplate) => { setEditing(st); setForm({ title: st.title, categoryId: st.categoryId || '', description: st.description || '', technicalNotes: st.technicalNotes || '', videoUrl: st.videoUrl || '', audioUrl: st.audioUrl || '', pdfUrl: st.pdfUrl || '', estimatedMinutes: st.estimatedMinutes, isRequired: st.isRequired, isVisible: st.isVisible }); setModalOpen(true) }
+  const openCreate = () => { setEditing(null); setForm({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true }); setModalOpen(true) }
+  const openEdit = (st: StudyTrackTemplate) => { setEditing(st); setForm({ title: st.title, description: st.description || '', technicalNotes: st.technicalNotes || '', videoUrl: st.videoUrl || '', audioUrl: st.audioUrl || '', pdfUrl: st.pdfUrl || '', estimatedMinutes: st.estimatedMinutes, isRequired: st.isRequired, isVisible: st.isVisible }); setModalOpen(true) }
 
   return (
     <div>
@@ -525,11 +519,9 @@ function StudyTracksSection({ trackTemplateId, courseId, projectTemplateId }: { 
       {studyTracks.length > 0 && (
         <div className="space-y-1">
           {studyTracks.map((st) => {
-            const category = st.categoryId ? categories.find((c: StudyTrackCategory) => c.id === st.categoryId) : null
             return (
               <div key={st.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
                 <span className="flex-1 text-text">{st.title}</span>
-                {category && <Badge variant="default" className="text-[10px]">{category.name}</Badge>}
                 <span className="text-xs text-muted">{st.estimatedMinutes}min</span>
                 {st.isRequired && <Badge variant="warning">Obrigatória</Badge>}
                 <button onClick={() => openEdit(st)} className="text-muted hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
@@ -545,14 +537,6 @@ function StudyTracksSection({ trackTemplateId, courseId, projectTemplateId }: { 
         <Button onClick={() => editing ? updateMut.mutate() : createMut.mutate()} isLoading={createMut.isPending || updateMut.isPending}>{editing ? 'Salvar' : 'Criar'}</Button></>
       }>
         <div className="space-y-4">
-          <Select
-            id="stCat"
-            label="Categoria"
-            value={form.categoryId}
-            onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-            placeholder="Sem categoria"
-            options={categories.map((c: StudyTrackCategory) => ({ value: c.id, label: c.name }))}
-          />
           <Input id="stTitle" label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <Textarea id="stDesc" label="Descrição" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <Textarea id="stNotes" label="Notas Técnicas" value={form.technicalNotes} onChange={(e) => setForm({ ...form, technicalNotes: e.target.value })} />

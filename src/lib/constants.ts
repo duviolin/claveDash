@@ -185,10 +185,6 @@ export const EVENT_TYPE_LABELS: Record<string, string> = {
   DAILY_MISSION_COMPLETED_WITH_PENALTY: 'Missão concluída com penalidade',
   DAILY_MISSION_SKIPPED: 'Missão diária pulada',
 
-  STUDY_TRACK_CATEGORY_CREATED: 'Categoria de estudo criada',
-  STUDY_TRACK_CATEGORY_UPDATED: 'Categoria de estudo atualizada',
-  STUDY_TRACK_CATEGORY_DEACTIVATED: 'Categoria de estudo desativada',
-  STUDY_TRACK_CATEGORY_RESTORED: 'Categoria de estudo restaurada',
   STUDY_TRACK_TEMPLATE_CREATED: 'Template de estudo criado',
   STUDY_TRACK_TEMPLATE_UPDATED: 'Template de estudo atualizado',
   STUDY_TRACK_TEMPLATE_DEACTIVATED: 'Template de estudo desativado',

@@ -44,10 +44,10 @@ Componente reutilizavel para exibir mensagem quando soft delete eh bloqueado por
 - Mapa `CHILD_NAV` converte `childResource` em label + URL para navegacao
 - SEMPRE adicionar novos `childResource` ao `CHILD_NAV` quando criar nova verificacao no backend
 
-### CHILD_NAV entries (16 resources mapeados)
+### CHILD_NAV entries (15 resources mapeados)
 - `schools`, `courses`, `seasons`, `classes`, `students`, `teachers`, `members`
 - `projectTemplates`, `trackSceneTemplates`, `trackMaterialTemplates`
-- `studyTrackCategories`, `studyTrackTemplates`
+- `studyTrackTemplates`
 - `pressQuizTemplates`, `dailyMissionTemplates`, `dailyMissionQuizzes`
 - `projects` (instancias)
 

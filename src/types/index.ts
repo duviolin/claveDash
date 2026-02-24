@@ -115,25 +115,9 @@ export interface TrackMaterialTemplate {
   updatedAt: string
 }
 
-export interface StudyTrackCategory {
-  id: string
-  courseId: string
-  name: string
-  key: string
-  icon: string | null
-  color: string | null
-  description: string | null
-  order: number
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
-
 export interface StudyTrackTemplate {
   id: string
   trackSceneTemplateId: string
-  categoryId: string | null
-  categoryKey: string | null
   title: string
   description: string | null
   technicalNotes: string | null

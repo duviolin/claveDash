@@ -9,7 +9,6 @@ import {
   GraduationCap,
   FileText,
   Music,
-  Layers,
   Target,
   FolderKanban,
   Cloud,
@@ -59,7 +58,6 @@ const templatesGroup: CollapsibleGroup = {
   items: [
     { label: 'Projetos', path: '/templates/projects', icon: <Music className="h-4 w-4" /> },
     { label: 'Missões Diárias', path: '/templates/daily-missions', icon: <Target className="h-4 w-4" /> },
-    { label: 'Categorias de Trilha', path: '/templates/study-categories', icon: <Layers className="h-4 w-4" /> },
   ],
 }
 

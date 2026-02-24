@@ -43,7 +43,6 @@ O portal roda em `http://localhost:5173` e conecta ao backend em `http://localho
 - **Turmas**: CRUD com vínculo de professores e matrícula de alunos
 - **Templates de Projeto**: CRUD hierárquico (Projeto > Faixas > Materiais > Trilhas > Quizzes)
 - **Missões Diárias**: Templates com quizzes embutidos
-- **Categorias de Trilha**: Gestão por curso
 - **Instanciação**: Criar projetos a partir de templates para turmas/semestres
 - **Storage**: Upload com presigned URLs (R2), gestão de órfãos
 - **IA**: Assistente OpenAI para gerar quizzes, descrições e conteúdo
