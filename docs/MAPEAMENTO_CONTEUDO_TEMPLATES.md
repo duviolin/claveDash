@@ -38,7 +38,7 @@
 | `src/api/dailyMissions.ts` | DailyMissionTemplate e DailyMissionQuiz |
 | `src/api/storage.ts` | Presign/upload/download/config |
 | `src/api/media.ts` | Bind de mídia em recursos |
-| `src/api/ai.ts` | Geração assistida (quiz/conteúdo) |
+| `src/api/ai.ts` | Geração assistida (quiz/conteúdo). `generateQuiz` com contexto rico (projeto, faixa, materiais, trilhas, userExtra) |
 | `src/api/client.ts` | Axios client/interceptors |
 | `src/api/courses.ts` | Filtros e seleção por curso |
 

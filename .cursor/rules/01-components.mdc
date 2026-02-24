@@ -20,6 +20,8 @@ alwaysApply: false
 - **Overlay**: Modal (inclui `ConfirmModal` exportado do mesmo arquivo), DeactivationBlockedModal
 - **Data**: Table
 - **AI**: AIButton (botao com loading para chamadas de IA)
+  - Props: `onGenerate: (userExtra?: string) => Promise<string>`, `onAccept`, `label?`, `extraInputLabel?`, `extraInputPlaceholder?`
+  - Quando `extraInputLabel` definido, exibe textarea para instrucoes extras do usuario
 
 ## Layout Components (`components/layout/`)
 

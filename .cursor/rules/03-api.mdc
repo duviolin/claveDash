@@ -62,6 +62,8 @@ export async function restoreX(id: string) {
 - **Auth/profile**: `auth.ts`, `profiles.ts`
 - **Infra**: `storage.ts`, `media.ts`, `notifications.ts`, `dashboard.ts`
 - **AI**: `ai.ts` (geracao de conteudo com IA)
+  - `generateQuiz(context: QuizGenerationContext)` — contexto rico: project, track, materials, studyTracks, userExtra
+  - Sempre passar contexto do projeto/faixa/materiais para quizzes mais assertivos
 
 ## Convencoes
 
