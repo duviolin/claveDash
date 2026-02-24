@@ -42,8 +42,6 @@ interface CreateStudyTrackTemplatePayload {
   audioUrl?: string
   pdfUrl?: string
   estimatedMinutes?: number
-  isRequired?: boolean
-  isVisible?: boolean
 }
 interface UpdateStudyTrackTemplatePayload {
   title?: string
@@ -53,8 +51,6 @@ interface UpdateStudyTrackTemplatePayload {
   audioUrl?: string | null
   pdfUrl?: string | null
   estimatedMinutes?: number
-  isRequired?: boolean
-  isVisible?: boolean
 }
 interface UpdatePressQuizTemplatePayload {
   title?: string

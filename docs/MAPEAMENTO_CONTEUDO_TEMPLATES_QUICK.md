@@ -89,6 +89,7 @@ O detalhe do template (`ProjectTemplateDetailPage`) gerencia CRUD de:
   - `POST /track-templates/:ttId/study-tracks`
   - `GET /track-templates/:ttId/study-tracks`
   - `PATCH/DELETE /study-track-templates/:id`
+  - `isRequired` é sempre `true` no template e `isVisible` não faz parte do contrato de template
 - Quiz de coletiva (`PressQuizTemplate`):
   - `POST /track-templates/:ttId/press-quizzes`
   - `GET /track-templates/:ttId/press-quizzes`

@@ -127,7 +127,6 @@ export interface StudyTrackTemplate {
   order: number
   estimatedMinutes: number
   isRequired: boolean
-  isVisible: boolean
   isActive: boolean
   createdAt: string
   updatedAt: string

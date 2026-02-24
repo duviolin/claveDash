@@ -409,11 +409,11 @@ function MaterialsSection({ trackTemplateId, projectTemplateId }: { trackTemplat
       {materials.length > 0 && (
         <div className="space-y-1">
           {materials.map((m) => (
-            <div key={m.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+            <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
               <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
               <span className="flex-1 text-text">{m.title}</span>
-              <button onClick={() => openEdit(m)} className="text-muted hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-              <button onClick={() => setDeleteTarget(m)} className="text-muted hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+              <button onClick={() => openEdit(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+              <button onClick={() => setDeleteTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
             </div>
           ))}
         </div>
@@ -453,7 +453,7 @@ function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTempl
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<StudyTrackTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StudyTrackTemplate | null>(null)
-  const [form, setForm] = useState({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true })
+  const [form, setForm] = useState({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15 })
   const refreshTemplateVersion = async () => {
     queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateId], (current) => {
       if (!current) return current
@@ -472,7 +472,7 @@ function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTempl
     mutationFn: () => createStudyTrackTemplate(trackTemplateId, {
       title: form.title, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
       videoUrl: form.videoUrl || undefined, audioUrl: form.audioUrl || undefined, pdfUrl: form.pdfUrl || undefined,
-      estimatedMinutes: form.estimatedMinutes, isRequired: form.isRequired, isVisible: form.isVisible,
+      estimatedMinutes: form.estimatedMinutes,
     }),
     onSuccess: async () => {
       toast.success('Trilha criada!')
@@ -486,7 +486,7 @@ function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTempl
     mutationFn: () => updateStudyTrackTemplate(editing!.id, {
       title: form.title, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
       videoUrl: form.videoUrl || undefined, audioUrl: form.audioUrl || undefined, pdfUrl: form.pdfUrl || undefined,
-      estimatedMinutes: form.estimatedMinutes, isRequired: form.isRequired, isVisible: form.isVisible,
+      estimatedMinutes: form.estimatedMinutes,
     }),
     onSuccess: async () => {
       toast.success('Trilha atualizada!')
@@ -507,8 +507,8 @@ function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTempl
     },
   })
 
-  const openCreate = () => { setEditing(null); setForm({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15, isRequired: false, isVisible: true }); setModalOpen(true) }
-  const openEdit = (st: StudyTrackTemplate) => { setEditing(st); setForm({ title: st.title, description: st.description || '', technicalNotes: st.technicalNotes || '', videoUrl: st.videoUrl || '', audioUrl: st.audioUrl || '', pdfUrl: st.pdfUrl || '', estimatedMinutes: st.estimatedMinutes, isRequired: st.isRequired, isVisible: st.isVisible }); setModalOpen(true) }
+  const openCreate = () => { setEditing(null); setForm({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15 }); setModalOpen(true) }
+  const openEdit = (st: StudyTrackTemplate) => { setEditing(st); setForm({ title: st.title, description: st.description || '', technicalNotes: st.technicalNotes || '', videoUrl: st.videoUrl || '', audioUrl: st.audioUrl || '', pdfUrl: st.pdfUrl || '', estimatedMinutes: st.estimatedMinutes }); setModalOpen(true) }
 
   return (
     <div>
@@ -520,12 +520,12 @@ function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTempl
         <div className="space-y-1">
           {studyTracks.map((st) => {
             return (
-              <div key={st.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+              <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
                 <span className="flex-1 text-text">{st.title}</span>
                 <span className="text-xs text-muted">{st.estimatedMinutes}min</span>
-                {st.isRequired && <Badge variant="warning">Obrigatória</Badge>}
-                <button onClick={() => openEdit(st)} className="text-muted hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-                <button onClick={() => setDeleteTarget(st)} className="text-muted hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                <Badge variant="warning">Obrigatória</Badge>
+                <button onClick={() => openEdit(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                <button onClick={() => setDeleteTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             )
           })}
@@ -546,9 +546,8 @@ function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTempl
             <Input id="stPdf" label="URL PDF" value={form.pdfUrl} onChange={(e) => setForm({ ...form, pdfUrl: e.target.value })} />
           </div>
           <Input id="stMin" label="Tempo estimado (min)" type="number" value={String(form.estimatedMinutes)} onChange={(e) => setForm({ ...form, estimatedMinutes: Number(e.target.value) })} />
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-text cursor-pointer"><input type="checkbox" checked={form.isRequired} onChange={(e) => setForm({ ...form, isRequired: e.target.checked })} className="accent-accent" /> Obrigatória</label>
-            <label className="flex items-center gap-2 text-sm text-text cursor-pointer"><input type="checkbox" checked={form.isVisible} onChange={(e) => setForm({ ...form, isVisible: e.target.checked })} className="accent-accent" /> Visível</label>
+          <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-muted">
+            Trilha de estudo sempre obrigatória para esta faixa.
           </div>
         </div>
       </Modal>
@@ -691,12 +690,12 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateId, track, templa
           {quizzes.length > 0 ? (
             <div className="space-y-1 mt-2">
               {quizzes.map((q) => (
-                <div key={q.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+                <div key={q.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
                   <span className="flex-1 text-text">{q.title}</span>
                   <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
                   <span className="text-xs text-muted">{q.passingScore}%</span>
-                  <button onClick={() => openEdit(q)} className="text-muted hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => setDeleteTarget(q)} className="text-muted hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => openEdit(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setDeleteTarget(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               ))}
             </div>
@@ -712,11 +711,11 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateId, track, templa
             <>
               <div className="space-y-1 mt-2">
                 {deletedQuizzes.map((q) => (
-                  <div key={q.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+                  <div key={q.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
                     <span className="flex-1 text-text">{q.title}</span>
                     <Badge variant="error" className="text-[10px]">Excluído</Badge>
                     <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
-                    <button onClick={() => setRestoreTarget(q)} className="text-muted hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => setRestoreTarget(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
                   </div>
                 ))}
               </div>
