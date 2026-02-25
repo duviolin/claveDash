@@ -40,6 +40,9 @@ Fluxo: Route -> Page -> useQuery/mutation (API) -> Componentes UI
 - **Soft delete**: Todas list pages tem tabs Ativas/Lixeira, delete + restore mutations, DeactivationBlockedModal
 - **Delete**: SEMPRE void (backend envia 204). NUNCA `const { data } = await api.delete(...)`
 - **Error handlers**: SEMPRE `error: unknown` com type assertion (NUNCA `error: any`)
+- **Identificadores publicos**: URLs e navegacao usam `slug` humano. UUID (`id`) e interno e nao deve aparecer na UI
+- **Rotas de detalhe**: usar `:slug` nas rotas React Router e `navigate()` com `entity.slug`
+- **APIs por recurso**: modulos podem aceitar `idOrSlug`, mas links e breadcrumbs devem priorizar `slug`
 
 ## Backend (`c:\Users\eduar\Documents\claveBack`)
 

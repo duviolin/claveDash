@@ -1,8 +1,8 @@
 import { api } from './client'
 import type { Course, CourseType, PaginatedResponse } from '@/types'
 
-export async function listCourses(schoolId?: string) {
-  const { data } = await api.get<Course[]>('/courses', { params: { schoolId } })
+export async function listCourses(schoolIdOrSlug?: string) {
+  const { data } = await api.get<Course[]>('/courses', { params: { schoolId: schoolIdOrSlug } })
   return data
 }
 
@@ -11,8 +11,8 @@ export async function listCoursesPaginated(params: { schoolId?: string; page?: n
   return data
 }
 
-export async function getCourse(id: string) {
-  const { data } = await api.get<Course>(`/courses/${id}`)
+export async function getCourse(idOrSlug: string) {
+  const { data } = await api.get<Course>(`/courses/${idOrSlug}`)
   return data
 }
 
@@ -21,13 +21,13 @@ export async function createCourse(payload: { schoolId: string; name: string; ty
   return data
 }
 
-export async function updateCourse(id: string, payload: { name?: string }) {
-  const { data } = await api.patch<Course>(`/courses/${id}`, payload)
+export async function updateCourse(idOrSlug: string, payload: { name?: string }) {
+  const { data } = await api.patch<Course>(`/courses/${idOrSlug}`, payload)
   return data
 }
 
-export async function deleteCourse(id: string) {
-  await api.delete(`/courses/${id}`)
+export async function deleteCourse(idOrSlug: string) {
+  await api.delete(`/courses/${idOrSlug}`)
 }
 
 export async function listDeletedCourses(params: { page: number; limit: number }) {
@@ -35,7 +35,7 @@ export async function listDeletedCourses(params: { page: number; limit: number }
   return data
 }
 
-export async function restoreCourse(id: string) {
-  const { data } = await api.patch<Course>(`/courses/${id}/restore`)
+export async function restoreCourse(idOrSlug: string) {
+  const { data } = await api.patch<Course>(`/courses/${idOrSlug}/restore`)
   return data
 }

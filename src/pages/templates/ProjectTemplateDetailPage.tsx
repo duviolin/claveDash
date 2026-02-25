@@ -27,10 +27,14 @@ import {
   createMaterialTemplate,
   updateMaterialTemplate,
   deleteMaterialTemplate,
+  listDeletedMaterialTemplates,
+  restoreMaterialTemplate,
   listStudyTrackTemplates,
+  listDeletedStudyTrackTemplates,
   createStudyTrackTemplate,
   updateStudyTrackTemplate,
   deleteStudyTrackTemplate,
+  restoreStudyTrackTemplate,
   listPressQuizTemplates,
   listDeletedPressQuizTemplates,
   createPressQuizTemplate,
@@ -45,21 +49,21 @@ import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedMod
 import toast from 'react-hot-toast'
 
 export function ProjectTemplateDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const { slug } = useParams<{ slug: string }>()
   const queryClient = useQueryClient()
   const [editingProject, setEditingProject] = useState(false)
   const [projectForm, setProjectForm] = useState({ name: '', description: '', coverImage: '' })
 
   const { data: template } = useQuery({
-    queryKey: ['project-template', id],
-    queryFn: () => getProjectTemplate(id!),
-    enabled: !!id,
+    queryKey: ['project-template', slug],
+    queryFn: () => getProjectTemplate(slug!),
+    enabled: !!slug,
   })
 
   const { data: tracks = [] } = useQuery({
-    queryKey: ['track-templates', id],
-    queryFn: () => listTrackTemplates(id!),
-    enabled: !!id,
+    queryKey: ['track-templates', slug],
+    queryFn: () => listTrackTemplates(slug!),
+    enabled: !!slug,
   })
 
   const { data: coverImageUrl } = useQuery({
@@ -74,10 +78,10 @@ export function ProjectTemplateDetailPage() {
   })
 
   const updateProjectMutation = useMutation({
-    mutationFn: () => updateProjectTemplate(id!, { name: projectForm.name, description: projectForm.description || undefined, coverImage: projectForm.coverImage || undefined }),
+    mutationFn: () => updateProjectTemplate(slug!, { name: projectForm.name, description: projectForm.description || undefined, coverImage: projectForm.coverImage || undefined }),
     onSuccess: () => {
       toast.success('Template atualizado!')
-      queryClient.invalidateQueries({ queryKey: ['project-template', id] })
+      queryClient.invalidateQueries({ queryKey: ['project-template', slug] })
       setEditingProject(false)
     },
   })
@@ -120,7 +124,7 @@ export function ProjectTemplateDetailPage() {
     >
       {template.description && <p className="text-sm text-muted -mt-4 mb-4">{template.description}</p>}
 
-      <TracksList projectTemplateId={id!} tracks={tracks} template={template} />
+      <TracksList projectTemplateSlug={slug!} tracks={tracks} template={template} />
 
       <Modal
         isOpen={editingProject}
@@ -139,11 +143,12 @@ export function ProjectTemplateDetailPage() {
           <FileUpload
             fileType="images"
             entityType="project-template"
-            entityId={id || 'draft'}
+            entityId={template?.id ?? 'draft'}
             currentValue={projectForm.coverImage || null}
             onUploadComplete={(key) => setProjectForm({ ...projectForm, coverImage: key })}
             onRemove={() => setProjectForm({ ...projectForm, coverImage: '' })}
             label="Imagem de Capa"
+            compact
           />
         </div>
       </Modal>
@@ -152,27 +157,27 @@ export function ProjectTemplateDetailPage() {
 }
 
 // ---- Tracks List ----
-function TracksList({ projectTemplateId, tracks, template }: { projectTemplateId: string; tracks: TrackSceneTemplate[]; template?: ProjectTemplate }) {
+function TracksList({ projectTemplateSlug, tracks, template }: { projectTemplateSlug: string; tracks: TrackSceneTemplate[]; template?: ProjectTemplate }) {
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
   const [editingTrack, setEditingTrack] = useState<TrackSceneTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TrackSceneTemplate | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [form, setForm] = useState({ title: '', artist: '', description: '', technicalInstruction: '', lyrics: '', unlockAfterTrackId: '' })
 
   const sortedTracks = [...tracks].sort((a, b) => a.order - b.order)
   const refreshTemplateVersion = async () => {
-    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateId], (current) => {
+    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateSlug], (current) => {
       if (!current) return current
       return { ...current, version: current.version + 1 }
     })
-    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateId], exact: true, type: 'active' })
+    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateSlug], exact: true, type: 'active' })
     queryClient.invalidateQueries({ queryKey: ['project-templates'] })
   }
 
   const createMutation = useMutation({
-    mutationFn: () => createTrackTemplate(projectTemplateId, {
+    mutationFn: () => createTrackTemplate(projectTemplateSlug, {
       title: form.title,
       artist: form.artist || undefined,
       description: form.description || undefined,
@@ -182,7 +187,7 @@ function TracksList({ projectTemplateId, tracks, template }: { projectTemplateId
     }),
     onSuccess: async () => {
       toast.success('Faixa criada!')
-      queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateId] })
+      queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateSlug] })
       await refreshTemplateVersion()
       setCreateOpen(false)
       resetForm()
@@ -200,7 +205,7 @@ function TracksList({ projectTemplateId, tracks, template }: { projectTemplateId
     }),
     onSuccess: async () => {
       toast.success('Faixa atualizada!')
-      queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateId] })
+      queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateSlug] })
       await refreshTemplateVersion()
       setEditingTrack(null)
       resetForm()
@@ -211,14 +216,14 @@ function TracksList({ projectTemplateId, tracks, template }: { projectTemplateId
     mutationFn: () => deleteTrackTemplate(deleteTarget!.id),
     onSuccess: async () => {
       toast.success('Faixa desativada!')
-      queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateId] })
+      queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateSlug] })
       await refreshTemplateVersion()
       setDeleteTarget(null)
     },
     onError: (error: unknown) => {
       const err = error as AxiosError<{ details: DeactivationErrorDetails }>
       if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.title, id: deleteTarget!.id, details: err.response.data.details })
+        setBlockedInfo({ name: deleteTarget!.title, slug: deleteTarget!.slug, details: err.response.data.details })
       }
       setDeleteTarget(null)
     },
@@ -274,9 +279,9 @@ function TracksList({ projectTemplateId, tracks, template }: { projectTemplateId
                 return prereq ? <div><p className="text-xs font-medium text-muted uppercase">Pré-requisito</p><p className="text-sm text-text mt-1">Desbloqueia após: {prereq.title}</p></div> : null
               })()}
 
-              <MaterialsSection trackTemplateId={track.id} projectTemplateId={projectTemplateId} />
-              <StudyTracksSection trackTemplateId={track.id} projectTemplateId={projectTemplateId} />
-              <PressQuizzesSection trackTemplateId={track.id} projectTemplateId={projectTemplateId} track={track} template={template} />
+              <MaterialsSection trackTemplateId={track.id} projectTemplateSlug={projectTemplateSlug} />
+              <StudyTracksSection trackTemplateId={track.id} projectTemplateSlug={projectTemplateSlug} />
+              <PressQuizzesSection trackTemplateId={track.id} projectTemplateSlug={projectTemplateSlug} track={track} template={template} />
             </div>
           )}
         </div>
@@ -300,7 +305,7 @@ function TracksList({ projectTemplateId, tracks, template }: { projectTemplateId
         isOpen={!!blockedInfo}
         onClose={() => setBlockedInfo(null)}
         entityName={blockedInfo?.name ?? ''}
-        parentId={blockedInfo?.id ?? ''}
+        parentSlug={blockedInfo?.slug ?? ''}
         details={blockedInfo?.details ?? null}
       />
     </div>
@@ -346,25 +351,36 @@ function TrackFormModal({ isOpen, onClose, title, form, setForm, onSubmit, isLoa
 }
 
 // ---- Materials Section ----
-function MaterialsSection({ trackTemplateId, projectTemplateId }: { trackTemplateId: string; projectTemplateId: string }) {
+function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTemplateId: string; projectTemplateSlug: string }) {
   const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState('active')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<TrackMaterialTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TrackMaterialTemplate | null>(null)
+  const [restoreTarget, setRestoreTarget] = useState<TrackMaterialTemplate | null>(null)
   const [form, setForm] = useState({ type: 'TEXT' as TrackMaterialType, title: '', defaultContentUrl: '', defaultTextContent: '' })
+  const isTrash = activeTab === 'TRASH'
   const refreshTemplateVersion = async () => {
-    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateId], (current) => {
+    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateSlug], (current) => {
       if (!current) return current
       return { ...current, version: current.version + 1 }
     })
-    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateId], exact: true, type: 'active' })
+    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateSlug], exact: true, type: 'active' })
     queryClient.invalidateQueries({ queryKey: ['project-templates'] })
   }
 
   const { data: materials = [] } = useQuery({
     queryKey: ['material-templates', trackTemplateId],
     queryFn: () => listMaterialTemplates(trackTemplateId),
+    enabled: !isTrash,
   })
+
+  const { data: deletedResponse } = useQuery({
+    queryKey: ['material-templates', 'deleted', trackTemplateId],
+    queryFn: () => listDeletedMaterialTemplates({ page: 1, limit: 100 }),
+    enabled: isTrash,
+  })
+  const deletedMaterials = (deletedResponse?.data ?? []).filter((material) => material.trackSceneTemplateId === trackTemplateId)
 
   const createMut = useMutation({
     mutationFn: () => createMaterialTemplate(trackTemplateId, { type: form.type, title: form.title, defaultContentUrl: form.defaultContentUrl || undefined, defaultTextContent: form.defaultTextContent || undefined }),
@@ -392,8 +408,20 @@ function MaterialsSection({ trackTemplateId, projectTemplateId }: { trackTemplat
     onSuccess: async () => {
       toast.success('Material desativado!')
       queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] })
+      queryClient.invalidateQueries({ queryKey: ['material-templates', 'deleted', trackTemplateId] })
       await refreshTemplateVersion()
       setDeleteTarget(null)
+    },
+  })
+
+  const restoreMut = useMutation({
+    mutationFn: () => restoreMaterialTemplate(restoreTarget!.id),
+    onSuccess: async () => {
+      toast.success('Material restaurado!')
+      queryClient.invalidateQueries({ queryKey: ['material-templates', trackTemplateId] })
+      queryClient.invalidateQueries({ queryKey: ['material-templates', 'deleted', trackTemplateId] })
+      await refreshTemplateVersion()
+      setRestoreTarget(null)
     },
   })
 
@@ -404,19 +432,54 @@ function MaterialsSection({ trackTemplateId, projectTemplateId }: { trackTemplat
     <div>
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><FileText className="h-4 w-4 text-info" /> Materiais ({materials.length})</h3>
-        <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /></Button>
+        {!isTrash && <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /></Button>}
       </div>
-      {materials.length > 0 && (
-        <div className="space-y-1">
-          {materials.map((m) => (
-            <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-              <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
-              <span className="flex-1 text-text">{m.title}</span>
-              <button onClick={() => openEdit(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-              <button onClick={() => setDeleteTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+
+      <Tabs
+        tabs={[
+          { key: 'active', label: 'Ativos', count: materials.length },
+          { key: 'TRASH', label: 'Lixeira', count: deletedMaterials.length },
+        ]}
+        activeKey={activeTab}
+        onChange={setActiveTab}
+      />
+
+      {!isTrash && (
+        <>
+          {materials.length > 0 ? (
+            <div className="space-y-1 mt-2">
+              {materials.map((m) => (
+                <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                  <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
+                  <span className="flex-1 text-text">{m.title}</span>
+                  <button onClick={() => openEdit(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setDeleteTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          ) : (
+            <p className="text-sm text-muted mt-2">Nenhum material ativo</p>
+          )}
+        </>
+      )}
+
+      {isTrash && (
+        <>
+          {deletedMaterials.length > 0 ? (
+            <div className="space-y-1 mt-2">
+              {deletedMaterials.map((m) => (
+                <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                  <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
+                  <span className="flex-1 text-text">{m.title}</span>
+                  <Badge variant="error" className="text-[10px]">Excluído</Badge>
+                  <button onClick={() => setRestoreTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+          )}
+        </>
       )}
 
       <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Editar Material' : 'Criar Material'} footer={
@@ -435,6 +498,7 @@ function MaterialsSection({ trackTemplateId, projectTemplateId }: { trackTemplat
               onUploadComplete={(key) => setForm({ ...form, defaultContentUrl: key })}
               onRemove={() => setForm({ ...form, defaultContentUrl: '' })}
               label="Arquivo do Material"
+              compact
             />
           )}
           {form.type === 'LINK' && <Input id="matUrl" label="URL do Link" value={form.defaultContentUrl} onChange={(e) => setForm({ ...form, defaultContentUrl: e.target.value })} placeholder="https://..." />}
@@ -443,36 +507,53 @@ function MaterialsSection({ trackTemplateId, projectTemplateId }: { trackTemplat
       </Modal>
 
       <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Desativar Material" message={`Desativar "${deleteTarget?.title}"?`} />
+      <ConfirmModal isOpen={!!restoreTarget} onClose={() => setRestoreTarget(null)} onConfirm={() => restoreMut.mutate()} isLoading={restoreMut.isPending} title="Restaurar Material" message={`Restaurar "${restoreTarget?.title}"?`} confirmLabel="Restaurar" />
     </div>
   )
 }
 
 // ---- Study Tracks Section ----
-function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTemplateId: string; projectTemplateId: string }) {
+function StudyTracksSection({ trackTemplateId, projectTemplateSlug }: { trackTemplateId: string; projectTemplateSlug: string }) {
   const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState('active')
+  const [trashPage, setTrashPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<StudyTrackTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StudyTrackTemplate | null>(null)
-  const [form, setForm] = useState({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15 })
+  const [restoreTarget, setRestoreTarget] = useState<StudyTrackTemplate | null>(null)
+  const [form, setForm] = useState({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '' })
   const refreshTemplateVersion = async () => {
-    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateId], (current) => {
+    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateSlug], (current) => {
       if (!current) return current
       return { ...current, version: current.version + 1 }
     })
-    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateId], exact: true, type: 'active' })
+    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateSlug], exact: true, type: 'active' })
     queryClient.invalidateQueries({ queryKey: ['project-templates'] })
   }
+  const isTrash = activeTab === 'TRASH'
 
   const { data: studyTracks = [] } = useQuery({
     queryKey: ['study-track-templates', trackTemplateId],
     queryFn: () => listStudyTrackTemplates(trackTemplateId),
+    enabled: !isTrash,
   })
+
+  const { data: deletedResponse } = useQuery({
+    queryKey: ['study-track-templates', 'deleted', trackTemplateId, trashPage],
+    queryFn: () => listDeletedStudyTrackTemplates({
+      page: trashPage,
+      limit: STUDY_TRACK_TRASH_PAGE_LIMIT,
+      trackSceneTemplateId: trackTemplateId,
+    }),
+    enabled: isTrash,
+  })
+  const deletedStudyTracks = deletedResponse?.data ?? []
+  const pagination = deletedResponse?.pagination
 
   const createMut = useMutation({
     mutationFn: () => createStudyTrackTemplate(trackTemplateId, {
       title: form.title, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
       videoUrl: form.videoUrl || undefined, audioUrl: form.audioUrl || undefined, pdfUrl: form.pdfUrl || undefined,
-      estimatedMinutes: form.estimatedMinutes,
     }),
     onSuccess: async () => {
       toast.success('Trilha criada!')
@@ -484,9 +565,12 @@ function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTempl
 
   const updateMut = useMutation({
     mutationFn: () => updateStudyTrackTemplate(editing!.id, {
-      title: form.title, description: form.description || undefined, technicalNotes: form.technicalNotes || undefined,
-      videoUrl: form.videoUrl || undefined, audioUrl: form.audioUrl || undefined, pdfUrl: form.pdfUrl || undefined,
-      estimatedMinutes: form.estimatedMinutes,
+      title: form.title,
+      description: form.description || undefined,
+      technicalNotes: form.technicalNotes || undefined,
+      videoUrl: form.videoUrl.trim() ? form.videoUrl : null,
+      audioUrl: form.audioUrl.trim() ? form.audioUrl : null,
+      pdfUrl: form.pdfUrl.trim() ? form.pdfUrl : null,
     }),
     onSuccess: async () => {
       toast.success('Trilha atualizada!')
@@ -502,34 +586,86 @@ function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTempl
     onSuccess: async () => {
       toast.success('Trilha desativada!')
       queryClient.invalidateQueries({ queryKey: ['study-track-templates', trackTemplateId] })
+      queryClient.invalidateQueries({ queryKey: ['study-track-templates', 'deleted', trackTemplateId] })
       await refreshTemplateVersion()
       setDeleteTarget(null)
     },
   })
 
-  const openCreate = () => { setEditing(null); setForm({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '', estimatedMinutes: 15 }); setModalOpen(true) }
-  const openEdit = (st: StudyTrackTemplate) => { setEditing(st); setForm({ title: st.title, description: st.description || '', technicalNotes: st.technicalNotes || '', videoUrl: st.videoUrl || '', audioUrl: st.audioUrl || '', pdfUrl: st.pdfUrl || '', estimatedMinutes: st.estimatedMinutes }); setModalOpen(true) }
+  const restoreMut = useMutation({
+    mutationFn: () => restoreStudyTrackTemplate(restoreTarget!.id),
+    onSuccess: async () => {
+      toast.success('Trilha restaurada!')
+      queryClient.invalidateQueries({ queryKey: ['study-track-templates', trackTemplateId] })
+      queryClient.invalidateQueries({ queryKey: ['study-track-templates', 'deleted', trackTemplateId] })
+      await refreshTemplateVersion()
+      setRestoreTarget(null)
+    },
+  })
+
+  const openCreate = () => { setEditing(null); setForm({ title: '', description: '', technicalNotes: '', videoUrl: '', audioUrl: '', pdfUrl: '' }); setModalOpen(true) }
+  const openEdit = (st: StudyTrackTemplate) => { setEditing(st); setForm({ title: st.title, description: st.description || '', technicalNotes: st.technicalNotes || '', videoUrl: st.videoUrl || '', audioUrl: st.audioUrl || '', pdfUrl: st.pdfUrl || '' }); setModalOpen(true) }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><BookOpen className="h-4 w-4 text-success" /> Trilhas de Estudo ({studyTracks.length})</h3>
-        <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /></Button>
+        {!isTrash && <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /></Button>}
       </div>
-      {studyTracks.length > 0 && (
-        <div className="space-y-1">
-          {studyTracks.map((st) => {
-            return (
-              <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                <span className="flex-1 text-text">{st.title}</span>
-                <span className="text-xs text-muted">{st.estimatedMinutes}min</span>
-                <Badge variant="warning">Obrigatória</Badge>
-                <button onClick={() => openEdit(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-                <button onClick={() => setDeleteTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+
+      <Tabs
+        tabs={[
+          { key: 'active', label: 'Ativas', count: studyTracks.length },
+          { key: 'TRASH', label: 'Lixeira', count: pagination?.total ?? deletedStudyTracks.length },
+        ]}
+        activeKey={activeTab}
+        onChange={(key) => { setActiveTab(key); setTrashPage(1) }}
+      />
+
+      {!isTrash && (
+        <>
+          {studyTracks.length > 0 ? (
+            <div className="space-y-1 mt-2">
+              {studyTracks.map((st) => (
+                <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                  <span className="flex-1 text-text">{st.title}</span>
+                  <button onClick={() => openEdit(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setDeleteTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted mt-2">Nenhuma trilha ativa</p>
+          )}
+        </>
+      )}
+
+      {isTrash && (
+        <>
+          {deletedStudyTracks.length > 0 ? (
+            <>
+              <div className="space-y-1 mt-2">
+                {deletedStudyTracks.map((st) => (
+                  <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                    <span className="flex-1 text-text">{st.title}</span>
+                    <Badge variant="error" className="text-[10px]">Excluído</Badge>
+                    <button onClick={() => setRestoreTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+                  </div>
+                ))}
               </div>
-            )
-          })}
-        </div>
+              {pagination && pagination.totalPages > 1 && (
+                <Pagination
+                  page={trashPage}
+                  totalPages={pagination.totalPages}
+                  total={pagination.total}
+                  onPageChange={setTrashPage}
+                />
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+          )}
+        </>
       )}
 
       <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Editar Trilha' : 'Criar Trilha'} size="lg" footer={
@@ -540,27 +676,66 @@ function StudyTracksSection({ trackTemplateId, projectTemplateId }: { trackTempl
           <Input id="stTitle" label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <Textarea id="stDesc" label="Descrição" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <Textarea id="stNotes" label="Notas Técnicas" value={form.technicalNotes} onChange={(e) => setForm({ ...form, technicalNotes: e.target.value })} />
-          <div className="grid grid-cols-3 gap-4">
-            <Input id="stVideo" label="URL Vídeo" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} />
-            <Input id="stAudio" label="URL Áudio" value={form.audioUrl} onChange={(e) => setForm({ ...form, audioUrl: e.target.value })} />
-            <Input id="stPdf" label="URL PDF" value={form.pdfUrl} onChange={(e) => setForm({ ...form, pdfUrl: e.target.value })} />
-          </div>
-          <Input id="stMin" label="Tempo estimado (min)" type="number" value={String(form.estimatedMinutes)} onChange={(e) => setForm({ ...form, estimatedMinutes: Number(e.target.value) })} />
-          <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-muted">
-            Trilha de estudo sempre obrigatória para esta faixa.
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <FileUpload
+                fileType="videos"
+                entityType="study-track-template"
+                entityId={editing?.id || 'draft'}
+                currentValue={form.videoUrl || null}
+                onUploadComplete={(key) => setForm({ ...form, videoUrl: key })}
+                onRemove={() => setForm({ ...form, videoUrl: '' })}
+                label="Vídeo"
+                accept=".mp4,.webm,.mov"
+                helperText="Formatos: .mp4, .webm, .mov"
+                compact
+              />
+            </div>
+
+            <div className="space-y-2">
+              <FileUpload
+                fileType="materials"
+                entityType="study-track-template"
+                entityId={editing?.id || 'draft'}
+                currentValue={form.audioUrl || null}
+                onUploadComplete={(key) => setForm({ ...form, audioUrl: key })}
+                onRemove={() => setForm({ ...form, audioUrl: '' })}
+                label="Áudio"
+                accept=".mp3,.wav,.m4a"
+                helperText="Formatos: .mp3, .wav, .m4a"
+                compact
+              />
+            </div>
+
+            <div className="space-y-2">
+              <FileUpload
+                fileType="materials"
+                entityType="study-track-template"
+                entityId={editing?.id || 'draft'}
+                currentValue={form.pdfUrl || null}
+                onUploadComplete={(key) => setForm({ ...form, pdfUrl: key })}
+                onRemove={() => setForm({ ...form, pdfUrl: '' })}
+                label="PDF"
+                accept=".pdf"
+                helperText="Formato: .pdf"
+                compact
+              />
+            </div>
           </div>
         </div>
       </Modal>
 
       <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Desativar Trilha" message={`Desativar "${deleteTarget?.title}"?`} />
+      <ConfirmModal isOpen={!!restoreTarget} onClose={() => setRestoreTarget(null)} onConfirm={() => restoreMut.mutate()} isLoading={restoreMut.isPending} title="Restaurar Trilha" message={`Restaurar "${restoreTarget?.title}"?`} confirmLabel="Restaurar" />
     </div>
   )
 }
 
 const QUIZ_TRASH_PAGE_LIMIT = 20
+const STUDY_TRACK_TRASH_PAGE_LIMIT = 20
 
 // ---- Press Quizzes Section ----
-function PressQuizzesSection({ trackTemplateId, projectTemplateId, track, template }: { trackTemplateId: string; projectTemplateId: string; track: TrackSceneTemplate; template?: ProjectTemplate }) {
+function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, template }: { trackTemplateId: string; projectTemplateSlug: string; track: TrackSceneTemplate; template?: ProjectTemplate }) {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('active')
   const [trashPage, setTrashPage] = useState(1)
@@ -570,11 +745,11 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateId, track, templa
   const [restoreTarget, setRestoreTarget] = useState<PressQuizTemplate | null>(null)
   const [form, setForm] = useState({ title: '', description: '', questions: [] as QuizQuestion[], maxAttempts: 3, passingScore: 70 })
   const refreshTemplateVersion = async () => {
-    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateId], (current) => {
+    queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateSlug], (current) => {
       if (!current) return current
       return { ...current, version: current.version + 1 }
     })
-    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateId], exact: true, type: 'active' })
+    await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateSlug], exact: true, type: 'active' })
     queryClient.invalidateQueries({ queryKey: ['project-templates'] })
   }
 
@@ -766,7 +941,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateId, track, templa
             />
           </div>
           <QuizBuilder value={form.questions} onChange={(questions) => setForm({ ...form, questions })} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input id="pqAttempts" label="Máximo de tentativas" type="number" value={String(form.maxAttempts)} onChange={(e) => setForm({ ...form, maxAttempts: Number(e.target.value) })} />
             <Input id="pqScore" label="Nota de aprovação (%)" type="number" value={String(form.passingScore)} onChange={(e) => setForm({ ...form, passingScore: Number(e.target.value) })} />
           </div>

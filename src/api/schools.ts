@@ -6,8 +6,8 @@ export async function listSchools(params?: { page?: number; limit?: number }): P
   return data
 }
 
-export async function getSchool(id: string) {
-  const { data } = await api.get<School>(`/schools/${id}`)
+export async function getSchool(idOrSlug: string) {
+  const { data } = await api.get<School>(`/schools/${idOrSlug}`)
   return data
 }
 
@@ -16,13 +16,13 @@ export async function createSchool(payload: { name: string; directorId?: string 
   return data
 }
 
-export async function updateSchool(id: string, payload: { name?: string; directorId?: string }) {
-  const { data } = await api.patch<School>(`/schools/${id}`, payload)
+export async function updateSchool(idOrSlug: string, payload: { name?: string; directorId?: string }) {
+  const { data } = await api.patch<School>(`/schools/${idOrSlug}`, payload)
   return data
 }
 
-export async function deleteSchool(id: string) {
-  await api.delete(`/schools/${id}`)
+export async function deleteSchool(idOrSlug: string) {
+  await api.delete(`/schools/${idOrSlug}`)
 }
 
 export async function listDeletedSchools(params: { page: number; limit: number }) {
@@ -30,7 +30,7 @@ export async function listDeletedSchools(params: { page: number; limit: number }
   return data
 }
 
-export async function restoreSchool(id: string) {
-  const { data } = await api.patch<School>(`/schools/${id}/restore`)
+export async function restoreSchool(idOrSlug: string) {
+  const { data } = await api.patch<School>(`/schools/${idOrSlug}/restore`)
   return data
 }

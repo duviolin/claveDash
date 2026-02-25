@@ -38,7 +38,7 @@ export function UsersListPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [confirmAction, setConfirmAction] = useState<{ user: User; action: 'suspend' | 'reactivate' | 'delete' | 'restore' } | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
 
   const isTrash = roleFilter === 'TRASH'
 
@@ -111,7 +111,7 @@ export function UsersListPage() {
       if (action === 'delete') {
         const err = error as AxiosError<{ error?: string; details?: DeactivationErrorDetails }>
         if (err.response?.status === 409 && err.response?.data?.details) {
-          setBlockedInfo({ name: user.name, id: user.id, details: err.response.data.details })
+          setBlockedInfo({ name: user.name, slug: user.slug, details: err.response.data.details })
         } else {
           toast.error(err.response?.data?.error ?? 'Erro ao excluir usuário')
         }
@@ -163,7 +163,7 @@ export function UsersListPage() {
       render: (u: User) => (
         <div className="flex gap-1">
           <button
-            onClick={() => navigate(`/users/${u.id}`)}
+            onClick={() => navigate(`/users/${u.slug}`)}
             className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
             title="Editar"
           >
@@ -287,7 +287,7 @@ export function UsersListPage() {
           placeholder="Buscar por nome ou email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xs"
+          className="w-full sm:max-w-xs"
         />
       </div>
 
@@ -323,7 +323,7 @@ export function UsersListPage() {
         isOpen={!!blockedInfo}
         onClose={() => setBlockedInfo(null)}
         entityName={blockedInfo?.name ?? ''}
-        parentId={blockedInfo?.id ?? ''}
+        parentSlug={blockedInfo?.slug ?? ''}
         details={blockedInfo?.details ?? null}
       />
     </PageContainer>

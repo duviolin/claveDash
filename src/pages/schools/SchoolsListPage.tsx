@@ -33,7 +33,7 @@ export function SchoolsListPage() {
   const [form, setForm] = useState({ name: '', directorId: '' })
   const [deleteTarget, setDeleteTarget] = useState<School | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<School | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [page, setPage] = useState(1)
 
   const isTrash = activeTab === 'TRASH'
@@ -82,7 +82,7 @@ export function SchoolsListPage() {
     onError: (error: unknown) => {
       const err = error as AxiosError<{ details: DeactivationErrorDetails }>
       if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details: err.response.data.details })
+        setBlockedInfo({ name: deleteTarget!.name, slug: deleteTarget!.slug, details: err.response.data.details })
       }
       setDeleteTarget(null)
     },
@@ -283,7 +283,7 @@ export function SchoolsListPage() {
         isOpen={!!blockedInfo}
         onClose={() => setBlockedInfo(null)}
         entityName={blockedInfo?.name ?? ''}
-        parentId={blockedInfo?.id ?? ''}
+        parentSlug={blockedInfo?.slug ?? ''}
         details={blockedInfo?.details ?? null}
       />
     </PageContainer>

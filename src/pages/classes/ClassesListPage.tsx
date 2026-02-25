@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Eye, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -28,14 +28,16 @@ const tabs = [
 export function ClassesListPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
+  const filterFromUrl = searchParams.get('seasonSlug') ?? searchParams.get('seasonId') ?? ''
+  const [seasonFilter, setSeasonFilter] = useState(filterFromUrl)
   const [activeTab, setActiveTab] = useState('active')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Class | null>(null)
-  const [seasonFilter, setSeasonFilter] = useState('')
   const [form, setForm] = useState({ seasonId: '', name: '', maxStudents: 30 })
   const [deleteTarget, setDeleteTarget] = useState<Class | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<Class | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [page, setPage] = useState(1)
 
   const isTrash = activeTab === 'TRASH'
@@ -82,7 +84,7 @@ export function ClassesListPage() {
       const axiosError = error as { response?: { status?: number; data?: { details?: DeactivationErrorDetails } } }
       const details = axiosError.response?.data?.details
       if (axiosError.response?.status === 409 && details) {
-        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details })
+        setBlockedInfo({ name: deleteTarget!.name, slug: deleteTarget!.slug, details })
       }
       setDeleteTarget(null)
     },
@@ -141,7 +143,7 @@ export function ClassesListPage() {
       render: (c: Class) => (
         <div className="flex gap-1">
           <button
-            onClick={() => navigate(`/classes/${c.id}`)}
+            onClick={() => navigate(`/classes/${c.slug}`)}
             className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
             title="Detalhes"
           >
@@ -220,17 +222,19 @@ export function ClassesListPage() {
         ) : undefined
       }
     >
-      <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
 
-      {!isTrash && (
-        <Select
-          value={seasonFilter}
-          onChange={(e) => setSeasonFilter(e.target.value)}
-          placeholder="Todos os semestres"
-          options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))}
-          className="max-w-xs"
-        />
-      )}
+        {!isTrash && (
+          <Select
+            value={seasonFilter}
+            onChange={(e) => setSeasonFilter(e.target.value)}
+            placeholder="Todos os semestres"
+            options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))}
+            className="w-full sm:max-w-xs"
+          />
+        )}
+      </div>
 
       <Table
         columns={isTrash ? trashColumns : columns}
@@ -301,7 +305,7 @@ export function ClassesListPage() {
         isOpen={!!blockedInfo}
         onClose={() => setBlockedInfo(null)}
         entityName={blockedInfo?.name ?? ''}
-        parentId={blockedInfo?.id ?? ''}
+        parentSlug={blockedInfo?.slug ?? ''}
         details={blockedInfo?.details ?? null}
       />
     </PageContainer>

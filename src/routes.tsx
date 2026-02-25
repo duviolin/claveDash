@@ -31,7 +31,7 @@ export const router = createBrowserRouter([
       // Users
       { path: 'users', element: <UsersListPage /> },
       { path: 'users/new', element: <UserCreatePage /> },
-      { path: 'users/:id', element: <UserDetailPage /> },
+      { path: 'users/:slug', element: <UserDetailPage /> },
       // Schools
       { path: 'schools', element: <SchoolsListPage /> },
       // Courses
@@ -40,10 +40,10 @@ export const router = createBrowserRouter([
       { path: 'seasons', element: <SeasonsListPage /> },
       // Classes
       { path: 'classes', element: <ClassesListPage /> },
-      { path: 'classes/:id', element: <ClassDetailPage /> },
+      { path: 'classes/:slug', element: <ClassDetailPage /> },
       // Templates
       { path: 'templates/projects', element: <ProjectTemplatesListPage /> },
-      { path: 'templates/projects/:id', element: <ProjectTemplateDetailPage /> },
+      { path: 'templates/projects/:slug', element: <ProjectTemplateDetailPage /> },
       { path: 'templates/daily-missions', element: <DailyMissionTemplatesPage /> },
       // Instances
       { path: 'instances/projects', element: <ProjectInstancesPage /> },

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Eye, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -32,14 +32,16 @@ const tabs = [
 export function ProjectTemplatesListPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
+  const filterFromUrl = searchParams.get('courseSlug') ?? searchParams.get('courseId') ?? ''
+  const [courseFilter, setCourseFilter] = useState(filterFromUrl)
   const [activeTab, setActiveTab] = useState('active')
   const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTarget, setEditingTarget] = useState<ProjectTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ProjectTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<ProjectTemplate | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
-  const [courseFilter, setCourseFilter] = useState('')
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [form, setForm] = useState({ courseId: '', name: '', type: 'ALBUM' as ProjectType, description: '', coverImage: '' })
 
   const isTrash = activeTab === 'TRASH'
@@ -103,7 +105,7 @@ export function ProjectTemplatesListPage() {
     onError: (error: unknown) => {
       const err = error as AxiosError<{ details: DeactivationErrorDetails }>
       if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details: err.response.data.details })
+        setBlockedInfo({ name: deleteTarget!.name, slug: deleteTarget!.slug, details: err.response.data.details })
       }
       setDeleteTarget(null)
     },
@@ -147,7 +149,7 @@ export function ProjectTemplatesListPage() {
       header: 'Ações',
       render: (t: ProjectTemplate) => (
         <div className="flex gap-1">
-          <button onClick={() => navigate(`/templates/projects/${t.id}`)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Detalhes">
+          <button onClick={() => navigate(`/templates/projects/${t.slug}`)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Detalhes">
             <Eye className="h-4 w-4" />
           </button>
           <button
@@ -231,17 +233,19 @@ export function ProjectTemplatesListPage() {
         ) : undefined
       }
     >
-      <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
 
-      {!isTrash && (
-        <Select
-          value={courseFilter}
-          onChange={(e) => setCourseFilter(e.target.value)}
-          placeholder="Todos os cursos"
-          options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
-          className="max-w-xs"
-        />
-      )}
+        {!isTrash && (
+          <Select
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+            placeholder="Todos os cursos"
+            options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
+            className="w-full sm:max-w-xs"
+          />
+        )}
+      </div>
 
       <Table
         columns={isTrash ? trashColumns : columns}
@@ -286,6 +290,7 @@ export function ProjectTemplatesListPage() {
             onUploadComplete={(key) => setForm({ ...form, coverImage: key })}
             onRemove={() => setForm({ ...form, coverImage: '' })}
             label="Imagem de Capa"
+            compact
           />
         </div>
       </Modal>
@@ -313,7 +318,7 @@ export function ProjectTemplatesListPage() {
         isOpen={!!blockedInfo}
         onClose={() => setBlockedInfo(null)}
         entityName={blockedInfo?.name ?? ''}
-        parentId={blockedInfo?.id ?? ''}
+        parentSlug={blockedInfo?.slug ?? ''}
         details={blockedInfo?.details ?? null}
       />
     </PageContainer>

@@ -28,6 +28,8 @@ import {
   updateDailyMissionQuiz,
   deleteDailyMissionQuiz,
   listDailyMissionQuizzes,
+  listDeletedDailyMissionQuizzes,
+  restoreDailyMissionQuiz,
 } from '@/api/dailyMissions'
 import { listCourses } from '@/api/courses'
 import { DAILY_MISSION_STATUS_LABELS, DAILY_MISSION_STATUS_VARIANT } from '@/lib/constants'
@@ -36,6 +38,7 @@ import type { DailyMissionTemplate, DailyMissionQuiz, Course, DeactivationErrorD
 import toast from 'react-hot-toast'
 
 const DAILY_MISSION_PAGE_LIMIT = 10
+const DAILY_MISSION_QUIZ_TRASH_PAGE_LIMIT = 100
 const tabs = [
   { key: 'active', label: 'Ativos' },
   { key: 'TRASH', label: 'Lixeira' },
@@ -47,7 +50,7 @@ export function DailyMissionTemplatesPage() {
   const [editing, setEditing] = useState<DailyMissionTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DailyMissionTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<DailyMissionTemplate | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [courseFilter, setCourseFilter] = useState('')
   const [expandedMission, setExpandedMission] = useState<string | null>(null)
   const [form, setForm] = useState({ courseId: '', title: '', videoUrl: '' })
@@ -104,7 +107,7 @@ export function DailyMissionTemplatesPage() {
     onError: (error: unknown) => {
       const err = error as AxiosError<{ details: DeactivationErrorDetails }>
       if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.title, id: deleteTarget!.id, details: err.response.data.details })
+        setBlockedInfo({ name: deleteTarget!.title, slug: deleteTarget!.slug, details: err.response.data.details })
       }
       setDeleteTarget(null)
     },
@@ -175,7 +178,18 @@ export function DailyMissionTemplatesPage() {
       count={isTrash ? (pagination?.total ?? deletedMissions.length) : missions.length}
       action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Missão</Button> : undefined}
     >
-      <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+        {!isTrash && (
+          <Select
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+            placeholder="Todos os cursos"
+            options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
+            className="w-full sm:max-w-xs"
+          />
+        )}
+      </div>
 
       {isTrash ? (
         <>
@@ -197,8 +211,6 @@ export function DailyMissionTemplatesPage() {
         </>
       ) : (
         <>
-      <Select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} placeholder="Todos os cursos" options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} className="max-w-xs" />
-
       {isLoading ? (
         <div className="flex justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" /></div>
       ) : (
@@ -249,6 +261,7 @@ export function DailyMissionTemplatesPage() {
             onUploadComplete={(key) => setForm({ ...form, videoUrl: key })}
             onRemove={() => setForm({ ...form, videoUrl: '' })}
             label="Vídeo da Missão"
+            compact
           />
           <Input id="dmVideo" label="Ou insira URL manualmente" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} placeholder="https://..." />
         </div>
@@ -270,7 +283,7 @@ export function DailyMissionTemplatesPage() {
         isOpen={!!blockedInfo}
         onClose={() => setBlockedInfo(null)}
         entityName={blockedInfo?.name ?? ''}
-        parentId={blockedInfo?.id ?? ''}
+        parentSlug={blockedInfo?.slug ?? ''}
         details={blockedInfo?.details ?? null}
       />
     </PageContainer>
@@ -279,15 +292,26 @@ export function DailyMissionTemplatesPage() {
 
 function MissionQuizSection({ missionId, mission }: { missionId: string; mission: DailyMissionTemplate }) {
   const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState('active')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<DailyMissionQuiz | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DailyMissionQuiz | null>(null)
+  const [restoreTarget, setRestoreTarget] = useState<DailyMissionQuiz | null>(null)
   const [form, setForm] = useState({ questions: [] as QuizQuestion[], maxAttemptsPerDay: 3, allowRecoveryAttempt: false })
+  const isTrash = activeTab === 'TRASH'
 
   const { data: quizzes = [] } = useQuery({
     queryKey: ['daily-mission-quizzes', missionId],
     queryFn: () => listDailyMissionQuizzes(missionId),
+    enabled: !isTrash,
   })
+
+  const { data: deletedResponse, isLoading: isLoadingDeleted } = useQuery({
+    queryKey: ['daily-mission-quizzes', 'deleted', missionId],
+    queryFn: () => listDeletedDailyMissionQuizzes({ page: 1, limit: DAILY_MISSION_QUIZ_TRASH_PAGE_LIMIT }),
+    enabled: isTrash,
+  })
+  const deletedQuizzes = (deletedResponse?.data ?? []).filter((quiz) => quiz.dailyMissionId === missionId)
 
   const createMut = useMutation({
     mutationFn: () => createDailyMissionQuiz(missionId, {
@@ -321,12 +345,23 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
     onSuccess: () => {
       toast.success('Quiz excluído!')
       queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', missionId] })
+      queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', 'deleted', missionId] })
       setDeleteTarget(null)
     },
     onError: (error: unknown) => {
       const err = error as AxiosError<{ message?: string }>
       toast.error(err.response?.data?.message ?? 'Erro ao excluir quiz')
       setDeleteTarget(null)
+    },
+  })
+
+  const restoreMut = useMutation({
+    mutationFn: () => restoreDailyMissionQuiz(restoreTarget!.id),
+    onSuccess: () => {
+      toast.success('Quiz restaurado!')
+      queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', missionId] })
+      queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', 'deleted', missionId] })
+      setRestoreTarget(null)
     },
   })
 
@@ -337,23 +372,62 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
     <div>
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><HelpCircle className="h-4 w-4 text-warning" /> Quiz da Missão</h3>
-        <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /> Adicionar Quiz</Button>
+        {!isTrash && <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /> Adicionar Quiz</Button>}
       </div>
 
-      {quizzes.length > 0 && (
-        <div className="space-y-1">
-          {quizzes.map((q) => (
-            <div key={q.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
-              <Badge variant="default" className="shrink-0">v{q.version}</Badge>
-              <span className="text-muted">{q.questionsJson?.length ?? 0} questões</span>
-              <span className="text-muted">{q.maxAttemptsPerDay} tentativas/dia</span>
-              {q.allowRecoveryAttempt && <Badge variant="info">Recuperação</Badge>}
-              <div className="flex-1" />
-              <button onClick={() => openEdit(q)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
-              <button onClick={() => setDeleteTarget(q)} className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer" title="Excluir"><Trash2 className="h-3.5 w-3.5" /></button>
+      <Tabs
+        tabs={[
+          { key: 'active', label: 'Ativos', count: quizzes.length },
+          { key: 'TRASH', label: 'Lixeira', count: deletedQuizzes.length },
+        ]}
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key)}
+      />
+
+      {!isTrash && (
+        <>
+          {quizzes.length > 0 ? (
+            <div className="space-y-1 mt-2">
+              {quizzes.map((q) => (
+                <div key={q.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+                  <Badge variant="default" className="shrink-0">v{q.version}</Badge>
+                  <span className="text-muted">{q.questionsJson?.length ?? 0} questões</span>
+                  <span className="text-muted">{q.maxAttemptsPerDay} tentativas/dia</span>
+                  <div className="flex-1" />
+                  <button onClick={() => openEdit(q)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setDeleteTarget(q)} className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer" title="Excluir"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          ) : (
+            <p className="text-sm text-muted mt-2">Nenhum quiz ativo</p>
+          )}
+        </>
+      )}
+
+      {isTrash && (
+        <>
+          {isLoadingDeleted ? (
+            <div className="flex justify-center py-6">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            </div>
+          ) : deletedQuizzes.length > 0 ? (
+            <div className="space-y-1 mt-2">
+              {deletedQuizzes.map((q) => (
+                <div key={q.id} className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
+                  <Badge variant="default" className="shrink-0">v{q.version}</Badge>
+                  <Badge variant="error" className="text-[10px]">Excluído</Badge>
+                  <span className="text-muted">{q.questionsJson?.length ?? 0} questões</span>
+                  <span className="text-muted">{q.maxAttemptsPerDay} tentativas/dia</span>
+                  <div className="flex-1" />
+                  <button onClick={() => setRestoreTarget(q)} className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+          )}
+        </>
       )}
 
       <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Editar Quiz da Missão' : 'Criar Quiz da Missão'} size="lg" footer={
@@ -381,7 +455,7 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
             />
           </div>
           <QuizBuilder value={form.questions} onChange={(questions) => setForm({ ...form, questions })} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input id="mqAttempts" label="Tentativas por dia" type="number" value={String(form.maxAttemptsPerDay)} onChange={(e) => setForm({ ...form, maxAttemptsPerDay: Number(e.target.value) })} />
             <label className="flex items-center gap-2 text-sm text-text cursor-pointer mt-6">
               <input type="checkbox" checked={form.allowRecoveryAttempt} onChange={(e) => setForm({ ...form, allowRecoveryAttempt: e.target.checked })} className="accent-accent" />
@@ -392,6 +466,15 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
       </Modal>
 
       <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Excluir Quiz" message="Tem certeza que deseja excluir este quiz?" />
+      <ConfirmModal
+        isOpen={!!restoreTarget}
+        onClose={() => setRestoreTarget(null)}
+        onConfirm={() => restoreMut.mutate()}
+        isLoading={restoreMut.isPending}
+        title="Restaurar Quiz"
+        message="Tem certeza que deseja restaurar este quiz?"
+        confirmLabel="Restaurar"
+      />
     </div>
   )
 }

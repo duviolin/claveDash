@@ -41,7 +41,6 @@ interface CreateStudyTrackTemplatePayload {
   videoUrl?: string
   audioUrl?: string
   pdfUrl?: string
-  estimatedMinutes?: number
 }
 interface UpdateStudyTrackTemplatePayload {
   title?: string
@@ -50,7 +49,6 @@ interface UpdateStudyTrackTemplatePayload {
   videoUrl?: string | null
   audioUrl?: string | null
   pdfUrl?: string | null
-  estimatedMinutes?: number
 }
 interface UpdatePressQuizTemplatePayload {
   title?: string
@@ -61,13 +59,13 @@ interface UpdatePressQuizTemplatePayload {
 }
 
 // --- Project Templates ---
-export async function listProjectTemplates(courseId?: string) {
-  const { data } = await api.get<ProjectTemplate[]>('/project-templates', { params: { courseId } })
+export async function listProjectTemplates(courseIdOrSlug?: string) {
+  const { data } = await api.get<ProjectTemplate[]>('/project-templates', { params: { courseId: courseIdOrSlug } })
   return data
 }
 
-export async function getProjectTemplate(id: string) {
-  const { data } = await api.get<ProjectTemplate>(`/project-templates/${id}`)
+export async function getProjectTemplate(idOrSlug: string) {
+  const { data } = await api.get<ProjectTemplate>(`/project-templates/${idOrSlug}`)
   return data
 }
 
@@ -76,13 +74,13 @@ export async function createProjectTemplate(payload: { courseId: string; name: s
   return data
 }
 
-export async function updateProjectTemplate(id: string, payload: { courseId?: string; name?: string; description?: string; coverImage?: string }) {
-  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${id}`, payload)
+export async function updateProjectTemplate(idOrSlug: string, payload: { courseId?: string; name?: string; description?: string; coverImage?: string }) {
+  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${idOrSlug}`, payload)
   return data
 }
 
-export async function deleteProjectTemplate(id: string) {
-  await api.delete(`/project-templates/${id}`)
+export async function deleteProjectTemplate(idOrSlug: string) {
+  await api.delete(`/project-templates/${idOrSlug}`)
 }
 
 export async function listDeletedProjectTemplates(params: { page: number; limit: number }) {
@@ -90,14 +88,14 @@ export async function listDeletedProjectTemplates(params: { page: number; limit:
   return data
 }
 
-export async function restoreProjectTemplate(id: string) {
-  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${id}/restore`)
+export async function restoreProjectTemplate(idOrSlug: string) {
+  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${idOrSlug}/restore`)
   return data
 }
 
 // --- Track Scene Templates ---
-export async function listTrackTemplates(projectTemplateId: string) {
-  const { data } = await api.get<TrackSceneTemplate[]>(`/project-templates/${projectTemplateId}/tracks`)
+export async function listTrackTemplates(projectTemplateIdOrSlug: string) {
+  const { data } = await api.get<TrackSceneTemplate[]>(`/project-templates/${projectTemplateIdOrSlug}/tracks`)
   return data
 }
 
@@ -185,7 +183,7 @@ export async function deleteStudyTrackTemplate(id: string) {
   await api.delete(`/study-track-templates/${id}`)
 }
 
-export async function listDeletedStudyTrackTemplates(params: { page: number; limit: number }) {
+export async function listDeletedStudyTrackTemplates(params: { page: number; limit: number; trackSceneTemplateId?: string }) {
   const { data } = await api.get<PaginatedResponse<StudyTrackTemplate>>('/study-track-templates/deleted', { params })
   return data
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -22,13 +23,15 @@ const COURSES_PAGE_LIMIT = 10
 
 export function CoursesListPage() {
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
+  const filterFromUrl = searchParams.get('schoolSlug') ?? searchParams.get('schoolId') ?? ''
+  const [schoolFilter, setSchoolFilter] = useState(filterFromUrl)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Course | null>(null)
-  const [schoolFilter, setSchoolFilter] = useState('')
   const [page, setPage] = useState(1)
   const [form, setForm] = useState({ schoolId: '', name: '', type: 'MUSIC' as CourseType })
   const [deleteTarget, setDeleteTarget] = useState<Course | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [activeTab, setActiveTab] = useState('active')
   const [restoreTarget, setRestoreTarget] = useState<Course | null>(null)
 
@@ -97,7 +100,7 @@ export function CoursesListPage() {
     onError: (error: unknown) => {
       const err = error as AxiosError<{ details: DeactivationErrorDetails }>
       if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details: err.response.data.details })
+        setBlockedInfo({ name: deleteTarget!.name, slug: deleteTarget!.slug, details: err.response.data.details })
       }
       setDeleteTarget(null)
     },
@@ -225,7 +228,7 @@ export function CoursesListPage() {
             onChange={(e) => setSchoolFilterAndResetPage(e.target.value)}
             placeholder="Todas as escolas"
             options={schools.map((s: School) => ({ value: s.id, label: s.name }))}
-            className="max-w-xs"
+            className="w-full sm:max-w-xs"
           />
         )}
       </div>
@@ -316,7 +319,7 @@ export function CoursesListPage() {
         isOpen={!!blockedInfo}
         onClose={() => setBlockedInfo(null)}
         entityName={blockedInfo?.name ?? ''}
-        parentId={blockedInfo?.id ?? ''}
+        parentSlug={blockedInfo?.slug ?? ''}
         details={blockedInfo?.details ?? null}
       />
     </PageContainer>

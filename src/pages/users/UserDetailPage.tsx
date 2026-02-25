@@ -11,15 +11,15 @@ import { ROLE_LABELS, ROLE_BADGE_VARIANT, USER_STATUS_LABELS } from '@/lib/const
 import toast from 'react-hot-toast'
 
 export function UserDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const [form, setForm] = useState({ name: '', email: '' })
 
   const { data: user } = useQuery({
-    queryKey: ['user', id],
-    queryFn: () => getUser(id!),
-    enabled: !!id,
+    queryKey: ['user', slug],
+    queryFn: () => getUser(slug!),
+    enabled: !!slug,
   })
 
   useEffect(() => {
@@ -30,10 +30,10 @@ export function UserDetailPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!id) return
+    if (!slug) return
     setIsLoading(true)
     try {
-      await updateUser(id, form)
+      await updateUser(slug, form)
       toast.success('Usuário atualizado!')
       navigate('/users')
     } catch {

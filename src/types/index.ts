@@ -19,6 +19,7 @@ export interface AuthUser {
 
 export interface User {
   id: string
+  slug: string
   name: string
   email: string
   role: UserRole
@@ -31,6 +32,7 @@ export interface User {
 
 export interface School {
   id: string
+  slug: string
   name: string
   directorId: string | null
   isActive: boolean
@@ -40,6 +42,7 @@ export interface School {
 
 export interface Course {
   id: string
+  slug: string
   schoolId: string
   name: string
   type: CourseType
@@ -50,6 +53,7 @@ export interface Course {
 
 export interface Season {
   id: string
+  slug: string
   courseId: string
   name: string
   startDate: string
@@ -62,6 +66,7 @@ export interface Season {
 
 export interface Class {
   id: string
+  slug: string
   seasonId: string
   name: string
   maxStudents: number
@@ -72,6 +77,7 @@ export interface Class {
 
 export interface ProjectTemplate {
   id: string
+  slug: string
   courseId: string
   name: string
   type: ProjectType
@@ -85,6 +91,7 @@ export interface ProjectTemplate {
 
 export interface TrackSceneTemplate {
   id: string
+  slug: string
   projectTemplateId: string
   title: string
   artist: string | null
@@ -103,6 +110,7 @@ export interface TrackSceneTemplate {
 
 export interface TrackMaterialTemplate {
   id: string
+  slug: string
   trackSceneTemplateId: string
   type: TrackMaterialType
   title: string
@@ -117,6 +125,7 @@ export interface TrackMaterialTemplate {
 
 export interface StudyTrackTemplate {
   id: string
+  slug: string
   trackSceneTemplateId: string
   title: string
   description: string | null
@@ -125,8 +134,6 @@ export interface StudyTrackTemplate {
   audioUrl: string | null
   pdfUrl: string | null
   order: number
-  estimatedMinutes: number
-  isRequired: boolean
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -134,6 +141,7 @@ export interface StudyTrackTemplate {
 
 export interface PressQuizTemplate {
   id: string
+  slug: string
   trackSceneTemplateId: string
   title: string
   description: string | null
@@ -148,6 +156,7 @@ export interface PressQuizTemplate {
 
 export interface DailyMissionTemplate {
   id: string
+  slug: string
   courseId: string
   title: string
   videoUrl: string | null

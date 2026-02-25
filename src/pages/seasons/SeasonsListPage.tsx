@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -27,10 +28,12 @@ const tabs = [
 
 export function SeasonsListPage() {
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
+  const filterFromUrl = searchParams.get('courseSlug') ?? searchParams.get('courseId') ?? ''
+  const [courseFilter, setCourseFilter] = useState(filterFromUrl)
   const [activeTab, setActiveTab] = useState('active')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Season | null>(null)
-  const [courseFilter, setCourseFilter] = useState('')
   const [form, setForm] = useState({
     courseId: '',
     name: '',
@@ -40,7 +43,7 @@ export function SeasonsListPage() {
   })
   const [deleteTarget, setDeleteTarget] = useState<Season | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<Season | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; id: string; details: DeactivationErrorDetails } | null>(null)
+  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [page, setPage] = useState(1)
 
   const isTrash = activeTab === 'TRASH'
@@ -93,7 +96,7 @@ export function SeasonsListPage() {
     onError: (error: unknown) => {
       const err = error as AxiosError<{ details: DeactivationErrorDetails }>
       if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.name, id: deleteTarget!.id, details: err.response.data.details })
+        setBlockedInfo({ name: deleteTarget!.name, slug: deleteTarget!.slug, details: err.response.data.details })
       }
       setDeleteTarget(null)
     },
@@ -226,17 +229,19 @@ export function SeasonsListPage() {
         ) : undefined
       }
     >
-      <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
 
-      {!isTrash && (
-        <Select
-          value={courseFilter}
-          onChange={(e) => setCourseFilter(e.target.value)}
-          placeholder="Todos os cursos"
-          options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
-          className="max-w-xs"
-        />
-      )}
+        {!isTrash && (
+          <Select
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+            placeholder="Todos os cursos"
+            options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
+            className="w-full sm:max-w-xs"
+          />
+        )}
+      </div>
 
       <Table
         columns={isTrash ? trashColumns : columns}
@@ -280,7 +285,7 @@ export function SeasonsListPage() {
             />
           )}
           <Input id="seasonName" label="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input id="startDate" label="Início" type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
             <Input id="endDate" label="Fim" type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} required />
           </div>
@@ -321,7 +326,7 @@ export function SeasonsListPage() {
         isOpen={!!blockedInfo}
         onClose={() => setBlockedInfo(null)}
         entityName={blockedInfo?.name ?? ''}
-        parentId={blockedInfo?.id ?? ''}
+        parentSlug={blockedInfo?.slug ?? ''}
         details={blockedInfo?.details ?? null}
       />
     </PageContainer>

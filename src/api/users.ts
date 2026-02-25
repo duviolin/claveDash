@@ -25,8 +25,8 @@ export async function listUsers(params?: ListUsersParams): Promise<PaginatedResp
   return data
 }
 
-export async function getUser(id: string) {
-  const { data } = await api.get<User>(`/users/${id}`)
+export async function getUser(idOrSlug: string) {
+  const { data } = await api.get<User>(`/users/${idOrSlug}`)
   return data
 }
 
@@ -35,27 +35,27 @@ export async function createUser(payload: CreateUserPayload) {
   return data
 }
 
-export async function updateUser(id: string, payload: UpdateUserPayload) {
-  const { data } = await api.patch<User>(`/users/${id}`, payload)
+export async function updateUser(idOrSlug: string, payload: UpdateUserPayload) {
+  const { data } = await api.patch<User>(`/users/${idOrSlug}`, payload)
   return data
 }
 
-export async function suspendUser(id: string) {
-  const { data } = await api.patch(`/users/${id}/suspend`)
+export async function suspendUser(idOrSlug: string) {
+  const { data } = await api.patch(`/users/${idOrSlug}/suspend`)
   return data
 }
 
-export async function reactivateUser(id: string) {
-  const { data } = await api.patch(`/users/${id}/reactivate`)
+export async function reactivateUser(idOrSlug: string) {
+  const { data } = await api.patch(`/users/${idOrSlug}/reactivate`)
   return data
 }
 
-export async function softDeleteUser(id: string) {
-  await api.delete(`/users/${id}`)
+export async function softDeleteUser(idOrSlug: string) {
+  await api.delete(`/users/${idOrSlug}`)
 }
 
-export async function restoreUser(id: string) {
-  const { data } = await api.patch(`/users/${id}/restore`)
+export async function restoreUser(idOrSlug: string) {
+  const { data } = await api.patch(`/users/${idOrSlug}/restore`)
   return data
 }
 

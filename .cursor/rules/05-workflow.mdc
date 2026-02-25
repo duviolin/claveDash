@@ -55,6 +55,9 @@ O backend vive em `c:\Users\eduar\Documents\claveBack` e tem suas proprias curso
 - 409 bloqueado: `{ error, code: "CONFLICT_INVALID_STATE", details: { childResource, count, names? } }`
 - Backend retorna DTO (frontend NAO acessa campos internos da entidade)
 - Auth: JWT via `Authorization: Bearer <token>`, roles: ADMIN, DIRECTOR, TEACHER, STUDENT
+- Identificador publico em URL: **slug** (nao UUID)
+- DTOs expostos em lista/detalhe devem incluir `slug` quando entidade participa de navegacao
+- Query params de navegacao contextual (ex.: filtros via `DeactivationBlockedModal`) devem usar slug
 
 ### Como consultar o backend
 

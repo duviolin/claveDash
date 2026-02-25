@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Upload, X, FileText, Check, AlertCircle } from 'lucide-react'
 import { uploadFile, getStorageConfig, presignDownload } from '@/api/storage'
 import { cn } from '@/lib/utils'
@@ -18,6 +19,7 @@ interface FileUploadProps {
   label?: string
   helperText?: string
   className?: string
+  compact?: boolean
 }
 
 function fileNameFromKey(key: string): string {
@@ -35,6 +37,7 @@ export function FileUpload({
   label,
   helperText,
   className,
+  compact = false,
 }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [config, setConfig] = useState<StorageConfig | null>(null)
@@ -42,7 +45,6 @@ export function FileUpload({
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [justUploadedKey, setJustUploadedKey] = useState<string | null>(null)
 
   useEffect(() => {
@@ -51,31 +53,19 @@ export function FileUpload({
       .catch(() => setConfig(null))
   }, [fileType])
 
-  useEffect(() => {
-    if (currentValue && currentValue === justUploadedKey) {
-      setJustUploadedKey(null)
-    }
-  }, [currentValue, justUploadedKey])
+  const keyToPreview = currentValue ?? justUploadedKey
+  const supportsImagePreview = fileType === 'avatars' || fileType === 'images'
 
-  useEffect(() => {
-    const keyToPreview = currentValue ?? justUploadedKey
-    const supportsImagePreview = fileType === 'avatars' || fileType === 'images'
-    if (!supportsImagePreview || !keyToPreview) {
-      setPreviewUrl(null)
-      return
-    }
-    let cancelled = false
-    presignDownload(keyToPreview)
-      .then(({ downloadUrl }) => {
-        if (!cancelled) setPreviewUrl(downloadUrl)
-      })
-      .catch(() => {
-        if (!cancelled) setPreviewUrl(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [fileType, currentValue, justUploadedKey])
+  const { data: previewUrl } = useQuery({
+    queryKey: ['file-upload-preview', keyToPreview],
+    queryFn: async () => {
+      if (!keyToPreview) return null
+      const { downloadUrl } = await presignDownload(keyToPreview)
+      return downloadUrl
+    },
+    enabled: supportsImagePreview && Boolean(keyToPreview),
+    staleTime: 5 * 60 * 1000,
+  })
 
   const validateFile = useCallback(
     (file: File): boolean => {
@@ -156,7 +146,7 @@ export function FileUpload({
       ? `Formatos: ${config.allowedExtensions.join(', ')} | Máximo: ${config.maxSizeMB} MB`
       : 'Carregando configurações...'
 
-  const displayKey = currentValue ?? justUploadedKey
+  const displayKey = keyToPreview
   const displayFileName = displayKey ? fileNameFromKey(displayKey) : null
   const showSuccessCheck = Boolean(justUploadedKey && !currentValue)
 
@@ -166,7 +156,7 @@ export function FileUpload({
         {label && (
           <label className="block text-sm font-medium text-text">{label}</label>
         )}
-        <div className="rounded-xl border border-border bg-surface-2 p-4">
+        <div className={cn('rounded-xl border border-border bg-surface-2', compact ? 'p-3' : 'p-4')}>
           <div className="flex items-center gap-3">
             <Upload className="h-5 w-5 shrink-0 text-muted" />
             <div className="min-w-0 flex-1">
@@ -190,7 +180,7 @@ export function FileUpload({
         {label && (
           <label className="block text-sm font-medium text-text">{label}</label>
         )}
-        <div className="rounded-xl border border-border bg-surface-2 p-4">
+        <div className={cn('rounded-xl border border-border bg-surface-2', compact ? 'p-3' : 'p-4')}>
           <div className="flex items-center gap-3">
             {showSuccessCheck ? (
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500/20">
@@ -206,7 +196,7 @@ export function FileUpload({
               <FileText className="h-5 w-5 shrink-0 text-muted" />
             )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-text">
+              <p className={cn('truncate font-medium text-text', compact ? 'text-xs' : 'text-sm')}>
                 {displayFileName}
               </p>
               {helperText && (
@@ -227,7 +217,11 @@ export function FileUpload({
               {onRemove && (
                 <button
                   type="button"
-                  onClick={onRemove}
+                  onClick={() => {
+                    setJustUploadedKey(null)
+                    setError(null)
+                    onRemove()
+                  }}
                   className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors"
                   aria-label="Remover"
                 >
@@ -267,13 +261,14 @@ export function FileUpload({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          'rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-colors',
+          'rounded-xl border-2 border-dashed text-center cursor-pointer transition-colors',
+          compact ? 'p-4' : 'p-6',
           'border-border hover:border-accent/50 bg-surface',
           dragActive && 'border-accent bg-accent/5'
         )}
       >
-        <Upload className="mx-auto h-10 w-10 text-muted" />
-        <p className="mt-2 text-sm font-medium text-text">
+        <Upload className={cn('mx-auto text-muted', compact ? 'h-8 w-8' : 'h-10 w-10')} />
+        <p className={cn('mt-2 font-medium text-text', compact ? 'text-xs' : 'text-sm')}>
           Clique ou arraste um arquivo
         </p>
         <p className="mt-1 text-xs text-muted">

@@ -24,7 +24,7 @@ interface ClassMember {
 }
 
 export function ClassDetailPage() {
-  const { id } = useParams<{ id: string }>()
+  const { slug } = useParams<{ slug: string }>()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('teachers')
   const [addModalOpen, setAddModalOpen] = useState(false)
@@ -32,21 +32,21 @@ export function ClassDetailPage() {
   const [removeTarget, setRemoveTarget] = useState<{ member: ClassMember; type: 'teacher' | 'student' } | null>(null)
 
   const { data: classData } = useQuery({
-    queryKey: ['class', id],
-    queryFn: () => getClass(id!),
-    enabled: !!id,
+    queryKey: ['class', slug],
+    queryFn: () => getClass(slug!),
+    enabled: !!slug,
   })
 
   const { data: teachersRaw = [], isLoading: loadingTeachers } = useQuery({
-    queryKey: ['class-teachers', id],
-    queryFn: () => listClassTeachers(id!),
-    enabled: !!id,
+    queryKey: ['class-teachers', slug],
+    queryFn: () => listClassTeachers(slug!),
+    enabled: !!slug,
   })
 
   const { data: studentsRaw = [], isLoading: loadingStudents } = useQuery({
-    queryKey: ['class-students', id],
-    queryFn: () => listClassStudents(id!),
-    enabled: !!id,
+    queryKey: ['class-students', slug],
+    queryFn: () => listClassStudents(slug!),
+    enabled: !!slug,
   })
 
   const { data: allTeachersData } = useQuery({
@@ -68,12 +68,12 @@ export function ClassDetailPage() {
 
   const addMutation = useMutation({
     mutationFn: () => {
-      if (activeTab === 'teachers') return addTeacher(id!, selectedUserId)
-      return addStudent(id!, selectedUserId)
+      if (activeTab === 'teachers') return addTeacher(slug!, selectedUserId)
+      return addStudent(slug!, selectedUserId)
     },
     onSuccess: () => {
       toast.success(activeTab === 'teachers' ? 'Professor vinculado!' : 'Aluno matriculado!')
-      queryClient.invalidateQueries({ queryKey: [activeTab === 'teachers' ? 'class-teachers' : 'class-students', id] })
+      queryClient.invalidateQueries({ queryKey: [activeTab === 'teachers' ? 'class-teachers' : 'class-students', slug] })
       setAddModalOpen(false)
       setSelectedUserId('')
     },
@@ -83,12 +83,12 @@ export function ClassDetailPage() {
     mutationFn: () => {
       if (!removeTarget) throw new Error('No target')
       const userId = getUserId(removeTarget.member)
-      if (removeTarget.type === 'teacher') return removeTeacher(id!, userId)
-      return removeStudent(id!, userId)
+      if (removeTarget.type === 'teacher') return removeTeacher(slug!, userId)
+      return removeStudent(slug!, userId)
     },
     onSuccess: () => {
       toast.success('Removido com sucesso!')
-      queryClient.invalidateQueries({ queryKey: [removeTarget?.type === 'teacher' ? 'class-teachers' : 'class-students', id] })
+      queryClient.invalidateQueries({ queryKey: [removeTarget?.type === 'teacher' ? 'class-teachers' : 'class-students', slug] })
       setRemoveTarget(null)
     },
   })

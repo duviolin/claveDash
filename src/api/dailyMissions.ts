@@ -8,8 +8,8 @@ interface UpdateDailyMissionQuizPayload {
   allowRecoveryAttempt?: boolean
 }
 
-export async function listDailyMissionTemplates(courseId?: string) {
-  const { data } = await api.get<DailyMissionTemplate[]>('/daily-mission-templates', { params: { courseId } })
+export async function listDailyMissionTemplates(courseIdOrSlug?: string) {
+  const { data } = await api.get<DailyMissionTemplate[]>('/daily-mission-templates', { params: { courseId: courseIdOrSlug } })
   return data
 }
 
@@ -18,8 +18,8 @@ export async function listDeletedDailyMissionTemplates(params: { page: number; l
   return data
 }
 
-export async function restoreDailyMissionTemplate(id: string) {
-  const { data } = await api.patch<DailyMissionTemplate>(`/daily-mission-templates/${id}/restore`)
+export async function restoreDailyMissionTemplate(idOrSlug: string) {
+  const { data } = await api.patch<DailyMissionTemplate>(`/daily-mission-templates/${idOrSlug}/restore`)
   return data
 }
 
@@ -28,23 +28,23 @@ export async function createDailyMissionTemplate(payload: { courseId: string; ti
   return data
 }
 
-export async function updateDailyMissionTemplate(id: string, payload: { title?: string; videoUrl?: string }) {
-  const { data } = await api.patch<DailyMissionTemplate>(`/daily-mission-templates/${id}`, payload)
+export async function updateDailyMissionTemplate(idOrSlug: string, payload: { title?: string; videoUrl?: string }) {
+  const { data } = await api.patch<DailyMissionTemplate>(`/daily-mission-templates/${idOrSlug}`, payload)
   return data
 }
 
-export async function deleteDailyMissionTemplate(id: string) {
-  await api.delete(`/daily-mission-templates/${id}`)
+export async function deleteDailyMissionTemplate(idOrSlug: string) {
+  await api.delete(`/daily-mission-templates/${idOrSlug}`)
 }
 
-export async function publishDailyMissionTemplate(id: string) {
-  const { data } = await api.patch(`/daily-mission-templates/${id}/publish`)
+export async function publishDailyMissionTemplate(idOrSlug: string) {
+  const { data } = await api.patch(`/daily-mission-templates/${idOrSlug}/publish`)
   return data
 }
 
 // Quizzes
-export async function createDailyMissionQuiz(missionId: string, payload: { questionsJson?: QuizQuestion[]; maxAttemptsPerDay?: number; allowRecoveryAttempt?: boolean }) {
-  const { data } = await api.post<DailyMissionQuiz>(`/daily-mission-templates/${missionId}/quizzes`, payload)
+export async function createDailyMissionQuiz(missionIdOrSlug: string, payload: { questionsJson?: QuizQuestion[]; maxAttemptsPerDay?: number; allowRecoveryAttempt?: boolean }) {
+  const { data } = await api.post<DailyMissionQuiz>(`/daily-mission-templates/${missionIdOrSlug}/quizzes`, payload)
   return data
 }
 
@@ -57,8 +57,8 @@ export async function deleteDailyMissionQuiz(id: string) {
   await api.delete(`/daily-mission-quizzes/${id}`)
 }
 
-export async function listDailyMissionQuizzes(missionId: string) {
-  const { data } = await api.get<DailyMissionQuiz[]>(`/daily-mission-templates/${missionId}/quizzes`)
+export async function listDailyMissionQuizzes(missionIdOrSlug: string) {
+  const { data } = await api.get<DailyMissionQuiz[]>(`/daily-mission-templates/${missionIdOrSlug}/quizzes`)
   return data
 }
 

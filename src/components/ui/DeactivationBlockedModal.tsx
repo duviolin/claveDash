@@ -8,25 +8,25 @@ interface DeactivationBlockedModalProps {
   isOpen: boolean
   onClose: () => void
   entityName: string
-  parentId: string
+  /** Slug (or id) of the parent entity for building detail/list URLs. */
+  parentSlug: string
   details: DeactivationErrorDetails | null
 }
 
-const CHILD_NAV: Record<string, { label: string; buildUrl: (parentId: string) => string }> = {
-  courses: { label: 'Cursos', buildUrl: (id) => `/courses?schoolId=${id}` },
-  seasons: { label: 'Temporadas', buildUrl: (id) => `/seasons?courseId=${id}` },
-  classes: { label: 'Turmas', buildUrl: (id) => `/classes?seasonId=${id}` },
-  students: { label: 'Alunos', buildUrl: (id) => `/classes/${id}` },
-  teachers: { label: 'Professores', buildUrl: (id) => `/classes/${id}` },
-  members: { label: 'Membros', buildUrl: (id) => `/classes/${id}` },
-  // Template entities (backend 409 childResource)
-  projectTemplates: { label: 'Templates de Projeto', buildUrl: (id) => `/templates/projects?courseId=${id}` },
-  dailyMissionTemplates: { label: 'Missões Diárias', buildUrl: (id) => `/templates/daily-missions?courseId=${id}` },
-  trackSceneTemplates: { label: 'Cenas', buildUrl: (id) => `/templates/projects/${id}` },
+const CHILD_NAV: Record<string, { label: string; buildUrl: (identifier: string) => string }> = {
+  courses: { label: 'Cursos', buildUrl: (slug) => `/courses?schoolSlug=${slug}` },
+  seasons: { label: 'Temporadas', buildUrl: (slug) => `/seasons?courseSlug=${slug}` },
+  classes: { label: 'Turmas', buildUrl: (slug) => `/classes?seasonSlug=${slug}` },
+  students: { label: 'Alunos', buildUrl: (slug) => `/classes/${slug}` },
+  teachers: { label: 'Professores', buildUrl: (slug) => `/classes/${slug}` },
+  members: { label: 'Membros', buildUrl: (slug) => `/classes/${slug}` },
+  projectTemplates: { label: 'Templates de Projeto', buildUrl: (slug) => `/templates/projects?courseSlug=${slug}` },
+  dailyMissionTemplates: { label: 'Missões Diárias', buildUrl: (slug) => `/templates/daily-missions?courseSlug=${slug}` },
+  trackSceneTemplates: { label: 'Cenas', buildUrl: (slug) => `/templates/projects/${slug}` },
   projects: { label: 'Projetos', buildUrl: () => `/instances/projects` },
-  pressQuizTemplates: { label: 'Press Quizzes', buildUrl: (id) => `/templates/projects/${id}` },
-  studyTrackTemplates: { label: 'Trilhas de Estudo', buildUrl: (id) => `/templates/projects/${id}` },
-  trackMaterialTemplates: { label: 'Materiais', buildUrl: (id) => `/templates/projects/${id}` },
+  pressQuizTemplates: { label: 'Press Quizzes', buildUrl: (slug) => `/templates/projects/${slug}` },
+  studyTrackTemplates: { label: 'Trilhas de Estudo', buildUrl: (slug) => `/templates/projects/${slug}` },
+  trackMaterialTemplates: { label: 'Materiais', buildUrl: (slug) => `/templates/projects/${slug}` },
   dailyMissionQuizzes: { label: 'Quizzes', buildUrl: () => `/templates/daily-missions` },
   schools: { label: 'Escolas', buildUrl: () => `/schools` },
 }
@@ -35,7 +35,7 @@ export function DeactivationBlockedModal({
   isOpen,
   onClose,
   entityName,
-  parentId,
+  parentSlug,
   details,
 }: DeactivationBlockedModalProps) {
   const navigate = useNavigate()
@@ -47,7 +47,7 @@ export function DeactivationBlockedModal({
 
   const handleNavigate = () => {
     if (nav) {
-      navigate(nav.buildUrl(parentId))
+      navigate(nav.buildUrl(parentSlug))
     }
     onClose()
   }

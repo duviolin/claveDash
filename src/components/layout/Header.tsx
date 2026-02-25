@@ -22,6 +22,39 @@ const routeLabels: Record<string, string> = {
   new: 'Novo',
 }
 
+const uuidSegmentRegex =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+/** Slug-like: lowercase, digits, dashes (e.g. joao-silva, my-template). */
+const slugLikeRegex = /^[a-z0-9-]+$/
+
+const detailLabelsByParentSegment: Record<string, string> = {
+  users: 'Detalhes do Usuário',
+  classes: 'Detalhes da Turma',
+  projects: 'Detalhes do Template',
+}
+
+function prettifySlug(slug: string): string {
+  return slug
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
+function getSegmentLabel(segment: string, segments: string[], index: number): string {
+  if (uuidSegmentRegex.test(segment)) {
+    const parentSegment = index > 0 ? segments[index - 1] : ''
+    return detailLabelsByParentSegment[parentSegment] || 'Detalhes'
+  }
+
+  const isLast = index === segments.length - 1
+  const knownLabel = routeLabels[segment]
+  if (knownLabel) return knownLabel
+  if (isLast && slugLikeRegex.test(segment)) return prettifySlug(segment)
+  if (!knownLabel && segment.length > 20) return 'Detalhes'
+  return segment
+}
+
 function Breadcrumb() {
   const location = useLocation()
   const segments = location.pathname.split('/').filter(Boolean)
@@ -30,7 +63,7 @@ function Breadcrumb() {
     <nav className="flex items-center gap-1.5 text-sm">
       {segments.map((segment, index) => {
         const path = '/' + segments.slice(0, index + 1).join('/')
-        const label = routeLabels[segment] || segment
+        const label = getSegmentLabel(segment, segments, index)
         const isLast = index === segments.length - 1
 
         return (
