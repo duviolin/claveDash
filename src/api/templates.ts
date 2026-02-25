@@ -9,6 +9,8 @@ import type {
   PressQuizTemplate,
   ProjectType,
   QuizQuestion,
+  ProjectTemplateReadinessSummary,
+  ProjectTemplateReadinessRule,
 } from '@/types'
 
 // Payload types for template APIs (only updatable fields)
@@ -220,5 +222,30 @@ export async function listDeletedPressQuizTemplates(params: { page: number; limi
 
 export async function restorePressQuizTemplate(id: string) {
   const { data } = await api.patch<PressQuizTemplate>(`/press-quiz-templates/${id}/restore`)
+  return data
+}
+
+// --- Project Template Readiness ---
+export async function getProjectTemplateReadiness(idOrSlug: string) {
+  const { data } = await api.get<ProjectTemplateReadinessSummary>(`/project-template-readiness/${idOrSlug}`)
+  return data
+}
+
+export async function listProjectTemplateReadinessRules() {
+  const { data } = await api.get<ProjectTemplateReadinessRule[]>('/project-template-readiness/rules')
+  return data
+}
+
+export async function updateProjectTemplateReadinessRule(
+  ruleId: string,
+  payload: {
+    title?: string
+    description?: string | null
+    targetValue?: number
+    weight?: number
+    isActive?: boolean
+  }
+) {
+  const { data } = await api.patch<ProjectTemplateReadinessRule>(`/project-template-readiness/rules/${ruleId}`, payload)
   return data
 }

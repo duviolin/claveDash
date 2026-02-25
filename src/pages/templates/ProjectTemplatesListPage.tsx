@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query'
 import { Plus, Eye, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
@@ -14,7 +14,15 @@ import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { Pagination } from '@/components/ui/Pagination'
 import type { AxiosError } from 'axios'
-import { listProjectTemplates, createProjectTemplate, updateProjectTemplate, deleteProjectTemplate, listDeletedProjectTemplates, restoreProjectTemplate } from '@/api/templates'
+import {
+  listProjectTemplates,
+  createProjectTemplate,
+  updateProjectTemplate,
+  deleteProjectTemplate,
+  listDeletedProjectTemplates,
+  restoreProjectTemplate,
+  getProjectTemplateReadiness,
+} from '@/api/templates'
 import { listCourses } from '@/api/courses'
 import { PROJECT_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
@@ -45,6 +53,7 @@ export function ProjectTemplatesListPage() {
   const [form, setForm] = useState({ courseId: '', name: '', type: 'ALBUM' as ProjectType, description: '', coverImage: '' })
 
   const isTrash = activeTab === 'TRASH'
+  const truncate = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}...` : text)
 
   const { data: courses = [] } = useQuery({ queryKey: ['courses'], queryFn: () => listCourses() })
 
@@ -63,6 +72,22 @@ export function ProjectTemplatesListPage() {
   const templatesList = isTrash ? (deletedResponse?.data ?? []) : templates
   const pagination = deletedResponse?.pagination
   const isLoading = isTrash ? isLoadingTrash : isLoadingActive
+
+  const readinessResults = useQueries({
+    queries: !isTrash
+      ? templates.map((template) => ({
+          queryKey: ['project-template-readiness', template.slug],
+          queryFn: () => getProjectTemplateReadiness(template.slug),
+          staleTime: 60 * 1000,
+        }))
+      : [],
+  })
+
+  const readinessBySlug = !isTrash
+    ? Object.fromEntries(
+        templates.map((template, index) => [template.slug, readinessResults[index]?.data])
+      )
+    : {}
 
   const createMutation = useMutation({
     mutationFn: () => createProjectTemplate({
@@ -124,7 +149,11 @@ export function ProjectTemplatesListPage() {
     {
       key: 'name',
       header: 'Nome',
-      render: (t: ProjectTemplate) => <span className="font-medium text-text">{t.name}</span>,
+      render: (t: ProjectTemplate) => (
+        <span className="font-medium text-text" title={t.name}>
+          {truncate(t.name, 42)}
+        </span>
+      ),
     },
     {
       key: 'type',
@@ -136,13 +165,33 @@ export function ProjectTemplatesListPage() {
       header: 'Curso',
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
-        return <span className="text-muted">{course?.name || '—'}</span>
+        return (
+          <span className="text-muted" title={course?.name}>
+            {course?.name ? truncate(course.name, 30) : '—'}
+          </span>
+        )
       },
     },
     {
       key: 'version',
       header: 'Versão',
       render: (t: ProjectTemplate) => <span className="text-muted">v{t.version}</span>,
+    },
+    {
+      key: 'readiness',
+      header: 'Aptidão',
+      render: (t: ProjectTemplate) => {
+        const readiness = readinessBySlug[t.slug]
+        if (!readiness) return <span className="text-xs text-muted">Calculando...</span>
+
+        const variant = readiness.isReady ? 'success' : readiness.scorePercentage >= 70 ? 'warning' : 'error'
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant={variant}>{readiness.scorePercentage}%</Badge>
+            <span className="text-xs text-muted">{readiness.statusLabel}</span>
+          </div>
+        )
+      },
     },
     {
       key: 'actions',
@@ -183,7 +232,9 @@ export function ProjectTemplatesListPage() {
       header: 'Nome',
       render: (t: ProjectTemplate) => (
         <div className="flex items-center gap-2">
-          <span className="font-medium text-text">{t.name}</span>
+          <span className="font-medium text-text" title={t.name}>
+            {truncate(t.name, 42)}
+          </span>
           <Badge variant="error">Excluído</Badge>
         </div>
       ),
@@ -198,7 +249,11 @@ export function ProjectTemplatesListPage() {
       header: 'Curso',
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
-        return <span className="text-muted">{course?.name || '—'}</span>
+        return (
+          <span className="text-muted" title={course?.name}>
+            {course?.name ? truncate(course.name, 30) : '—'}
+          </span>
+        )
       },
     },
     {

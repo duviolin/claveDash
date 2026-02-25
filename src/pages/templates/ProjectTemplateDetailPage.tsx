@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, GripVertical, Music, FileText, BookOpen, HelpCircle, ArchiveRestore } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, GripVertical, Music, FileText, BookOpen, HelpCircle, ArchiveRestore, CheckCircle2, AlertTriangle, CircleDashed } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -41,18 +41,36 @@ import {
   updatePressQuizTemplate,
   deletePressQuizTemplate,
   restorePressQuizTemplate,
+  getProjectTemplateReadiness,
+  listProjectTemplateReadinessRules,
+  updateProjectTemplateReadinessRule,
 } from '@/api/templates'
 import type { AxiosError } from 'axios'
 import { TRACK_MATERIAL_TYPE_LABELS, TRACK_MATERIAL_TYPE_VARIANT } from '@/lib/constants'
-import type { ProjectTemplate, TrackSceneTemplate, TrackMaterialTemplate, TrackMaterialType, StudyTrackTemplate, PressQuizTemplate, DeactivationErrorDetails, QuizQuestion } from '@/types'
+import type {
+  ProjectTemplate,
+  TrackSceneTemplate,
+  TrackMaterialTemplate,
+  TrackMaterialType,
+  StudyTrackTemplate,
+  PressQuizTemplate,
+  DeactivationErrorDetails,
+  QuizQuestion,
+  ProjectTemplateReadinessSummary,
+  ProjectTemplateReadinessRule,
+} from '@/types'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
+import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 export function ProjectTemplateDetailPage() {
   const { slug } = useParams<{ slug: string }>()
+  const { user } = useAuth()
   const queryClient = useQueryClient()
   const [editingProject, setEditingProject] = useState(false)
+  const [editingReadinessRules, setEditingReadinessRules] = useState(false)
   const [projectForm, setProjectForm] = useState({ name: '', description: '', coverImage: '' })
+  const [readinessRulesForm, setReadinessRulesForm] = useState<Record<string, { title: string; targetValue: string; weight: string; isActive: boolean }>>({})
 
   const { data: template } = useQuery({
     queryKey: ['project-template', slug],
@@ -61,10 +79,38 @@ export function ProjectTemplateDetailPage() {
   })
 
   const { data: tracks = [] } = useQuery({
-    queryKey: ['track-templates', slug],
-    queryFn: () => listTrackTemplates(slug!),
+    queryKey: ['track-templates', template?.id],
+    queryFn: () => listTrackTemplates(template!.id),
+    enabled: !!template?.id,
+  })
+
+  const { data: readiness } = useQuery({
+    queryKey: ['project-template-readiness', slug],
+    queryFn: () => getProjectTemplateReadiness(slug!),
     enabled: !!slug,
   })
+
+  const { data: readinessRules = [] } = useQuery({
+    queryKey: ['project-template-readiness-rules'],
+    queryFn: () => listProjectTemplateReadinessRules(),
+    enabled: user?.role === 'ADMIN',
+  })
+
+  useEffect(() => {
+    if (!readinessRules.length) return
+    setReadinessRulesForm((prev) => {
+      const next = { ...prev }
+      for (const rule of readinessRules) {
+        next[rule.id] = {
+          title: rule.title,
+          targetValue: String(rule.targetValue),
+          weight: String(rule.weight),
+          isActive: rule.isActive,
+        }
+      }
+      return next
+    })
+  }, [readinessRules])
 
   const { data: coverImageUrl } = useQuery({
     queryKey: ['project-template-cover-image', template?.coverImage],
@@ -86,6 +132,33 @@ export function ProjectTemplateDetailPage() {
     },
   })
 
+  const saveReadinessRulesMutation = useMutation({
+    mutationFn: async () => {
+      await Promise.all(
+        readinessRules.map((rule) => {
+          const form = readinessRulesForm[rule.id]
+          if (!form) return Promise.resolve()
+
+          const targetValue = Math.max(1, Number(form.targetValue) || 1)
+          const weight = Math.max(1, Number(form.weight) || 1)
+
+          return updateProjectTemplateReadinessRule(rule.id, {
+            title: form.title,
+            targetValue,
+            weight,
+            isActive: form.isActive,
+          })
+        })
+      )
+    },
+    onSuccess: () => {
+      toast.success('Critérios de publicação atualizados!')
+      queryClient.invalidateQueries({ queryKey: ['project-template-readiness-rules'] })
+      queryClient.invalidateQueries({ queryKey: ['project-template-readiness', slug] })
+      setEditingReadinessRules(false)
+    },
+  })
+
   if (!template) {
     return <PageContainer title="Carregando..."><div className="flex justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" /></div></PageContainer>
   }
@@ -93,7 +166,7 @@ export function ProjectTemplateDetailPage() {
   return (
     <PageContainer
       title={
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           {template.coverImage && (
             <div className="overflow-hidden rounded-md border border-border bg-surface-2">
               {coverImageUrl ? (
@@ -109,13 +182,20 @@ export function ProjectTemplateDetailPage() {
               )}
             </div>
           )}
-          <span>{template.name}</span>
+          <span className="truncate" title={template.name}>
+            {template.name}
+          </span>
         </div>
       }
       action={
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={template.type === 'ALBUM' ? 'accent' : 'info'}>{template.type}</Badge>
           <Badge variant="default">v{template.version}</Badge>
+          {user?.role === 'ADMIN' && (
+            <Button size="sm" variant="secondary" onClick={() => setEditingReadinessRules(true)}>
+              Critérios de Publicação
+            </Button>
+          )}
           <Button size="sm" variant="secondary" onClick={() => { setProjectForm({ name: template.name, description: template.description || '', coverImage: template.coverImage || '' }); setEditingProject(true) }}>
             <Pencil className="h-3.5 w-3.5" /> Editar Info
           </Button>
@@ -123,8 +203,9 @@ export function ProjectTemplateDetailPage() {
       }
     >
       {template.description && <p className="text-sm text-muted -mt-4 mb-4">{template.description}</p>}
+      {readiness && <ProjectTemplateReadinessCard readiness={readiness} />}
 
-      <TracksList projectTemplateSlug={slug!} tracks={tracks} template={template} />
+      <TracksList projectTemplateSlug={slug!} projectTemplateId={template.id} tracks={tracks} template={template} />
 
       <Modal
         isOpen={editingProject}
@@ -152,12 +233,128 @@ export function ProjectTemplateDetailPage() {
           />
         </div>
       </Modal>
+
+      <Modal
+        isOpen={editingReadinessRules}
+        onClose={() => setEditingReadinessRules(false)}
+        title="Critérios de publicação (somente admin)"
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditingReadinessRules(false)}>Cancelar</Button>
+            <Button onClick={() => saveReadinessRulesMutation.mutate()} isLoading={saveReadinessRulesMutation.isPending}>Salvar critérios</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          {readinessRules.map((rule: ProjectTemplateReadinessRule) => {
+            const form = readinessRulesForm[rule.id] ?? {
+              title: rule.title,
+              targetValue: String(rule.targetValue),
+              weight: String(rule.weight),
+              isActive: rule.isActive,
+            }
+
+            return (
+              <div key={rule.id} className="rounded-lg border border-border bg-surface-2 p-3">
+                <div className="mb-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Input
+                    id={`rule-title-${rule.id}`}
+                    label="Título"
+                    value={form.title}
+                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, title: e.target.value } }))}
+                  />
+                  <div className="flex items-end">
+                    <label className="inline-flex items-center gap-2 text-sm text-text">
+                      <input
+                        type="checkbox"
+                        checked={form.isActive}
+                        onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, isActive: e.target.checked } }))}
+                      />
+                      Regra ativa
+                    </label>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Input
+                    id={`rule-target-${rule.id}`}
+                    label="Meta mínima"
+                    type="number"
+                    min={1}
+                    value={form.targetValue}
+                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, targetValue: e.target.value } }))}
+                  />
+                  <Input
+                    id={`rule-weight-${rule.id}`}
+                    label="Peso no score"
+                    type="number"
+                    min={1}
+                    value={form.weight}
+                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, weight: e.target.value } }))}
+                  />
+                </div>
+                {rule.description && <p className="mt-2 text-xs text-muted">{rule.description}</p>}
+              </div>
+            )
+          })}
+        </div>
+      </Modal>
     </PageContainer>
   )
 }
 
+function ProjectTemplateReadinessCard({ readiness }: { readiness: ProjectTemplateReadinessSummary }) {
+  const { scorePercentage, statusLabel, isReady, metCount, totalCount, missingTips, trackCount, quizCount, materialCount, studyTrackCount } = readiness
+
+  const statusVariant = isReady ? 'success' : scorePercentage >= 70 ? 'warning' : 'error'
+  const statusIcon = isReady ? <CheckCircle2 className="h-4 w-4" /> : scorePercentage >= 70 ? <AlertTriangle className="h-4 w-4" /> : <CircleDashed className="h-4 w-4" />
+
+  return (
+    <div className="mb-4 rounded-xl border border-border bg-surface p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-text">Aptidão para publicação</p>
+          <p className="text-xs text-muted">A barra considera os requisitos pedagógicos ativos definidos pela coordenação.</p>
+        </div>
+        <Badge variant={statusVariant} className="flex items-center gap-1.5">
+          {statusIcon}
+          {statusLabel}
+        </Badge>
+      </div>
+
+      <div className="mb-2 h-2.5 w-full overflow-hidden rounded-full bg-surface-2">
+        <div className="h-full rounded-full bg-accent transition-all duration-300" style={{ width: `${Math.max(0, Math.min(scorePercentage, 100))}%` }} />
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-muted">
+        <span>{scorePercentage}% concluído</span>
+        <span>•</span>
+        <span>{metCount}/{totalCount} requisitos atendidos</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs text-muted sm:grid-cols-4">
+        <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Faixas: <span className="font-semibold text-text">{trackCount}</span></div>
+        <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Quizzes: <span className="font-semibold text-text">{quizCount}</span></div>
+        <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Materiais: <span className="font-semibold text-text">{materialCount}</span></div>
+        <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Trilhas: <span className="font-semibold text-text">{studyTrackCount}</span></div>
+      </div>
+
+      {missingTips.length > 0 && (
+        <div className="mt-3 rounded-lg border border-warning/30 bg-warning/10 p-3">
+          <p className="text-xs font-semibold uppercase text-warning">O que falta para publicar</p>
+          <ul className="mt-1 space-y-1 text-sm text-text">
+            {missingTips.map((tip) => (
+              <li key={tip}>• {tip}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ---- Tracks List ----
-function TracksList({ projectTemplateSlug, tracks, template }: { projectTemplateSlug: string; tracks: TrackSceneTemplate[]; template?: ProjectTemplate }) {
+function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }: { projectTemplateSlug: string; projectTemplateId: string; tracks: TrackSceneTemplate[]; template?: ProjectTemplate }) {
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
@@ -174,10 +371,11 @@ function TracksList({ projectTemplateSlug, tracks, template }: { projectTemplate
     })
     await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateSlug], exact: true, type: 'active' })
     queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+    queryClient.invalidateQueries({ queryKey: ['project-template-readiness', projectTemplateSlug] })
   }
 
   const createMutation = useMutation({
-    mutationFn: () => createTrackTemplate(projectTemplateSlug, {
+    mutationFn: () => createTrackTemplate(projectTemplateId, {
       title: form.title,
       artist: form.artist || undefined,
       description: form.description || undefined,
@@ -260,10 +458,8 @@ function TracksList({ projectTemplateSlug, tracks, template }: { projectTemplate
             <GripVertical className="h-4 w-4 text-muted/50" />
             <span className="text-xs text-muted font-mono w-6">{track.order}</span>
             {expandedTrack === track.id ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
-            <span className="font-medium text-text flex-1">{track.title}</span>
-            {track.artist && <span className="text-sm text-muted">{track.artist}</span>}
-            <Badge variant="warning">Demo</Badge>
-            <Badge variant="info">Quiz</Badge>
+            <span className="min-w-0 flex-1 truncate font-medium text-text" title={track.title}>{track.title}</span>
+            {track.artist && <span className="max-w-40 truncate text-sm text-muted sm:max-w-56" title={track.artist}>{track.artist}</span>}
             <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => openEdit(track)} className="rounded-lg p-1 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
               <button onClick={() => setDeleteTarget(track)} className="rounded-lg p-1 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -367,6 +563,7 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
     })
     await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateSlug], exact: true, type: 'active' })
     queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+    queryClient.invalidateQueries({ queryKey: ['project-template-readiness', projectTemplateSlug] })
   }
 
   const { data: materials = [] } = useQuery({
@@ -451,7 +648,7 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
               {materials.map((m) => (
                 <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
                   <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
-                  <span className="flex-1 text-text">{m.title}</span>
+                  <span className="min-w-0 flex-1 truncate text-text" title={m.title}>{m.title}</span>
                   <button onClick={() => openEdit(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
                   <button onClick={() => setDeleteTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
@@ -470,7 +667,7 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
               {deletedMaterials.map((m) => (
                 <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
                   <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
-                  <span className="flex-1 text-text">{m.title}</span>
+                  <span className="min-w-0 flex-1 truncate text-text" title={m.title}>{m.title}</span>
                   <Badge variant="error" className="text-[10px]">Excluído</Badge>
                   <button onClick={() => setRestoreTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
                 </div>
@@ -529,6 +726,7 @@ function StudyTracksSection({ trackTemplateId, projectTemplateSlug }: { trackTem
     })
     await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateSlug], exact: true, type: 'active' })
     queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+    queryClient.invalidateQueries({ queryKey: ['project-template-readiness', projectTemplateSlug] })
   }
   const isTrash = activeTab === 'TRASH'
 
@@ -628,7 +826,7 @@ function StudyTracksSection({ trackTemplateId, projectTemplateSlug }: { trackTem
             <div className="space-y-1 mt-2">
               {studyTracks.map((st) => (
                 <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                  <span className="flex-1 text-text">{st.title}</span>
+                  <span className="min-w-0 flex-1 truncate text-text" title={st.title}>{st.title}</span>
                   <button onClick={() => openEdit(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
                   <button onClick={() => setDeleteTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
@@ -647,7 +845,7 @@ function StudyTracksSection({ trackTemplateId, projectTemplateSlug }: { trackTem
               <div className="space-y-1 mt-2">
                 {deletedStudyTracks.map((st) => (
                   <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                    <span className="flex-1 text-text">{st.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-text" title={st.title}>{st.title}</span>
                     <Badge variant="error" className="text-[10px]">Excluído</Badge>
                     <button onClick={() => setRestoreTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
                   </div>
@@ -751,6 +949,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
     })
     await queryClient.refetchQueries({ queryKey: ['project-template', projectTemplateSlug], exact: true, type: 'active' })
     queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+    queryClient.invalidateQueries({ queryKey: ['project-template-readiness', projectTemplateSlug] })
   }
 
   const isTrash = activeTab === 'TRASH'
@@ -866,7 +1065,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
             <div className="space-y-1 mt-2">
               {quizzes.map((q) => (
                 <div key={q.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                  <span className="flex-1 text-text">{q.title}</span>
+                  <span className="min-w-0 flex-1 truncate text-text" title={q.title}>{q.title}</span>
                   <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
                   <span className="text-xs text-muted">{q.passingScore}%</span>
                   <button onClick={() => openEdit(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
@@ -887,7 +1086,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
               <div className="space-y-1 mt-2">
                 {deletedQuizzes.map((q) => (
                   <div key={q.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                    <span className="flex-1 text-text">{q.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-text" title={q.title}>{q.title}</span>
                     <Badge variant="error" className="text-[10px]">Excluído</Badge>
                     <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
                     <button onClick={() => setRestoreTarget(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>

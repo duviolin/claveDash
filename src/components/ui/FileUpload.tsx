@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Upload, X, FileText, Check, AlertCircle } from 'lucide-react'
+import { Upload, X, FileText, AlertCircle } from 'lucide-react'
 import { uploadFile, getStorageConfig, presignDownload } from '@/api/storage'
 import { cn } from '@/lib/utils'
+import { FilePreview } from '@/components/ui/FilePreview'
 import type { StorageConfig } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -46,6 +47,10 @@ export function FileUpload({
   const [error, setError] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [justUploadedKey, setJustUploadedKey] = useState<string | null>(null)
+  const [lastUploadedMime, setLastUploadedMime] = useState<string | null>(null)
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null)
+  const [localPreviewName, setLocalPreviewName] = useState<string | null>(null)
+  const [localPreviewMime, setLocalPreviewMime] = useState<string | null>(null)
 
   useEffect(() => {
     getStorageConfig(fileType)
@@ -53,19 +58,34 @@ export function FileUpload({
       .catch(() => setConfig(null))
   }, [fileType])
 
-  const keyToPreview = currentValue ?? justUploadedKey
-  const supportsImagePreview = fileType === 'avatars' || fileType === 'images'
+  useEffect(() => {
+    return () => {
+      if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl)
+    }
+  }, [localPreviewUrl])
 
-  const { data: previewUrl } = useQuery({
+  const keyToPreview = currentValue ?? justUploadedKey
+
+  const { data: previewUrl, isLoading: loadingPreview } = useQuery({
     queryKey: ['file-upload-preview', keyToPreview],
     queryFn: async () => {
       if (!keyToPreview) return null
       const { downloadUrl } = await presignDownload(keyToPreview)
       return downloadUrl
     },
-    enabled: supportsImagePreview && Boolean(keyToPreview),
+    enabled: Boolean(keyToPreview),
     staleTime: 5 * 60 * 1000,
   })
+
+  useEffect(() => {
+    if (!previewUrl) return
+    setLocalPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
+    setLocalPreviewName(null)
+    setLocalPreviewMime(null)
+  }, [previewUrl])
 
   const validateFile = useCallback(
     (file: File): boolean => {
@@ -89,10 +109,17 @@ export function FileUpload({
       if (!file || !config) return
       setError(null)
       if (!validateFile(file)) return
+      setLocalPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return URL.createObjectURL(file)
+      })
+      setLocalPreviewName(file.name)
+      setLocalPreviewMime(file.type || null)
       setUploading(true)
       setProgress(0)
       uploadFile(file, entityType, entityId, fileType, setProgress)
         .then((key) => {
+          setLastUploadedMime(file.type || null)
           setJustUploadedKey(key)
           onUploadComplete(key)
           setUploading(false)
@@ -148,7 +175,9 @@ export function FileUpload({
 
   const displayKey = keyToPreview
   const displayFileName = displayKey ? fileNameFromKey(displayKey) : null
-  const showSuccessCheck = Boolean(justUploadedKey && !currentValue)
+  const previewMimeType = justUploadedKey === displayKey ? lastUploadedMime : null
+  const previewSourceUrl = previewUrl ?? localPreviewUrl
+  const previewFileName = displayFileName ?? localPreviewName ?? displayKey ?? 'arquivo'
 
   if (uploading) {
     return (
@@ -156,11 +185,11 @@ export function FileUpload({
         {label && (
           <label className="block text-sm font-medium text-text">{label}</label>
         )}
-        <div className={cn('rounded-xl border border-border bg-surface-2', compact ? 'p-3' : 'p-4')}>
+        <div className={cn('space-y-3 rounded-xl border border-border bg-surface-2', compact ? 'p-3' : 'p-4')}>
           <div className="flex items-center gap-3">
             <Upload className="h-5 w-5 shrink-0 text-muted" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-text">Enviando...</p>
+              <p className="truncate text-sm text-text">{localPreviewName ?? 'Enviando...'}</p>
               <div className="mt-2 h-2 rounded-full bg-surface">
                 <div
                   className="h-full rounded-full bg-accent transition-all duration-300"
@@ -169,6 +198,14 @@ export function FileUpload({
               </div>
             </div>
           </div>
+          {localPreviewUrl && (
+            <FilePreview
+              fileName={localPreviewName ?? 'Arquivo selecionado'}
+              sourceUrl={localPreviewUrl}
+              mimeType={localPreviewMime}
+              compact={compact}
+            />
+          )}
         </div>
       </div>
     )
@@ -180,21 +217,9 @@ export function FileUpload({
         {label && (
           <label className="block text-sm font-medium text-text">{label}</label>
         )}
-        <div className={cn('rounded-xl border border-border bg-surface-2', compact ? 'p-3' : 'p-4')}>
+        <div className={cn('space-y-3 rounded-xl border border-border bg-surface-2', compact ? 'p-3' : 'p-4')}>
           <div className="flex items-center gap-3">
-            {showSuccessCheck ? (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500/20">
-                <Check className="h-5 w-5 text-green-500" />
-              </div>
-            ) : (fileType === 'avatars' || fileType === 'images') && previewUrl ? (
-              <img
-                src={previewUrl}
-                alt="Preview"
-                className="h-12 w-12 shrink-0 rounded-lg object-cover"
-              />
-            ) : (
-              <FileText className="h-5 w-5 shrink-0 text-muted" />
-            )}
+            <FileText className="h-5 w-5 shrink-0 text-muted" />
             <div className="min-w-0 flex-1">
               <p className={cn('truncate font-medium text-text', compact ? 'text-xs' : 'text-sm')}>
                 {displayFileName}
@@ -208,6 +233,13 @@ export function FileUpload({
                 type="button"
                 onClick={() => {
                   setJustUploadedKey(null)
+                  setLastUploadedMime(null)
+                  setLocalPreviewUrl((prev) => {
+                    if (prev) URL.revokeObjectURL(prev)
+                    return null
+                  })
+                  setLocalPreviewName(null)
+                  setLocalPreviewMime(null)
                   handleClick()
                 }}
                 className="rounded-lg px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 transition-colors"
@@ -219,6 +251,13 @@ export function FileUpload({
                   type="button"
                   onClick={() => {
                     setJustUploadedKey(null)
+                    setLastUploadedMime(null)
+                    setLocalPreviewUrl((prev) => {
+                      if (prev) URL.revokeObjectURL(prev)
+                      return null
+                    })
+                    setLocalPreviewName(null)
+                    setLocalPreviewMime(null)
                     setError(null)
                     onRemove()
                   }}
@@ -230,6 +269,18 @@ export function FileUpload({
               )}
             </div>
           </div>
+          {loadingPreview && !localPreviewUrl ? (
+            <div className="flex items-center justify-center rounded-lg border border-border bg-surface px-3 py-6 text-xs text-muted">
+              Carregando preview...
+            </div>
+          ) : (
+            <FilePreview
+              fileName={previewFileName}
+              sourceUrl={previewSourceUrl}
+              mimeType={previewMimeType ?? localPreviewMime}
+              compact={compact}
+            />
+          )}
         </div>
         <input
           ref={inputRef}

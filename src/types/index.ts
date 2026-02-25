@@ -89,6 +89,50 @@ export interface ProjectTemplate {
   updatedAt: string
 }
 
+export type ReadinessMetric = 'TRACKS_MIN_TOTAL' | 'TRACKS_WITH_MIN_QUIZZES' | 'TRACKS_WITH_MIN_MATERIALS' | 'TRACKS_WITH_MIN_STUDY_TRACKS'
+
+export interface ProjectTemplateReadinessRequirement {
+  code: string
+  title: string
+  description: string | null
+  metric: ReadinessMetric
+  targetValue: number
+  actualValue: number
+  weight: number
+  isMet: boolean
+  missingBy: number
+  tip: string | null
+}
+
+export interface ProjectTemplateReadinessSummary {
+  projectTemplateId: string
+  projectTemplateSlug: string
+  trackCount: number
+  quizCount: number
+  materialCount: number
+  studyTrackCount: number
+  scorePercentage: number
+  metCount: number
+  totalCount: number
+  isReady: boolean
+  statusLabel: 'Nao pronto' | 'Quase pronto' | 'Apto para publicacao'
+  missingTips: string[]
+  requirements: ProjectTemplateReadinessRequirement[]
+}
+
+export interface ProjectTemplateReadinessRule {
+  id: string
+  code: string
+  title: string
+  description: string | null
+  metric: ReadinessMetric
+  targetValue: number
+  weight: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export interface TrackSceneTemplate {
   id: string
   slug: string
