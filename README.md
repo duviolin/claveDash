@@ -8,7 +8,7 @@ Portal administrativo da plataforma **Clave** — educação musical gamificada.
 - **Tailwind CSS 4** (tema escuro customizado)
 - **React Router 7** (roteamento client-side)
 - **@tanstack/react-query** (data fetching + cache)
-- **react-hook-form** + **zod** (formulários + validação)
+- **useState** (estado local de formulários)
 - **Lucide React** (ícones)
 - **react-hot-toast** (notificações)
 - **Axios** (HTTP client com interceptors JWT)
@@ -26,6 +26,7 @@ cp .env.example .env
 # Editar .env com sua API URL e OpenAI key
 # VITE_API_URL=http://localhost:3000
 # VITE_OPENAI_API_KEY=sk-your-key
+# VITE_OPENAI_MODEL=gpt-4o-mini
 
 # Iniciar dev server
 npm run dev
@@ -43,6 +44,7 @@ O portal roda em `http://localhost:5173` e conecta ao backend em `http://localho
 - **Turmas**: CRUD com vínculo de professores e matrícula de alunos
 - **Templates de Projeto**: CRUD hierárquico (Projeto > Faixas > Materiais > Trilhas > Quizzes)
 - **Aptidão de Publicação**: Progress bar por template com score, status e dicas do que falta
+- **Análise Qualitativa de Publicação**: diagnóstico curto com IA, salvo por template/versão
 - **Missões Diárias**: Templates com quizzes embutidos
 - **Instanciação**: Criar projetos a partir de templates para turmas/semestres
 - **Storage**: Upload com presigned URLs (R2), gestão de órfãos
@@ -89,3 +91,5 @@ As regras são persistidas no backend e o card de aptidão é recalculado após 
 - `GET /project-template-readiness/:idOrSlug`
 - `GET /project-template-readiness/rules`
 - `PATCH /project-template-readiness/rules/:ruleId` (**somente ADMIN**)
+- `GET /project-template-readiness/:idOrSlug/qualitative-analysis`
+- `PUT /project-template-readiness/:idOrSlug/qualitative-analysis`

@@ -10,7 +10,7 @@ Este guia explica como usar e evoluir o card de aptidão de publicação dos tem
 ## O que o usuário vê
 
 - percentual de aptidão (`scorePercentage`)
-- status (`Nao pronto`, `Quase pronto`, `Apto para publicacao`)
+- status (`Não pronto`, `Quase pronto`, `Apto para publicação`)
 - contadores de faixas/quizzes/materiais/trilhas
 - dicas do que falta (`missingTips`)
 
@@ -23,6 +23,8 @@ Este guia explica como usar e evoluir o card de aptidão de publicação dos tem
 - `getProjectTemplateReadiness(idOrSlug)`
 - `listProjectTemplateReadinessRules()`
 - `updateProjectTemplateReadinessRule(ruleId, payload)`
+- `getProjectTemplateQualitativeAnalysis(idOrSlug)`
+- `saveProjectTemplateQualitativeAnalysis(idOrSlug, payload)`
 
 ### Tipos
 
@@ -38,14 +40,23 @@ Este guia explica como usar e evoluir o card de aptidão de publicação dos tem
 - leitura da aptidão e das regras: `ADMIN` e `TEACHER`
 - edição de regras: apenas `ADMIN`
 
-No frontend, o botão **Critérios de Publicação** aparece apenas quando `user.role === 'ADMIN'`.
+No frontend, o botão **Critérios de publicação** aparece apenas quando `user.role === 'ADMIN'`.
 
 ## Como usar no dia a dia
 
 1. abrir um template em `/templates/projects/:slug`
 2. analisar score/status e dicas
-3. criar/ajustar conteúdo faltante (faixas, quizzes, materiais, trilhas)
-4. (admin) ajustar metas e pesos se a coordenação pedagógica mudar critérios
+3. criar/ajustar conteúdo faltante (faixas, quizzes, materiais e trilhas)
+4. (admin) ajustar metas e pesos se a coordenação pedagógica mudar os critérios
+5. gerar/salvar análise qualitativa para registrar diagnóstico e próximos passos
+
+## Endpoints de readiness em uso
+
+- `GET /project-template-readiness/:idOrSlug`
+- `GET /project-template-readiness/rules`
+- `PATCH /project-template-readiness/rules/:ruleId`
+- `GET /project-template-readiness/:idOrSlug/qualitative-analysis`
+- `PUT /project-template-readiness/:idOrSlug/qualitative-analysis`
 
 ## Evolução
 

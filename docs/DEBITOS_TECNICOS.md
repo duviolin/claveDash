@@ -1,6 +1,6 @@
 # Débitos Técnicos — claveDash & claveBack
 
-**Data:** 24/02/2026  
+**Data:** 25/02/2026  
 **Referência:** Auditoria pente fino + ROADMAP backend
 
 ---
@@ -50,6 +50,11 @@
    - Passa mission (título) como contexto
    - Campo de instruções extras disponível
 
+### Diretriz de linguagem (novo padrão)
+
+- Em prompts, labels e mensagens, usar português correto e claro.
+- Preferir linguagem simples e popular, evitando termos técnicos quando não forem necessários.
+
 ---
 
 ## Recomendações futuras
@@ -57,3 +62,18 @@
 - Remover ou documentar `deleteFile` em storage.ts se for código morto
 - Backend: migrar `error: any` para `error: unknown` nos controllers
 - Backend: Fase 7 (testes) e D20 (padronização de entidades)
+
+---
+
+## Auditoria de documentação (25/02/2026)
+
+### Ajustes aplicados
+
+- README do frontend alinhado com stack real (`useState` para formulários; sem `react-hook-form/zod` em uso hoje)
+- Mapeamentos de templates ajustados para rota de detalhe com `:slug`
+- Contrato de `DELETE /project-templates/:id` alinhado para `204` sem body
+- Readiness atualizado com endpoints de análise qualitativa (`GET/PUT /qualitative-analysis`)
+
+### Pontos para manter monitorados
+
+- Garantir que labels de status de readiness fiquem consistentes entre backend e frontend (com/sem acentuação)

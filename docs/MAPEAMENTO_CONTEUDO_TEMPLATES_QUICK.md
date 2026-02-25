@@ -1,6 +1,6 @@
 # Mapeamento Quick - Templates de Projeto (Front + Back + DB)
 
-Guia rapido de de/para para construir e manter o CRUD de templates de projeto com contrato consistente.
+Guia rápido de de/para para construir e manter o CRUD de templates de projeto com contrato consistente.
 
 ## Onde mexer primeiro
 
@@ -22,20 +22,20 @@ Guia rapido de de/para para construir e manter o CRUD de templates de projeto co
 | Dominio | Front type (`ProjectTemplate`) | API create/update | Back DTO (`ProjectTemplateResponseDTO`) | Prisma (`ProjectTemplate`) |
 |---|---|---|---|---|
 | Identificador | `id: string` | - | `id: string` | `id String @id` |
-| Curso | `courseId: string` | create: `courseId` (obrigatorio) | `courseId: string` | `courseId String` |
-| Nome | `name: string` | create: `name` (obrigatorio), update: `name?` | `name: string` | `name String` |
-| Tipo | `type: 'ALBUM' | 'PLAY'` | create: `type` (obrigatorio) | `type: 'ALBUM' | 'PLAY'` | `type ProjectType` |
-| Descricao | `description: string \| null` | create: `description?`, update: `description? \| null` | `description: string \| null` | `description String?` |
+| Curso | `courseId: string` | create: `courseId` (obrigatório) | `courseId: string` | `courseId String` |
+| Nome | `name: string` | create: `name` (obrigatório), update: `name?` | `name: string` | `name String` |
+| Tipo | `type: 'ALBUM' | 'PLAY'` | create: `type` (obrigatório) | `type: 'ALBUM' | 'PLAY'` | `type ProjectType` |
+| Descrição | `description: string \| null` | create: `description?`, update: `description? \| null` | `description: string \| null` | `description String?` |
 | Capa | `coverImage: string \| null` | create: `coverImage?`, update: `coverImage? \| null` | `coverImage: string \| null` | `coverImage String?` |
-| Versao | `version: number` | - (controlado no back) | `version: number` | `version Int @default(1)` |
+| Versão | `version: number` | - (controlado no back) | `version: number` | `version Int @default(1)` |
 | Ativo/inativo | `isActive: boolean` | - (delete/restore) | `isActive: boolean` | `isActive Boolean @default(true)` |
 | Datas | `createdAt`, `updatedAt` | - | `createdAt`, `updatedAt` | `createdAt DateTime`, `updatedAt DateTime` |
 
 Notas:
 - No front, o `createProjectTemplate` envia exatamente: `{ courseId, name, type, description?, coverImage? }`.
 - No update, o front envia: `{ name?, description?, coverImage? }`.
-- O backend converte `undefined` para `null` no dominio quando necessario.
-- O versionamento deve ser automatico no backend (nao editavel manualmente pelo front): quando `name`, `description` ou `coverImage` mudar, incrementa `version`.
+- O backend converte `undefined` para `null` no domínio quando necessário.
+- O versionamento deve ser automático no backend (não editável manualmente pelo front): quando `name`, `description` ou `coverImage` mudar, incrementa `version`.
 
 ---
 
@@ -47,13 +47,13 @@ Notas:
 | Listar ativos por curso | `listProjectTemplates(courseId?)` | `GET /project-templates?courseId=` | `getAll()` | `200` + lista |
 | Buscar por id | `getProjectTemplate(id)` | `GET /project-templates/:id` | `getById()` | `200` + objeto |
 | Atualizar | `updateProjectTemplate(id, payload)` | `PATCH /project-templates/:id` | `update()` | `200` + objeto |
-| Desativar (soft delete) | `deleteProjectTemplate(id)` | `DELETE /project-templates/:id` | `deactivate()` | `200` + body (hoje) |
+| Desativar (soft delete) | `deleteProjectTemplate(id)` | `DELETE /project-templates/:id` | `deactivate()` | `204` sem body |
 | Lixeira | `listDeletedProjectTemplates({page,limit})` | `GET /project-templates/deleted` | `getDeleted()` | `200` + paginado |
 | Restaurar | `restoreProjectTemplate(id)` | `PATCH /project-templates/:id/restore` | `restore()` | `200` + objeto |
 
 Importante para CRUD assertivo:
-- O front trata delete como `void` (`await api.delete(...)`), padrao recomendado.
-- O endpoint de desativacao deve responder `204` sem body, seguindo o contrato padrao do projeto.
+- O front trata delete como `void` (`await api.delete(...)`), padrão recomendado.
+- O endpoint de desativação deve responder `204` sem body, seguindo o contrato padrão do projeto.
 
 ---
 
@@ -64,6 +64,8 @@ Importante para CRUD assertivo:
 | Ler aptidão | `getProjectTemplateReadiness(idOrSlug)` | `GET /project-template-readiness/:idOrSlug` | `ADMIN`, `TEACHER` | `200` + summary com `scorePercentage`, `statusLabel`, `missingTips`, `requirements[]` |
 | Listar regras | `listProjectTemplateReadinessRules()` | `GET /project-template-readiness/rules` | `ADMIN`, `TEACHER` | `200` + regras ativas/inativas |
 | Editar regra | `updateProjectTemplateReadinessRule(ruleId, payload)` | `PATCH /project-template-readiness/rules/:ruleId` | **`ADMIN`** | `200` + regra atualizada |
+| Ler análise qualitativa | `getProjectTemplateQualitativeAnalysis(idOrSlug)` | `GET /project-template-readiness/:idOrSlug/qualitative-analysis` | `ADMIN`, `TEACHER` | `200` + análise salva |
+| Salvar análise qualitativa | `saveProjectTemplateQualitativeAnalysis(idOrSlug, payload)` | `PUT /project-template-readiness/:idOrSlug/qualitative-analysis` | `ADMIN`, `TEACHER` | `200` + análise salva |
 
 Regras seedadas padrão:
 
@@ -74,24 +76,24 @@ Regras seedadas padrão:
 
 Status calculado:
 
-- `Apto para publicacao`: 100% dos requisitos ativos atendidos
+- `Apto para publicação`: 100% dos requisitos ativos atendidos
 - `Quase pronto`: score >= 70% e ainda pendências
-- `Nao pronto`: score < 70%
+- `Não pronto`: score < 70%
 
 ---
 
-## Regras de negocio que impactam o CRUD
+## Regras de negócio que impactam o CRUD
 
-- Validacoes create:
-  - `courseId` obrigatorio
-  - `name` obrigatorio e nao vazio
-  - `type` obrigatorio: `ALBUM` ou `PLAY`
-- Validacao update:
-  - `name` nao pode ser vazio quando enviado
+- Validações create:
+  - `courseId` obrigatório
+  - `name` obrigatório e não vazio
+  - `type` obrigatório: `ALBUM` ou `PLAY`
+- Validação update:
+  - `name` não pode ser vazio quando enviado
 - Soft delete:
   - Desativar seta `isActive = false`
   - Restaurar seta `isActive = true`
-- Bloqueio de desativacao (409 `CONFLICT_INVALID_STATE`):
+- Bloqueio de desativação (409 `CONFLICT_INVALID_STATE`):
   - Se houver `trackSceneTemplates` ativos
   - Se houver `projects` ativos instanciados
   - `details.childResource` pode vir como `trackSceneTemplates` ou `projects`
@@ -126,7 +128,7 @@ Dependencia de banco (cadeia):
 
 ---
 
-## Checklist rapido para implementar ajuste de CRUD
+## Checklist rápido para implementar ajuste de CRUD
 
 1. Confirmar campos em `src/types/index.ts` e DTOs do backend.
 2. Ajustar payloads em `src/api/templates.ts` (sem `any`, sem campos extras).

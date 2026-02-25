@@ -1,6 +1,6 @@
 # Plano de Refatoração — Integração Dashboard ↔ API
 
-**Data:** 22/02/2026 | **Atualizado:** 23/02/2026  
+**Data:** 22/02/2026 | **Atualizado:** 25/02/2026  
 **Referência:** `claveBack/docs/DASHBOARD_API.md`
 
 ---
@@ -22,6 +22,7 @@
 | 11 — NotificationBell | Componente no header | ✅ Concluída |
 | 12 — Paginação | Padronizar em todas as páginas | ✅ Concluída |
 | 13 — Verificação Final | Build + lint | ✅ Concluída |
+| 14 — Auditoria de Documentação | Revisão front/back com contrato atual | ✅ Concluída |
 
 **Refatoração 100% concluída.**
 
@@ -61,3 +62,15 @@ Todos os gaps da Fase 8 foram resolvidos em 23/02/2026.
 | Docs | DEBITOS_TECNICOS.md, rules atualizadas | ✅ |
 
 Ver `docs/DEBITOS_TECNICOS.md` para débitos remanescentes (backend).
+
+---
+
+## Auditoria de documentação 25/02/2026
+
+| Item | Resultado |
+|------|-----------|
+| README front | Stack e funcionalidades alinhadas ao código atual |
+| Mapeamento templates | Rota de detalhe corrigida para `:slug` |
+| Contrato de delete | `DELETE` documentado como `204` sem body |
+| Readiness | Inclusão de `GET/PUT /qualitative-analysis` |
+| Back (revisão de referência) | Rotas e permissões conferidas em `src/infrastructure/routes/*` |

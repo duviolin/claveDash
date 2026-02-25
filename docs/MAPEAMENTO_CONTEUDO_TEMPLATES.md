@@ -1,7 +1,7 @@
 # Mapeamento de Conteúdo/Templates (Front + Back)
 
 **Data:** 23/02/2026  
-**Objetivo:** centralizar onde está cada peça da etapa de conteúdo/templates para consulta rápida e economia de tokens.
+**Objetivo:** centralizar onde está cada peça da etapa de conteúdo/templates para consulta rápida e economia de tokens, com linguagem simples e clara.
 
 ## Referências de domínio
 
@@ -18,7 +18,7 @@
 
 | Camada | Arquivo | O que cobre |
 |---|---|---|
-| Router | `src/routes.tsx` | Rotas: `/templates/projects`, `/templates/projects/:id`, `/templates/daily-missions` |
+| Router | `src/routes.tsx` | Rotas: `/templates/projects`, `/templates/projects/:slug`, `/templates/daily-missions` |
 | Sidebar | `src/components/layout/Sidebar.tsx` | Menu Conteúdo > Templates |
 
 ### Páginas de templates
@@ -77,12 +77,14 @@
 - `GET /project-template-readiness/:idOrSlug`
 - `GET /project-template-readiness/rules`
 - `PATCH /project-template-readiness/rules/:ruleId` (**somente ADMIN**)
+- `GET /project-template-readiness/:idOrSlug/qualitative-analysis`
+- `PUT /project-template-readiness/:idOrSlug/qualitative-analysis`
 
 ### Comportamento em tela
 
-- Card com `%`, status (`Nao pronto` | `Quase pronto` | `Apto para publicacao`) e dicas do que falta.
+- Card com `%`, status (`Não pronto` | `Quase pronto` | `Apto para publicação`) e dicas do que falta.
 - Recalcula automaticamente quando faixas/materiais/trilhas/quizzes mudam.
-- Admin pode editar metas/pesos/ativação das regras no modal "Critérios de Publicação".
+- Admin pode editar metas/pesos/ativação das regras no modal "Critérios de publicação".
 
 ---
 
@@ -271,6 +273,8 @@
 - `GET /project-template-readiness/:idOrSlug`
 - `GET /project-template-readiness/rules`
 - `PATCH /project-template-readiness/rules/:ruleId` (**somente ADMIN**)
+- `GET /project-template-readiness/:idOrSlug/qualitative-analysis`
+- `PUT /project-template-readiness/:idOrSlug/qualitative-analysis`
 
 ---
 
