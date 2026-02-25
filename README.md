@@ -42,6 +42,7 @@ O portal roda em `http://localhost:5173` e conecta ao backend em `http://localho
 - **Semestres**: CRUD filtrado por curso com datas e status
 - **Turmas**: CRUD com vínculo de professores e matrícula de alunos
 - **Templates de Projeto**: CRUD hierárquico (Projeto > Faixas > Materiais > Trilhas > Quizzes)
+- **Aptidão de Publicação**: Progress bar por template com score, status e dicas do que falta
 - **Missões Diárias**: Templates com quizzes embutidos
 - **Instanciação**: Criar projetos a partir de templates para turmas/semestres
 - **Storage**: Upload com presigned URLs (R2), gestão de órfãos
@@ -62,3 +63,29 @@ src/
 ├── types/          # TypeScript types espelhando o backend
 └── routes.tsx      # Definição de rotas
 ```
+
+## Aptidão de Publicação (Project Template Readiness)
+
+Na tela de detalhe de template (`/templates/projects/:slug`) existe um card de aptidão que mostra:
+
+- **Score (%):** progresso calculado no backend com base nas regras ativas
+- **Status:** `Nao pronto`, `Quase pronto` ou `Apto para publicacao`
+- **Checklist visual:** quantidades atuais de faixas, quizzes, materiais e trilhas
+- **Dicas automáticas:** frases objetivas do que falta para publicar
+
+### Critérios configuráveis (somente ADMIN)
+
+No detalhe do template, admins podem abrir **"Critérios de Publicação"** e editar:
+
+- título da regra
+- meta mínima (`targetValue`)
+- peso no score (`weight`)
+- ativo/inativo (`isActive`)
+
+As regras são persistidas no backend e o card de aptidão é recalculado após salvar.
+
+### Endpoints usados pelo frontend
+
+- `GET /project-template-readiness/:idOrSlug`
+- `GET /project-template-readiness/rules`
+- `PATCH /project-template-readiness/rules/:ruleId` (**somente ADMIN**)

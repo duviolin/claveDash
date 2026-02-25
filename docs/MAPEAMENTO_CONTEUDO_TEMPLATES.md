@@ -26,7 +26,7 @@
 | Página | Arquivo | Escopo |
 |---|---|---|
 | Lista de templates de projeto | `src/pages/templates/ProjectTemplatesListPage.tsx` | Ativos/Lixeira, criar, desativar, restaurar |
-| Detalhe de template de projeto | `src/pages/templates/ProjectTemplateDetailPage.tsx` | Edição, faixas, materiais, trilhas, press quizzes |
+| Detalhe de template de projeto | `src/pages/templates/ProjectTemplateDetailPage.tsx` | Edição, faixas, materiais, trilhas, press quizzes, card de aptidão |
 | Missões diárias | `src/pages/templates/DailyMissionTemplatesPage.tsx` | Ativos/Lixeira, CRUD, publish, quizzes |
 
 ### API modules (integração HTTP)
@@ -63,6 +63,29 @@
 
 ---
 
+## 1.1 Aptidão de publicação (frontend)
+
+### Onde está implementado
+
+- Página: `src/pages/templates/ProjectTemplateDetailPage.tsx`
+- Lista: `src/pages/templates/ProjectTemplatesListPage.tsx`
+- API client: `src/api/templates.ts`
+- Types: `src/types/index.ts`
+
+### Endpoints consumidos
+
+- `GET /project-template-readiness/:idOrSlug`
+- `GET /project-template-readiness/rules`
+- `PATCH /project-template-readiness/rules/:ruleId` (**somente ADMIN**)
+
+### Comportamento em tela
+
+- Card com `%`, status (`Nao pronto` | `Quase pronto` | `Apto para publicacao`) e dicas do que falta.
+- Recalcula automaticamente quando faixas/materiais/trilhas/quizzes mudam.
+- Admin pode editar metas/pesos/ativação das regras no modal "Critérios de Publicação".
+
+---
+
 ## 2) Mapa rápido — Backend (`claveBack`)
 
 ## 2.1 Routes
@@ -73,6 +96,7 @@
 - `src/infrastructure/routes/studyTrackTemplateRoutes.ts`
 - `src/infrastructure/routes/pressQuizTemplateRoutes.ts`
 - `src/infrastructure/routes/dailyMissionTemplateRoutes.ts`
+- `src/infrastructure/routes/projectTemplateReadinessRoutes.ts`
 - `src/infrastructure/routes/storageRoutes.ts` (mídia/arquivos usados no conteúdo)
 
 ## 2.2 Controllers (controles)
@@ -83,6 +107,7 @@
 - `src/infrastructure/controllers/StudyTrackTemplateController.ts`
 - `src/infrastructure/controllers/PressQuizTemplateController.ts`
 - `src/infrastructure/controllers/DailyMissionTemplateController.ts` (inclui quizzes)
+- `src/infrastructure/controllers/ProjectTemplateReadinessController.ts`
 - `src/infrastructure/controllers/StorageController.ts`
 
 ## 2.3 Services (application)
@@ -93,6 +118,7 @@
 - `src/application/services/StudyTrackTemplateService.ts`
 - `src/application/services/PressQuizTemplateService.ts`
 - `src/application/services/DailyMissionTemplateService.ts`
+- `src/application/services/ProjectTemplateReadinessService.ts`
 - `src/application/services/StorageService.ts`
 
 ## 2.4 Domain (entities/use cases/repositories)
@@ -136,6 +162,7 @@
 - `src/infrastructure/repositories/PressQuizTemplateRepository.ts`
 - `src/infrastructure/repositories/DailyMissionTemplateRepository.ts`
 - `src/infrastructure/repositories/DailyMissionQuizRepository.ts`
+- `src/infrastructure/repositories/ProjectTemplateReadinessRepository.ts`
 
 ## 2.6 DTOs
 
@@ -146,6 +173,7 @@
 - `src/application/dto/PressQuizTemplateDTO.ts`
 - `src/application/dto/DailyMissionTemplateDTO.ts`
 - `src/application/dto/DailyMissionQuizDTO.ts`
+- `src/application/dto/ProjectTemplateReadinessDTO.ts`
 
 ---
 
@@ -162,6 +190,7 @@
 | `PressQuizTemplate` | `trackSceneTemplateId -> TrackSceneTemplate` | `questionsJson`, `maxAttempts`, `passingScore`, `version`, `isActive` |
 | `DailyMissionTemplate` | `courseId -> Course` | `order`, `status`, `isActive` |
 | `DailyMissionQuiz` | `dailyMissionId -> DailyMissionTemplate` | `questionsJson`, `maxAttemptsPerDay`, `allowRecoveryAttempt`, `version`, `isActive` |
+| `ProjectTemplateReadinessRule` | Regra global de prontidão | `metric`, `targetValue`, `weight`, `isActive` |
 
 ### Tabelas de instância relacionadas (impactam regras de bloqueio/versionamento)
 
@@ -236,6 +265,12 @@
 - `PATCH /daily-mission-quizzes/:id`
 - `DELETE /daily-mission-quizzes/:id`
 - `PATCH /daily-mission-quizzes/:id/restore`
+
+### ProjectTemplateReadiness
+
+- `GET /project-template-readiness/:idOrSlug`
+- `GET /project-template-readiness/rules`
+- `PATCH /project-template-readiness/rules/:ruleId` (**somente ADMIN**)
 
 ---
 

@@ -8,9 +8,11 @@ Guia rapido de de/para para construir e manter o CRUD de templates de projeto co
 - Front page detail: `src/pages/templates/ProjectTemplateDetailPage.tsx`
 - Front API: `src/api/templates.ts`
 - Front tipos: `src/types/index.ts`
+- Front readiness UI: `src/pages/templates/ProjectTemplateDetailPage.tsx` e `src/pages/templates/ProjectTemplatesListPage.tsx`
 - Back route: `src/infrastructure/routes/projectTemplateRoutes.ts`
 - Back controller: `src/infrastructure/controllers/ProjectTemplateController.ts`
 - Back service/DTO: `src/application/services/ProjectTemplateService.ts`, `src/application/dto/ProjectTemplateDTO.ts`
+- Back readiness: `src/infrastructure/routes/projectTemplateReadinessRoutes.ts`, `src/application/services/ProjectTemplateReadinessService.ts`, `src/application/dto/ProjectTemplateReadinessDTO.ts`
 - DB model: `c:\Users\eduar\Documents\claveBack\prisma\schema.prisma` (`model ProjectTemplate`)
 
 ---
@@ -52,6 +54,29 @@ Notas:
 Importante para CRUD assertivo:
 - O front trata delete como `void` (`await api.delete(...)`), padrao recomendado.
 - O endpoint de desativacao deve responder `204` sem body, seguindo o contrato padrao do projeto.
+
+---
+
+## ProjectTemplate Readiness - contrato rápido
+
+| Ação | Front (`src/api/templates.ts`) | Endpoint | Permissão | Retorno |
+|---|---|---|---|---|
+| Ler aptidão | `getProjectTemplateReadiness(idOrSlug)` | `GET /project-template-readiness/:idOrSlug` | `ADMIN`, `TEACHER` | `200` + summary com `scorePercentage`, `statusLabel`, `missingTips`, `requirements[]` |
+| Listar regras | `listProjectTemplateReadinessRules()` | `GET /project-template-readiness/rules` | `ADMIN`, `TEACHER` | `200` + regras ativas/inativas |
+| Editar regra | `updateProjectTemplateReadinessRule(ruleId, payload)` | `PATCH /project-template-readiness/rules/:ruleId` | **`ADMIN`** | `200` + regra atualizada |
+
+Regras seedadas padrão:
+
+- `PROJECT_MIN_TRACKS` (mínimo 6 faixas)
+- `TRACKS_WITH_MIN_QUIZZES` (cada faixa com 3 quizzes)
+- `TRACKS_WITH_MIN_MATERIALS` (cada faixa com 1 material)
+- `TRACKS_WITH_MIN_STUDY_TRACKS` (cada faixa com 6 trilhas)
+
+Status calculado:
+
+- `Apto para publicacao`: 100% dos requisitos ativos atendidos
+- `Quase pronto`: score >= 70% e ainda pendências
+- `Nao pronto`: score < 70%
 
 ---
 
