@@ -136,7 +136,7 @@ export async function generateMaterialContent(context: { title: string; courseTy
   return generateWithAI(prompt)
 }
 
-export async function generateStudyNotes(context: { title: string; estimatedMinutes?: number }): Promise<string> {
-  const prompt = `Crie notas técnicas para a trilha de estudo "${context.title}"${context.estimatedMinutes ? ` com duração estimada de ${context.estimatedMinutes} minutos` : ''}. Inclua objetivos de aprendizagem, exercícios e dicas.`
+export async function generateStudyNotes(context: { title: string }): Promise<string> {
+  const prompt = `Crie notas técnicas para a trilha de estudo "${context.title}". Inclua objetivos de aprendizagem, exercícios e dicas.`
   return generateWithAI(prompt)
 }
