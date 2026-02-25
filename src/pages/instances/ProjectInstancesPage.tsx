@@ -10,7 +10,7 @@ import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { instantiateProject, listProjects, updateProject, publishProject, unpublishProject } from '@/api/instances'
-import { listProjectTemplates } from '@/api/templates'
+import { getProjectTemplateReadiness, listProjectTemplates } from '@/api/templates'
 import { listClasses } from '@/api/classes'
 import { listSeasons } from '@/api/seasons'
 import { PROJECT_STATUS_LABELS, PROJECT_STATUS_VARIANT } from '@/lib/constants'
@@ -35,13 +35,44 @@ export function ProjectInstancesPage() {
 
   const { data: templates = [] } = useQuery({ queryKey: ['project-templates'], queryFn: () => listProjectTemplates() })
   const { data: classes = [] } = useQuery({ queryKey: ['classes'], queryFn: () => listClasses() })
+  const { data: templateReadinessById = {} } = useQuery<Record<string, boolean>>({
+    queryKey: ['project-template-readiness-for-instantiate', templates.map((t) => t.id).join('|')],
+    enabled: instantiateOpen && templates.length > 0,
+    queryFn: async () => {
+      const readinessEntries = await Promise.all(
+        templates.map(async (template) => {
+          try {
+            const readiness = await getProjectTemplateReadiness(template.slug)
+            return [template.id, readiness.isReady] as const
+          } catch {
+            return [template.id, false] as const
+          }
+        })
+      )
+
+      return Object.fromEntries(readinessEntries)
+    },
+  })
+
+  const readyTemplates = templates.filter((template) => templateReadinessById[template.id])
+  const blockedTemplateCount = templates.length - readyTemplates.length
 
   const instantiateMut = useMutation({
-    mutationFn: () => instantiateProject(instForm),
+    mutationFn: () => {
+      const canInstantiate = !!templateReadinessById[instForm.templateId]
+      if (!canInstantiate) {
+        throw new Error('Template ainda não está apto para publicação. Complete os critérios antes de instanciar.')
+      }
+      return instantiateProject(instForm)
+    },
     onSuccess: (data) => {
       toast.success(`Projeto instanciado! ${JSON.stringify(data).includes('created') ? '' : ''}`)
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       setInstantiateOpen(false)
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Não foi possível instanciar o projeto.'
+      toast.error(message)
     },
   })
 
@@ -111,7 +142,12 @@ export function ProjectInstancesPage() {
         <><Button variant="secondary" onClick={() => setInstantiateOpen(false)}>Cancelar</Button><Button onClick={() => instantiateMut.mutate()} isLoading={instantiateMut.isPending}>Instanciar</Button></>
       }>
         <div className="space-y-4">
-          <Select id="instTemplate" label="Template" value={instForm.templateId} onChange={(e) => setInstForm({ ...instForm, templateId: e.target.value })} placeholder="Selecionar template..." options={templates.map((t: ProjectTemplate) => ({ value: t.id, label: t.name }))} />
+          <Select id="instTemplate" label="Template" value={instForm.templateId} onChange={(e) => setInstForm({ ...instForm, templateId: e.target.value })} placeholder="Selecionar template apto..." options={readyTemplates.map((t: ProjectTemplate) => ({ value: t.id, label: t.name }))} />
+          {blockedTemplateCount > 0 && (
+            <p className="text-xs text-warning">
+              {blockedTemplateCount} template(s) ocultado(s) desta lista por ainda não estarem aptos para publicação.
+            </p>
+          )}
           <Select id="instSeason" label="Semestre" value={instForm.seasonId} onChange={(e) => setInstForm({ ...instForm, seasonId: e.target.value })} placeholder="Selecionar semestre..." options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))} />
           <Select id="instClass" label="Turma" value={instForm.classId} onChange={(e) => setInstForm({ ...instForm, classId: e.target.value })} placeholder="Selecionar turma..." options={classes.map((c: { id: string; name: string }) => ({ value: c.id, label: c.name }))} />
         </div>

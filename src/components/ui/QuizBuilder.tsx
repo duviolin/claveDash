@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from './Button'
 import { cn } from '@/lib/utils'
@@ -15,9 +16,10 @@ interface QuizBuilderProps {
   value: QuizQuestion[]
   onChange: (questions: QuizQuestion[]) => void
   className?: string
+  footerActions?: ReactNode
 }
 
-export function QuizBuilder({ value, onChange, className }: QuizBuilderProps) {
+export function QuizBuilder({ value, onChange, className, footerActions }: QuizBuilderProps) {
   const handleAdd = () => {
     onChange([...value, emptyQuestion()])
   }
@@ -111,16 +113,19 @@ export function QuizBuilder({ value, onChange, className }: QuizBuilderProps) {
         ))
       )}
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={handleAdd}
-        className="gap-2"
-      >
-        <Plus className="w-4 h-4" />
-        Adicionar Pergunta
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleAdd}
+          className="gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Adicionar Pergunta
+        </Button>
+        {footerActions}
+      </div>
     </div>
   )
 }

@@ -14,7 +14,7 @@ import { Select } from '@/components/ui/Select'
 import { FileUpload } from '@/components/ui/FileUpload'
 import { QuizBuilder } from '@/components/ui/QuizBuilder'
 import { AIButton } from '@/components/ui/AIButton'
-import { generatePublicationQualitativeAnalysis, generateQuiz } from '@/api/ai'
+import { generatePublicationQualitativeAnalysis, generateQuiz, generateQuizQuestion } from '@/api/ai'
 import { presignDownload } from '@/api/storage'
 import {
   getProjectTemplate,
@@ -454,6 +454,7 @@ function ProjectTemplateReadinessCard({
 }) {
   const { scorePercentage, statusLabel, isReady, metCount, totalCount, missingTips, trackCount, quizCount, materialCount, studyTrackCount } = readiness
   const isOutdated = generatedForVersion == null || generatedForVersion !== currentTemplateVersion
+  const [isAiFeedbackExpanded, setIsAiFeedbackExpanded] = useState(false)
 
   const statusVariant = isReady ? 'success' : scorePercentage >= 70 ? 'warning' : 'error'
   const statusIcon = isReady ? <CheckCircle2 className="h-4 w-4" /> : scorePercentage >= 70 ? <AlertTriangle className="h-4 w-4" /> : <CircleDashed className="h-4 w-4" />
@@ -502,7 +503,14 @@ function ProjectTemplateReadinessCard({
       {(qualitativeReadinessFeedback || isOutdated) && (
         <div className="mt-3 rounded-lg border border-info/30 bg-info/10 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase text-info">Crítica construtiva da IA (orientativa)</p>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase text-info cursor-pointer"
+              onClick={() => setIsAiFeedbackExpanded((prev) => !prev)}
+            >
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isAiFeedbackExpanded ? 'rotate-180' : ''}`} />
+              Crítica construtiva da IA (orientativa)
+            </button>
             <div className="flex items-center gap-2">
               {isOutdated && (
                 <Badge variant="warning" className="text-[10px]">
@@ -514,10 +522,12 @@ function ProjectTemplateReadinessCard({
               </Button>
             </div>
           </div>
-          {qualitativeReadinessFeedback ? (
-            <p className="mt-1 whitespace-pre-wrap text-sm text-text">{qualitativeReadinessFeedback}</p>
-          ) : (
-            <p className="mt-1 text-sm text-muted">A avaliação ainda não foi gerada para esta versão.</p>
+          {isAiFeedbackExpanded && (
+            qualitativeReadinessFeedback ? (
+              <p className="mt-2 whitespace-pre-wrap text-sm text-text">{qualitativeReadinessFeedback}</p>
+            ) : (
+              <p className="mt-2 text-sm text-muted">A avaliação ainda não foi gerada para esta versão.</p>
+            )
           )}
         </div>
       )}
@@ -1218,6 +1228,45 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
 
   const openCreate = () => { setEditing(null); setForm({ title: '', description: '', questions: [], maxAttempts: 3, passingScore: 70 }); setModalOpen(true) }
   const openEdit = (q: PressQuizTemplate) => { setEditing(q); setForm({ title: q.title, description: q.description || '', questions: q.questionsJson || [], maxAttempts: q.maxAttempts, passingScore: q.passingScore }); setModalOpen(true) }
+  const buildQuizAiContext = (userExtra?: string) => ({
+    title: form.title || track.title,
+    description: form.description,
+    count: 5,
+    project: template ? { name: template.name, type: template.type, description: template.description } : undefined,
+    track: { title: track.title, artist: track.artist, description: track.description, technicalInstruction: track.technicalInstruction, lyrics: track.lyrics },
+    materials: materials.map((m) => ({ title: m.title, type: m.type })),
+    studyTracks: studyTracks.map((st) => ({ title: st.title, description: st.description, technicalNotes: st.technicalNotes })),
+    existingQuestions: form.questions,
+    userExtra: userExtra || undefined,
+  })
+
+  const parseGeneratedQuestion = (raw: string): QuizQuestion | null => {
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const first = parsed[0]
+        if (
+          first &&
+          typeof first.question === 'string' &&
+          Array.isArray(first.options) &&
+          typeof first.correctIndex === 'number'
+        ) {
+          return first as QuizQuestion
+        }
+      }
+      if (
+        parsed &&
+        typeof parsed.question === 'string' &&
+        Array.isArray(parsed.options) &&
+        typeof parsed.correctIndex === 'number'
+      ) {
+        return parsed as QuizQuestion
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
 
   return (
     <div>
@@ -1291,31 +1340,47 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
         <div className="space-y-4">
           <Input id="pqTitle" label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <Textarea id="pqDesc" label="Descrição" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium text-text">Questões</label>
-            <AIButton
-              label="Gerar Quiz com IA"
-              extraInputLabel="Instruções extras (opcional)"
-              extraInputPlaceholder="Ex.: foco em teoria musical, dificuldade intermediária, questões sobre a letra..."
-              onGenerate={(userExtra) => generateQuiz({
-                title: form.title || track.title,
-                description: form.description,
-                count: 5,
-                project: template ? { name: template.name, type: template.type, description: template.description } : undefined,
-                track: { title: track.title, artist: track.artist, description: track.description, technicalInstruction: track.technicalInstruction, lyrics: track.lyrics },
-                materials: materials.map((m) => ({ title: m.title, type: m.type })),
-                studyTracks: studyTracks.map((st) => ({ title: st.title, description: st.description, technicalNotes: st.technicalNotes })),
-                userExtra: userExtra || undefined,
-              })}
-              onAccept={(raw) => {
-                try {
-                  const parsed = JSON.parse(raw)
-                  if (Array.isArray(parsed)) setForm({ ...form, questions: parsed })
-                } catch { toast.error('Formato inválido retornado pela IA') }
-              }}
-            />
-          </div>
-          <QuizBuilder value={form.questions} onChange={(questions) => setForm({ ...form, questions })} />
+          <label className="block text-sm font-medium text-text">Questões</label>
+          <QuizBuilder
+            value={form.questions}
+            onChange={(questions) => setForm({ ...form, questions })}
+            footerActions={form.questions.length === 0 ? (
+              <AIButton
+                label="Gerar Quiz com IA"
+                extraInputLabel="Instruções extras (opcional)"
+                extraInputPlaceholder="Ex.: foco em teoria musical, dificuldade intermediária, questões sobre a letra..."
+                onGenerate={(userExtra) => generateQuiz(buildQuizAiContext(userExtra))}
+                onAccept={(raw) => {
+                  try {
+                    const parsed = JSON.parse(raw)
+                    if (Array.isArray(parsed)) {
+                      setForm({ ...form, questions: parsed })
+                      return
+                    }
+                    toast.error('A IA não retornou uma lista de questões.')
+                  } catch {
+                    toast.error('Formato inválido retornado pela IA')
+                  }
+                }}
+              />
+            ) : (
+              <AIButton
+                label="Gerar 1 pergunta com IA"
+                extraInputLabel="Instruções extras (opcional)"
+                extraInputPlaceholder="Ex.: evitar teoria pura, focar aplicação prática..."
+                onGenerate={(userExtra) => generateQuizQuestion(buildQuizAiContext(userExtra))}
+                onAccept={(raw) => {
+                  const generatedQuestion = parseGeneratedQuestion(raw)
+                  if (!generatedQuestion) {
+                    toast.error('Formato inválido retornado para pergunta.')
+                    return
+                  }
+                  setForm({ ...form, questions: [...form.questions, generatedQuestion] })
+                  toast.success('Pergunta adicionada com contexto das anteriores!')
+                }}
+              />
+            )}
+          />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input id="pqAttempts" label="Máximo de tentativas" type="number" value={String(form.maxAttempts)} onChange={(e) => setForm({ ...form, maxAttempts: Number(e.target.value) })} />
             <Input id="pqScore" label="Nota de aprovação (%)" type="number" value={String(form.passingScore)} onChange={(e) => setForm({ ...form, passingScore: Number(e.target.value) })} />
