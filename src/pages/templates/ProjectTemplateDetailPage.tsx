@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, GripVertical, Music, FileText, BookOpen, HelpCircle, ArchiveRestore, CheckCircle2, AlertTriangle, CircleDashed } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, GripVertical, Music, FileText, BookOpen, HelpCircle, ArchiveRestore, CheckCircle2, AlertTriangle, CircleDashed, RotateCw } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -14,7 +14,7 @@ import { Select } from '@/components/ui/Select'
 import { FileUpload } from '@/components/ui/FileUpload'
 import { QuizBuilder } from '@/components/ui/QuizBuilder'
 import { AIButton } from '@/components/ui/AIButton'
-import { generateQuiz } from '@/api/ai'
+import { generatePublicationQualitativeAnalysis, generateQuiz } from '@/api/ai'
 import { presignDownload } from '@/api/storage'
 import {
   getProjectTemplate,
@@ -42,8 +42,10 @@ import {
   deletePressQuizTemplate,
   restorePressQuizTemplate,
   getProjectTemplateReadiness,
+  getProjectTemplateQualitativeAnalysis,
   listProjectTemplateReadinessRules,
   updateProjectTemplateReadinessRule,
+  saveProjectTemplateQualitativeAnalysis,
 } from '@/api/templates'
 import type { AxiosError } from 'axios'
 import { TRACK_MATERIAL_TYPE_LABELS, TRACK_MATERIAL_TYPE_VARIANT } from '@/lib/constants'
@@ -58,10 +60,14 @@ import type {
   QuizQuestion,
   ProjectTemplateReadinessSummary,
   ProjectTemplateReadinessRule,
+  ProjectTemplateQualitativeAnalysis,
 } from '@/types'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
+
+const AUTO_PUBLICATION_ANALYSIS_MIN_INTERVAL_MS = 15000
+const AUTO_PUBLICATION_ANALYSIS_DEBOUNCE_MS = 8000
 
 export function ProjectTemplateDetailPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -70,7 +76,11 @@ export function ProjectTemplateDetailPage() {
   const [editingProject, setEditingProject] = useState(false)
   const [editingReadinessRules, setEditingReadinessRules] = useState(false)
   const [projectForm, setProjectForm] = useState({ name: '', description: '', coverImage: '' })
-  const [readinessRulesForm, setReadinessRulesForm] = useState<Record<string, { title: string; targetValue: string; weight: string; isActive: boolean }>>({})
+  const [readinessRulesForm, setReadinessRulesForm] = useState<Record<string, { title: string; description: string; targetValue: string; weight: string; isActive: boolean }>>({})
+  const [isGeneratingQualitativeFeedback, setIsGeneratingQualitativeFeedback] = useState(false)
+  const [lastAutoAnalysisAt, setLastAutoAnalysisAt] = useState(0)
+  const autoAnalysisRequestIdRef = useRef(0)
+  const isAutoAnalysisInFlightRef = useRef(false)
 
   const { data: template } = useQuery({
     queryKey: ['project-template', slug],
@@ -90,6 +100,12 @@ export function ProjectTemplateDetailPage() {
     enabled: !!slug,
   })
 
+  const { data: qualitativeAnalysis } = useQuery({
+    queryKey: ['project-template-qualitative-analysis', slug],
+    queryFn: () => getProjectTemplateQualitativeAnalysis(slug!),
+    enabled: !!slug,
+  })
+
   const { data: readinessRules = [] } = useQuery({
     queryKey: ['project-template-readiness-rules'],
     queryFn: () => listProjectTemplateReadinessRules(),
@@ -103,6 +119,7 @@ export function ProjectTemplateDetailPage() {
       for (const rule of readinessRules) {
         next[rule.id] = {
           title: rule.title,
+          description: rule.description || '',
           targetValue: String(rule.targetValue),
           weight: String(rule.weight),
           isActive: rule.isActive,
@@ -144,6 +161,7 @@ export function ProjectTemplateDetailPage() {
 
           return updateProjectTemplateReadinessRule(rule.id, {
             title: form.title,
+            description: form.description.trim() || null,
             targetValue,
             weight,
             isActive: form.isActive,
@@ -158,6 +176,103 @@ export function ProjectTemplateDetailPage() {
       setEditingReadinessRules(false)
     },
   })
+
+  const buildPublicationAnalysisContext = (userExtra?: string) => {
+    if (!template || !readiness) return null
+
+    return {
+      project: {
+        name: template.name,
+        type: template.type,
+        description: template.description,
+        version: template.version,
+      },
+      readiness: {
+        scorePercentage: readiness.scorePercentage,
+        statusLabel: readiness.statusLabel,
+        isReady: readiness.isReady,
+        metCount: readiness.metCount,
+        totalCount: readiness.totalCount,
+        trackCount: readiness.trackCount,
+        quizCount: readiness.quizCount,
+        materialCount: readiness.materialCount,
+        studyTrackCount: readiness.studyTrackCount,
+        missingTips: readiness.missingTips,
+      },
+      publicationCriteria: readiness.requirements.map((requirement) => ({
+        title: requirement.title,
+        description: requirement.description,
+        targetValue: requirement.targetValue,
+        actualValue: requirement.actualValue,
+        isMet: requirement.isMet,
+        isActive: true,
+      })),
+      userExtra,
+    }
+  }
+  const qualitativeReadinessFeedback = qualitativeAnalysis?.analysis || ''
+  const generatedForVersion = qualitativeAnalysis?.generatedForVersion ?? null
+  const isQualitativeAnalysisStale = !template || generatedForVersion !== template.version
+
+  const runQualitativeAnalysisGeneration = async (source: 'auto' | 'manual') => {
+    if (!slug || !template || !readiness || isAutoAnalysisInFlightRef.current) return
+
+    const context = buildPublicationAnalysisContext()
+    if (!context) return
+
+    const requestId = autoAnalysisRequestIdRef.current + 1
+    autoAnalysisRequestIdRef.current = requestId
+    isAutoAnalysisInFlightRef.current = true
+    setLastAutoAnalysisAt(Date.now())
+    setIsGeneratingQualitativeFeedback(true)
+
+    try {
+      const result = await generatePublicationQualitativeAnalysis(context)
+      if (autoAnalysisRequestIdRef.current !== requestId) return
+
+      await saveProjectTemplateQualitativeAnalysis(slug, {
+        analysis: result,
+        generatedForVersion: template.version,
+      })
+      if (autoAnalysisRequestIdRef.current !== requestId) return
+
+      queryClient.invalidateQueries({ queryKey: ['project-template-qualitative-analysis', slug] })
+      if (source === 'manual') toast.success('Avaliação da IA atualizada!')
+    } catch (error: unknown) {
+      if (autoAnalysisRequestIdRef.current !== requestId) return
+      const message = error instanceof Error ? error.message : 'Erro desconhecido ao gerar crítica.'
+      toast.error(message)
+    } finally {
+      if (autoAnalysisRequestIdRef.current !== requestId) return
+      isAutoAnalysisInFlightRef.current = false
+      setIsGeneratingQualitativeFeedback(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!slug || !template || !readiness) return
+    if (!isQualitativeAnalysisStale || isAutoAnalysisInFlightRef.current) return
+
+    const elapsed = Date.now() - lastAutoAnalysisAt
+    const throttledDelay = elapsed >= AUTO_PUBLICATION_ANALYSIS_MIN_INTERVAL_MS
+      ? 0
+      : AUTO_PUBLICATION_ANALYSIS_MIN_INTERVAL_MS - elapsed
+    const delay = Math.max(throttledDelay, AUTO_PUBLICATION_ANALYSIS_DEBOUNCE_MS)
+
+    const timerId = window.setTimeout(() => {
+      void runQualitativeAnalysisGeneration('auto')
+    }, delay)
+
+    return () => {
+      window.clearTimeout(timerId)
+    }
+  }, [isQualitativeAnalysisStale, lastAutoAnalysisAt, readiness, slug, template])
+
+  useEffect(() => {
+    autoAnalysisRequestIdRef.current += 1
+    isAutoAnalysisInFlightRef.current = false
+    setIsGeneratingQualitativeFeedback(false)
+  }, [slug])
 
   if (!template) {
     return <PageContainer title="Carregando..."><div className="flex justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" /></div></PageContainer>
@@ -203,7 +318,18 @@ export function ProjectTemplateDetailPage() {
       }
     >
       {template.description && <p className="text-sm text-muted -mt-4 mb-4">{template.description}</p>}
-      {readiness && <ProjectTemplateReadinessCard readiness={readiness} />}
+      {readiness && (
+        <ProjectTemplateReadinessCard
+          readiness={readiness}
+          qualitativeReadinessFeedback={qualitativeReadinessFeedback}
+          isGeneratingQualitativeFeedback={isGeneratingQualitativeFeedback}
+          generatedForVersion={generatedForVersion}
+          currentTemplateVersion={template.version}
+          onRequestNewAnalysis={() => {
+            void runQualitativeAnalysisGeneration('manual')
+          }}
+        />
+      )}
 
       <TracksList projectTemplateSlug={slug!} projectTemplateId={template.id} tracks={tracks} template={template} />
 
@@ -250,6 +376,7 @@ export function ProjectTemplateDetailPage() {
           {readinessRules.map((rule: ProjectTemplateReadinessRule) => {
             const form = readinessRulesForm[rule.id] ?? {
               title: rule.title,
+              description: rule.description || '',
               targetValue: String(rule.targetValue),
               weight: String(rule.weight),
               isActive: rule.isActive,
@@ -276,6 +403,13 @@ export function ProjectTemplateDetailPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Textarea
+                    id={`rule-description-${rule.id}`}
+                    label="Critério de avaliação para IA (editável pelo admin)"
+                    value={form.description}
+                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, description: e.target.value } }))}
+                    placeholder="Ex.: Avaliar se a progressão didática da faixa está clara e contextualizada para o aluno."
+                  />
                   <Input
                     id={`rule-target-${rule.id}`}
                     label="Meta mínima"
@@ -303,8 +437,23 @@ export function ProjectTemplateDetailPage() {
   )
 }
 
-function ProjectTemplateReadinessCard({ readiness }: { readiness: ProjectTemplateReadinessSummary }) {
+function ProjectTemplateReadinessCard({
+  readiness,
+  qualitativeReadinessFeedback,
+  isGeneratingQualitativeFeedback,
+  generatedForVersion,
+  currentTemplateVersion,
+  onRequestNewAnalysis,
+}: {
+  readiness: ProjectTemplateReadinessSummary
+  qualitativeReadinessFeedback: string
+  isGeneratingQualitativeFeedback: boolean
+  generatedForVersion: number | null
+  currentTemplateVersion: number
+  onRequestNewAnalysis: () => void
+}) {
   const { scorePercentage, statusLabel, isReady, metCount, totalCount, missingTips, trackCount, quizCount, materialCount, studyTrackCount } = readiness
+  const isOutdated = generatedForVersion == null || generatedForVersion !== currentTemplateVersion
 
   const statusVariant = isReady ? 'success' : scorePercentage >= 70 ? 'warning' : 'error'
   const statusIcon = isReady ? <CheckCircle2 className="h-4 w-4" /> : scorePercentage >= 70 ? <AlertTriangle className="h-4 w-4" /> : <CircleDashed className="h-4 w-4" />
@@ -348,6 +497,33 @@ function ProjectTemplateReadinessCard({ readiness }: { readiness: ProjectTemplat
             ))}
           </ul>
         </div>
+      )}
+
+      {(qualitativeReadinessFeedback || isOutdated) && (
+        <div className="mt-3 rounded-lg border border-info/30 bg-info/10 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase text-info">Crítica construtiva da IA (orientativa)</p>
+            <div className="flex items-center gap-2">
+              {isOutdated && (
+                <Badge variant="warning" className="text-[10px]">
+                  Desatualizada (v{generatedForVersion ?? 0} → v{currentTemplateVersion})
+                </Badge>
+              )}
+              <Button size="sm" variant="ghost" onClick={onRequestNewAnalysis} isLoading={isGeneratingQualitativeFeedback}>
+                <RotateCw className="h-3.5 w-3.5" /> Gerar nova avaliação
+              </Button>
+            </div>
+          </div>
+          {qualitativeReadinessFeedback ? (
+            <p className="mt-1 whitespace-pre-wrap text-sm text-text">{qualitativeReadinessFeedback}</p>
+          ) : (
+            <p className="mt-1 text-sm text-muted">A avaliação ainda não foi gerada para esta versão.</p>
+          )}
+        </div>
+      )}
+
+      {isGeneratingQualitativeFeedback && (
+        <p className="mt-3 text-xs text-muted">Atualizando crítica construtiva da IA automaticamente...</p>
       )}
     </div>
   )
