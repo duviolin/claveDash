@@ -1202,6 +1202,14 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
       setEditing(null)
       setModalOpen(false)
     },
+    onError: (error: unknown) => {
+      const err = error as AxiosError<{ code?: string }>
+      if (err.response?.status === 404 || err.response?.data?.code === 'RESOURCE_NOT_FOUND') {
+        setEditing(null)
+        toast('Quiz antigo não encontrado. Criando um novo com os dados atuais...')
+        createMut.mutate()
+      }
+    },
   })
 
   const deleteMut = useMutation({
