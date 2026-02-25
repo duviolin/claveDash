@@ -58,7 +58,17 @@ export async function listClassTeachers(classIdOrSlug: string) {
   return data
 }
 
+export async function listDeletedClassTeachers(classIdOrSlug: string) {
+  const { data } = await api.get(`/classes/${classIdOrSlug}/teachers/deleted`)
+  return data
+}
+
 export async function listClassStudents(classIdOrSlug: string) {
   const { data } = await api.get(`/classes/${classIdOrSlug}/students`)
+  return data
+}
+
+export async function listDeletedClassStudents(classIdOrSlug: string) {
+  const { data } = await api.get(`/classes/${classIdOrSlug}/students/deleted`)
   return data
 }

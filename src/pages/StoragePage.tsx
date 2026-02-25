@@ -5,7 +5,8 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { ConfirmModal } from '@/components/ui/Modal'
-import { getStorageConfig, listOrphans, uploadFile } from '@/api/storage'
+import { FileUpload, type FileUploadFileType } from '@/components/ui/FileUpload'
+import { getStorageConfig, listOrphans } from '@/api/storage'
 import toast from 'react-hot-toast'
 
 const FILE_TYPES = [
@@ -18,8 +19,6 @@ const FILE_TYPES = [
 
 export function StoragePage() {
   const [selectedType, setSelectedType] = useState('avatars')
-  const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
 
   const { data: config } = useQuery({
@@ -40,23 +39,6 @@ export function StoragePage() {
       setDeleteConfirm(false)
     },
   })
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploading(true)
-    setProgress(0)
-    try {
-      const key = await uploadFile(file, 'general', 'test', selectedType, setProgress)
-      toast.success(`Upload concluído! Key: ${key}`)
-    } catch {
-      toast.error('Falha no upload')
-    } finally {
-      setUploading(false)
-      e.target.value = ''
-    }
-  }
 
   const orphanList = orphans?.orphans ?? []
 
@@ -80,17 +62,16 @@ export function StoragePage() {
               <p>Extensões: {config.allowedExtensions.join(', ')}</p>
             </div>
           )}
-          <div className="relative">
-            <input type="file" onChange={handleUpload} disabled={uploading} className="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-accent file:text-white hover:file:bg-accent-hover file:cursor-pointer" />
-            {uploading && (
-              <div className="mt-2">
-                <div className="h-2 rounded-full bg-surface-2 overflow-hidden">
-                  <div className="h-full bg-accent transition-all duration-300" style={{ width: `${progress}%` }} />
-                </div>
-                <p className="text-xs text-muted mt-1">{progress}%</p>
-              </div>
-            )}
-          </div>
+          <FileUpload
+            key={selectedType}
+            fileType={selectedType as FileUploadFileType}
+            entityType="general"
+            entityId="test"
+            helperText="Upload com preview para teste de formatos"
+            onUploadComplete={(key) => {
+              toast.success(`Upload concluído! Key: ${key}`)
+            }}
+          />
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-6 space-y-4">

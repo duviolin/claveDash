@@ -60,19 +60,25 @@ function Breadcrumb() {
   const segments = location.pathname.split('/').filter(Boolean)
 
   return (
-    <nav className="flex items-center gap-1.5 text-sm">
+    <nav className="flex min-w-0 items-center gap-1.5 overflow-hidden text-sm">
       {segments.map((segment, index) => {
         const path = '/' + segments.slice(0, index + 1).join('/')
         const label = getSegmentLabel(segment, segments, index)
         const isLast = index === segments.length - 1
 
         return (
-          <span key={path} className="flex items-center gap-1.5">
+          <span key={path} className="flex min-w-0 items-center gap-1.5">
             {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted" />}
             {isLast ? (
-              <span className="font-medium text-text">{label}</span>
+              <span className="max-w-40 truncate font-medium text-text sm:max-w-56" title={label}>
+                {label}
+              </span>
             ) : (
-              <Link to={path} className="text-muted hover:text-text transition-colors">
+              <Link
+                to={path}
+                className="max-w-40 truncate text-muted transition-colors hover:text-text sm:max-w-56"
+                title={label}
+              >
                 {label}
               </Link>
             )}
@@ -90,9 +96,11 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface/80 backdrop-blur-sm px-6">
-      <Breadcrumb />
+      <div className="min-w-0 flex-1 pr-4">
+        <Breadcrumb />
+      </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-4">
         {user && (
           <>
             <NotificationBell />
