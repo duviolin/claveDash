@@ -16,7 +16,7 @@ export interface ErrorHandler {
 
 export const ERROR_HANDLERS: Record<string, ErrorHandler> = {
   // ── Auth ──────────────────────────────────────────
-  AUTH_INVALID_CREDENTIALS: { message: 'Email ou senha inválidos' },
+  AUTH_INVALID_CREDENTIALS: { message: 'E-mail ou senha inválidos' },
   AUTH_MUST_CHANGE_PASSWORD: {
     message: 'Primeiro acesso. Troque sua senha.',
   },

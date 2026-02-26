@@ -119,7 +119,7 @@ export function ProjectInstancesPage() {
     <PageContainer
       title="Projetos Instanciados"
       count={selectedSeasonId ? projects.length : undefined}
-      action={<Button onClick={() => { setInstForm({ templateId: '', classId: '', seasonId: '' }); setInstantiateOpen(true) }}><Plus className="h-4 w-4" /> Instanciar Projeto</Button>}
+      action={<Button onClick={() => { setInstForm({ templateId: '', classId: '', seasonId: '' }); setInstantiateOpen(true) }}><Plus className="h-4 w-4" /> Criar Projeto</Button>}
     >
       <div className="mb-4 max-w-xs">
         <Select
@@ -138,8 +138,8 @@ export function ProjectInstancesPage() {
         <Table columns={columns} data={projects} keyExtractor={(p) => p.id} isLoading={isLoading} />
       )}
 
-      <Modal isOpen={instantiateOpen} onClose={() => setInstantiateOpen(false)} title="Instanciar Projeto" footer={
-        <><Button variant="secondary" onClick={() => setInstantiateOpen(false)}>Cancelar</Button><Button onClick={() => instantiateMut.mutate()} isLoading={instantiateMut.isPending}>Instanciar</Button></>
+      <Modal isOpen={instantiateOpen} onClose={() => setInstantiateOpen(false)} title="Criar Projeto" footer={
+        <><Button variant="secondary" onClick={() => setInstantiateOpen(false)}>Cancelar</Button><Button onClick={() => instantiateMut.mutate()} isLoading={instantiateMut.isPending}>Criar</Button></>
       }>
         <div className="space-y-4">
           <Select id="instTemplate" label="Template" value={instForm.templateId} onChange={(e) => setInstForm({ ...instForm, templateId: e.target.value })} placeholder="Selecionar template apto..." options={readyTemplates.map((t: ProjectTemplate) => ({ value: t.id, label: t.name }))} />

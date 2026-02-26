@@ -1,22 +1,23 @@
 ---
-description: Regras de workflow e integracao com o backend
+description: Regras de workflow e integração com o backend
 alwaysApply: true
 ---
 
-# Workflow Obrigatorio
+# Workflow Obrigatório
 
-## Apos CADA iteracao de codigo, verificar:
+## Após CADA iteração de código, verificar:
 
 1. **Types**: se criou/alterou entidade, atualizar `src/types/index.ts`
 2. **Constants**: se criou novo status/enum, adicionar labels e variants em `src/lib/constants.ts`
 3. **Error codes**: se backend tem novo error code, adicionar em `src/lib/errorCodes.ts`
-4. **Rules**: se o padrao mudou, atualizar a rule correspondente em `.cursor/rules/`
-5. **DeactivationBlockedModal**: se backend adicionou nova verificacao de filhos, adicionar `childResource` no `CHILD_NAV`
+4. **Rules**: se o padrão mudou, atualizar a rule correspondente em `.cursor/rules/`
+5. **DeactivationBlockedModal**: se backend adicionou nova verificação de filhos, adicionar `childResource` no `CHILD_NAV`
 
-## Ao criar codigo novo:
+## Ao criar código novo:
 
-- Seguir EXATAMENTE os padroes da rule da camada sendo editada (01 a 04)
-- Verificar se o endpoint ja existe no backend antes de criar chamada API
+- Seguir EXATAMENTE os padrões da rule da camada sendo editada (01 a 04)
+- Verificar se o endpoint já existe no backend antes de criar chamada API
+- Ao escrever prompts, mensagens e labels, usar linguagem simples e popular, com português claro e correto
 
 ## Ao criar List Page:
 
@@ -26,20 +27,20 @@ alwaysApply: true
 - DELETE functions SEMPRE retornam void (backend envia 204)
 - Error handlers usam `error: unknown` com type assertion (NUNCA `error: any`)
 
-## Integracao com Backend
+## Integração com Backend
 
-O backend vive em `c:\Users\eduar\Documents\claveBack` e tem suas proprias cursor rules:
+O backend vive em `c:\Users\eduar\Documents\claveBack` e tem suas próprias cursor rules:
 
-| Rule | Conteudo | Consultar quando... |
+| Rule | Conteúdo | Consultar quando... |
 |------|----------|---------------------|
-| `00-project.md` | Stack, arquitetura, convencoes gerais | Precisar de contexto geral do backend |
-| `01-domain.md` | Entidades, use cases, repositorios, eventos | Verificar cadeia de soft delete, campos de entidade |
+| `00-project.md` | Stack, arquitetura, convenções gerais | Precisar de contexto geral do backend |
+| `01-domain.md` | Entidades, use cases, repositórios, eventos | Verificar cadeia de soft delete, campos de entidade |
 | `02-application.md` | Services, DTOs, ApplicationRunner | Entender formato de DTOs que a API retorna |
-| `03-infrastructure.md` | Controllers, routes, repositories, middleware | Verificar endpoints, validacoes, status codes |
-| `04-prisma.md` | Schema, queries, migrations | Ver entidades com/sem soft delete, campos disponiveis |
-| `06-workflow.md` | Workflow de atualizacao de docs/rules | Entender processo de mudancas no backend |
+| `03-infrastructure.md` | Controllers, routes, repositories, middleware | Verificar endpoints, validações, status codes |
+| `04-prisma.md` | Schema, queries, migrations | Ver entidades com/sem soft delete, campos disponíveis |
+| `06-workflow.md` | Workflow de atualização de docs/rules | Entender processo de mudanças no backend |
 
-### Ordem de criacao full-stack
+### Ordem de criação full-stack
 
 1. **Backend**: entity -> repository interface -> use case -> service/DTO -> controller -> route
 2. **Frontend**: type em `@/types` -> api module -> page/component
@@ -50,14 +51,14 @@ O backend vive em `c:\Users\eduar\Documents\claveBack` e tem suas proprias curso
 - POST retorna **201 + body** — frontend usa `const { data } = await api.post<T>()`
 - PATCH retorna **200 + body** — frontend usa `const { data } = await api.patch<T>()`
 - GET retorna **200 + body** — frontend usa `const { data } = await api.get<T>()`
-- Paginacao: `?page=1&limit=10` -> `{ data: T[], pagination: { page, limit, total, totalPages } }`
-- Erros: `{ error: string, code: string, details?: object }` — codigo mapeado em `errorCodes.ts`
+- Paginação: `?page=1&limit=10` -> `{ data: T[], pagination: { page, limit, total, totalPages } }`
+- Erros: `{ error: string, code: string, details?: object }` — código mapeado em `errorCodes.ts`
 - 409 bloqueado: `{ error, code: "CONFLICT_INVALID_STATE", details: { childResource, count, names? } }`
-- Backend retorna DTO (frontend NAO acessa campos internos da entidade)
+- Backend retorna DTO (frontend NÃO acessa campos internos da entidade)
 - Auth: JWT via `Authorization: Bearer <token>`, roles: ADMIN, DIRECTOR, TEACHER, STUDENT
-- Identificador publico em URL: **slug** (nao UUID)
-- DTOs expostos em lista/detalhe devem incluir `slug` quando entidade participa de navegacao
-- Query params de navegacao contextual (ex.: filtros via `DeactivationBlockedModal`) devem usar slug
+- Identificador público em URL: **slug** (não UUID)
+- DTOs expostos em lista/detalhe devem incluir `slug` quando entidade participa de navegação
+- Query params de navegação contextual (ex.: filtros via `DeactivationBlockedModal`) devem usar slug
 
 ### Como consultar o backend
 

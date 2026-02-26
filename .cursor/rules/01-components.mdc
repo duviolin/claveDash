@@ -1,35 +1,35 @@
 ---
-description: Padroes de componentes UI e layout
+description: Padrões de componentes UI e layout
 globs: ["src/components/**"]
 alwaysApply: false
 ---
 
-# Components - Padroes CORRETOS
+# Components - Padrões CORRETOS
 
 ## UI Components (`components/ui/`)
 
 - Props: `interface XProps` no mesmo arquivo; estender HTML attrs quando fizer sentido (`ButtonHTMLAttributes`, etc.)
 - Form controls (`Input`, `Select`, `Textarea`, `PasswordInput`): usar `forwardRef` + `displayName`
 - Variantes: `Record<Variant, string>` + `cn(base, variantStyles[variant], className)`
-- SEMPRE aceitar `className?` para composicao
-- NUNCA usar estado interno para logica de negocio (componentes UI sao burros)
+- SEMPRE aceitar `className?` para composição
+- NUNCA usar estado interno para lógica de negócio (componentes UI são burros)
 
-### Catalogo de componentes UI
+### Catálogo de componentes UI
 - **Layout**: Button, Badge, Tabs, Pagination, EmptyState, Skeleton
 - **Form**: Input, Select, Textarea, PasswordInput
 - **Overlay**: Modal (inclui `ConfirmModal` exportado do mesmo arquivo), DeactivationBlockedModal
 - **Data**: Table
-- **AI**: AIButton (botao com loading para chamadas de IA)
+- **AI**: AIButton (botão com loading para chamadas de IA)
   - Props: `onGenerate: (userExtra?: string) => Promise<string>`, `onAccept`, `label?`, `extraInputLabel?`, `extraInputPlaceholder?`
-  - Quando `extraInputLabel` definido, exibe textarea para instrucoes extras do usuario
+  - Quando `extraInputLabel` estiver definido, exibe textarea para instruções extras do usuário
 
 ## Layout Components (`components/layout/`)
 
-- `PageContainer`: wrapper padrao de paginas (title, count?, action?)
+- `PageContainer`: wrapper padrão de páginas (title, count?, action?)
 - `AppLayout`: guard de auth + Sidebar + Header + Outlet
 - NUNCA acessar API direto no layout (exceto AuthContext e NotificationBell)
 
-## Padrao de Badge com status
+## Padrão de Badge com status
 
 ```tsx
 <Badge variant={STATUS_VARIANT[item.status]}>{STATUS_LABELS[item.status]}</Badge>
@@ -39,20 +39,20 @@ Labels e variants centralizados em `@/lib/constants.ts`, NUNCA inline.
 
 ## DeactivationBlockedModal
 
-Componente reutilizavel para exibir mensagem quando soft delete eh bloqueado por filhos ativos.
+Componente reutilizável para exibir mensagem quando soft delete é bloqueado por filhos ativos.
 - Props: `isOpen`, `onClose`, `entityName`, `parentId`, `details: DeactivationErrorDetails`
-- Mapa `CHILD_NAV` converte `childResource` em label + URL para navegacao
-- SEMPRE adicionar novos `childResource` ao `CHILD_NAV` quando criar nova verificacao no backend
+- Mapa `CHILD_NAV` converte `childResource` em label + URL para navegação
+- SEMPRE adicionar novos `childResource` ao `CHILD_NAV` quando criar nova verificação no backend
 
 ### CHILD_NAV entries (15 resources mapeados)
 - `schools`, `courses`, `seasons`, `classes`, `students`, `teachers`, `members`
 - `projectTemplates`, `trackSceneTemplates`, `trackMaterialTemplates`
 - `studyTrackTemplates`
 - `pressQuizTemplates`, `dailyMissionTemplates`, `dailyMissionQuizzes`
-- `projects` (instancias)
+- `projects` (instâncias)
 
 ## ANTI-PATTERNS
 
-- NAO criar componentes com logica de negocio em `ui/`
+- NÃO criar componentes com lógica de negócio em `ui/`
 - NAO usar `style={{}}` inline (usar Tailwind)
 - NAO duplicar classes Tailwind entre componentes (extrair para `cn()` ou variante)

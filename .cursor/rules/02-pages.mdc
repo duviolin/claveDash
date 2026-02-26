@@ -1,25 +1,25 @@
 ---
-description: Padroes de paginas - list, detail, create
+description: Padrões de páginas - list, detail, create
 globs: ["src/pages/**"]
 alwaysApply: false
 ---
 
-# Pages - Padroes CORRETOS
+# Pages - Padrões CORRETOS
 
 ## Estrutura de List Page
 
 ```tsx
 export function XListPage() {
   // 1. Hooks: navigate, queryClient, state (filters, pagination, modals, tabs)
-  // 2. useQuery para dados ativos + useQuery para lixeira (com paginacao)
+  // 2. useQuery para dados ativos + useQuery para lixeira (com paginação)
   // 3. Mutations: save, delete (com onError 409), restore
   // 4. Handlers (openCreate, openEdit, closeModal)
-  // 5. Definicao de columns (active + trash)
+  // 5. Definição de columns (active + trash)
   // 6. Return: PageContainer > Tabs > Filters > Table > Pagination > Modals
 }
 ```
 
-## Padrao de Tabs (Ativas + Lixeira)
+## Padrão de Tabs (Ativas + Lixeira)
 
 ```tsx
 const tabs = [
@@ -30,17 +30,17 @@ const [activeTab, setActiveTab] = useState('active')
 const isTrash = activeTab === 'TRASH'
 ```
 
-## Padrao de Queries
+## Padrão de Queries
 
 ```tsx
-// Lista ativa (sem paginacao ou com filtro)
+// Lista ativa (sem paginação ou com filtro)
 const { data, isLoading } = useQuery({
   queryKey: ['resource', filter],
   queryFn: () => listResource(filter || undefined),
   enabled: !isTrash,
 })
 
-// Lixeira (com paginacao)
+// Lixeira (com paginação)
 const { data: deletedResponse } = useQuery({
   queryKey: ['resource', 'deleted', page],
   queryFn: () => listDeletedResource({ page, limit: PAGE_LIMIT }),
@@ -50,7 +50,7 @@ const deletedItems = deletedResponse?.data ?? []
 const pagination = deletedResponse?.pagination
 ```
 
-## Padrao de Mutations
+## Padrão de Mutations
 
 ```tsx
 // Delete com tratamento de 409
@@ -81,17 +81,17 @@ const restoreMutation = useMutation({
 })
 ```
 
-## Modals obrigatorios
+## Modals obrigatórios
 
 - `Modal` (de `@/components/ui/Modal`) para create/edit
 - `ConfirmModal` (exportado do mesmo `Modal.tsx`) para delete e restore
 - `DeactivationBlockedModal` para quando o delete retorna 409
 
-## Tipos de paginas
+## Tipos de páginas
 
 - `XListPage` (lista com tabs Ativas/Lixeira): users, schools, courses, seasons, classes, projectTemplates, dailyMissionTemplates
 - `XDetailPage` (detalhe/sub-entidades): ClassDetailPage, ProjectTemplateDetailPage
-- `XCreatePage` (criacao): UserCreatePage
+- `XCreatePage` (criação): UserCreatePage
 - **Outras**: DashboardPage, SettingsPage, StoragePage, ProjectInstancesPage
 - Arquivo = nome do componente: `UsersListPage.tsx`
 
@@ -99,8 +99,8 @@ const restoreMutation = useMutation({
 
 - `useQuery({ queryKey, queryFn })` para leitura
 - `useMutation({ mutationFn, onSuccess, onError? })` para escrita
-- SEMPRE `queryClient.invalidateQueries()` apos mutacao
-- NUNCA importar `prisma` ou acessar DB (isso eh backend)
+- SEMPRE `queryClient.invalidateQueries()` após mutação
+- NUNCA importar `prisma` ou acessar DB (isso é backend)
 
 ## ANTI-PATTERNS
 

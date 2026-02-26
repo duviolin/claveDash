@@ -1,10 +1,10 @@
 ---
-description: Padroes da camada API - client, modulos e tipos
+description: Padrões da camada API - client, módulos e tipos
 globs: ["src/api/**"]
 alwaysApply: false
 ---
 
-# API Layer - Padroes CORRETOS
+# API Layer - Padrões CORRETOS
 
 ## Client (`api/client.ts`)
 
@@ -13,7 +13,7 @@ alwaysApply: false
 - Response interceptor: erro tratado com `ERROR_HANDLERS` de `@/lib/errorCodes`, toast.error, redirect/logout
 - NUNCA modificar o client sem entender o fluxo de erro global
 
-## Modulos (um arquivo por dominio)
+## Módulos (um arquivo por domínio)
 
 ```tsx
 import { api } from './client'
@@ -53,7 +53,7 @@ export async function restoreX(id: string) {
 }
 ```
 
-## Modulos existentes
+## Módulos existentes
 
 - **CRUD admin**: `users.ts`, `schools.ts`, `courses.ts`, `seasons.ts`, `classes.ts`
 - **Templates**: `templates.ts` (multi-entidade: ProjectTemplate, TrackSceneTemplate, TrackMaterialTemplate, StudyTrackTemplate, PressQuizTemplate)
@@ -61,19 +61,19 @@ export async function restoreX(id: string) {
 - **Instances**: `instances.ts` (Project, TrackScene, TrackMaterial, StudyTrack, PressQuiz)
 - **Auth/profile**: `auth.ts`, `profiles.ts`
 - **Infra**: `storage.ts`, `media.ts`, `notifications.ts`, `dashboard.ts`
-- **AI**: `ai.ts` (geracao de conteudo com IA)
+- **AI**: `ai.ts` (geração de conteúdo com IA)
   - `generateQuiz(context: QuizGenerationContext)` — contexto rico: project, track, materials, studyTracks, userExtra
   - Sempre passar contexto do projeto/faixa/materiais para quizzes mais assertivos
 
 ## Convencoes
 
-- Naming: `listX`, `getX`, `createX`, `updateX`, `deleteX`, `restoreX`, `listDeletedX`, verbos especificos (`suspendUser`, `restoreUser`)
+- Naming: `listX`, `getX`, `createX`, `updateX`, `deleteX`, `restoreX`, `listDeletedX`, verbos específicos (`suspendUser`, `restoreUser`)
 - Payload types: `interface` no mesmo arquivo (`CreateXPayload`, `UpdateXPayload`, `ListXParams`)
 - Response types: importar de `@/types` (`X`, `PaginatedResponse<X>`)
 - DELETE retorna void (backend envia 204) — NUNCA `const { data } = await api.delete(...)`
 - PATCH/POST retorna o objeto atualizado
-- NUNCA try/catch nos modulos (interceptor global cuida)
-- Multi-entidade: `templates.ts` agrupa sub-entidades de templates em um unico arquivo (exceção ao padrao de um arquivo por recurso)
+- NUNCA try/catch nos módulos (interceptor global cuida)
+- Multi-entidade: `templates.ts` agrupa sub-entidades de templates em um único arquivo (exceção ao padrão de um arquivo por recurso)
 
 ## Tratamento de erro 409 (deactivation blocked)
 
@@ -90,16 +90,16 @@ NUNCA usar `error: any` — sempre `error: unknown` com type assertion.
 
 ## Backend Reference (`c:\Users\eduar\Documents\claveBack`)
 
-### Padrao REST do Backend
+### Padrão REST do Backend
 
-| Metodo | Status | Body de resposta | Funcao frontend |
+| Método | Status | Body de resposta | Função frontend |
 |--------|--------|------------------|-----------------|
 | POST | 201 | Objeto criado (DTO) | `const { data } = await api.post<T>()` |
 | GET | 200 | Objeto(s) ou paginado | `const { data } = await api.get<T>()` |
 | PATCH | 200 | Objeto atualizado (DTO) | `const { data } = await api.patch<T>()` |
 | DELETE | 204 | Sem body | `await api.delete()` (void) |
 
-### Endpoints padrao por recurso
+### Endpoints padrão por recurso
 
 - `POST /x` — criar (201)
 - `GET /x` — listar ativos (200, paginado com `?page=&limit=`)
@@ -109,7 +109,7 @@ NUNCA usar `error: any` — sempre `error: unknown` com type assertion.
 - `GET /x/deleted` — listar inativos/lixeira (200, paginado)
 - `PATCH /x/:id/restore` — restaurar (200)
 
-### Formato de paginacao
+### Formato de paginação
 
 `?page=1&limit=10` retorna `{ data: T[], pagination: { page, limit, total, totalPages } }`
 

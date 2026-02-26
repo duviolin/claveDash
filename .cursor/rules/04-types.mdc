@@ -1,17 +1,17 @@
 ---
-description: Padroes de tipos e constantes compartilhadas
+description: Padrões de tipos e constantes compartilhadas
 globs: ["src/types/**", "src/lib/**"]
 alwaysApply: false
 ---
 
-# Types e Constants - Padroes CORRETOS
+# Types e Constants - Padrões CORRETOS
 
 ## Types (`types/index.ts`)
 
-- TODOS os tipos compartilhados vivem em `src/types/index.ts` (arquivo unico)
+- TODOS os tipos compartilhados vivem em `src/types/index.ts` (arquivo único)
 - `type` para unions/enums: `type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'DIRECTOR'`
 - `interface` para objetos: `interface User { id: string; name: string; ... }`
-- `PaginatedResponse<T>` generico para respostas paginadas: `{ data: T[]; pagination: { page, limit, total, totalPages } }`
+- `PaginatedResponse<T>` genérico para respostas paginadas: `{ data: T[]; pagination: { page, limit, total, totalPages } }`
 - `DeactivationErrorDetails` para response 409: `{ childResource: string; count?: number; names?: string[]; studentsCount?: number; teachersCount?: number }`
 - Datas como `string` (ISO) no frontend (backend envia Date, Axios serializa)
 - SEMPRE que criar/alterar entidade no backend, atualizar o tipo correspondente aqui
@@ -23,7 +23,7 @@ alwaysApply: false
 ### Interfaces existentes (entidades)
 `AuthUser`, `User`, `School`, `Course`, `Season`, `Class`, `ProjectTemplate`, `TrackSceneTemplate`, `TrackMaterialTemplate`, `StudyTrackTemplate`, `PressQuizTemplate`, `DailyMissionTemplate`, `DailyMissionQuiz`, `Project`, `StudentProfile`, `TeacherProfile`, `Notification`
 
-### Interfaces utilitarias
+### Interfaces utilitárias
 `PaginatedResponse<T>`, `DeactivationErrorDetails`, `QuizQuestion`, `StorageConfig`, `PresignUploadResponse`, `MeResponse`, `ApiError`
 
 ## Constants (`lib/constants.ts`)
@@ -32,17 +32,17 @@ alwaysApply: false
 - Badge variants: `Record<XType, BadgeVariant>` (ex: `ROLE_BADGE_VARIANT`, `SEASON_STATUS_VARIANT`)
 - Options para Select: `Object.entries(LABELS).map(([value, label]) => ({ value, label }))`
 - SEMPRE adicionar labels/variants ao criar novo status ou enum
-- NUNCA hardcodar labels em paginas/componentes
+- NUNCA hardcodar labels em páginas/componentes
 
 ## Utils (`lib/utils.ts`)
 
 - `cn(...classes)`: clsx + tailwind-merge (SEMPRE usar para compor classes)
 - `formatDate(iso)`: formato pt-BR curto
 - `formatDateTime(iso)`: formato pt-BR com hora
-- `getInitials(name)`: iniciais para avatars
+- `getInitials(name)`: iniciais para avatares
 
 ## Error Codes (`lib/errorCodes.ts`)
 
 - `ERROR_HANDLERS: Record<string, { message, action? }>` consumido pelo interceptor Axios
-- Ao criar novo codigo de erro no backend, adicionar handler aqui
-- `CONFLICT_INVALID_STATE`: handler sem message (details sao tratados localmente no onError da mutation)
+- Ao criar novo código de erro no backend, adicionar handler aqui
+- `CONFLICT_INVALID_STATE`: handler sem message (details são tratados localmente no onError da mutation)

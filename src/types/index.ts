@@ -115,7 +115,7 @@ export interface ProjectTemplateReadinessSummary {
   metCount: number
   totalCount: number
   isReady: boolean
-  statusLabel: 'Nao pronto' | 'Quase pronto' | 'Apto para publicacao'
+  statusLabel: 'Não pronto' | 'Quase pronto' | 'Apto para publicação'
   missingTips: string[]
   requirements: ProjectTemplateReadinessRequirement[]
 }

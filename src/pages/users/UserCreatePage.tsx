@@ -59,7 +59,7 @@ export function UserCreatePage() {
           />
           <Input
             id="email"
-            label="Email"
+            label="E-mail"
             type="email"
             placeholder="usuario@email.com"
             value={form.email}

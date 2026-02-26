@@ -112,7 +112,7 @@ export function ClassDetailPage() {
 
   const removeMutation = useMutation({
     mutationFn: () => {
-      if (!removeTarget) throw new Error('No target')
+      if (!removeTarget) throw new Error('Nenhum vínculo selecionado')
       if (!classId) throw new Error('Turma não encontrada')
       const userId = getUserId(removeTarget.member)
       if (removeTarget.type === 'teacher') return removeTeacher(classId, userId)
@@ -128,7 +128,7 @@ export function ClassDetailPage() {
 
   const restoreMutation = useMutation({
     mutationFn: () => {
-      if (!restoreTarget) throw new Error('No restore target')
+      if (!restoreTarget) throw new Error('Nenhum vínculo selecionado para restaurar')
       if (!classId) throw new Error('Turma não encontrada')
       const userId = getUserId(restoreTarget.member)
       if (restoreTarget.type === 'teacher') return addTeacher(classId, userId)
@@ -159,7 +159,7 @@ export function ClassDetailPage() {
     },
     {
       key: 'email',
-      header: 'Email',
+      header: 'E-mail',
       render: (m: ClassMember) => <span className="text-muted">{m.email}</span>,
     },
     {

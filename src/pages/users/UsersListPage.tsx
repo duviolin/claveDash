@@ -137,7 +137,7 @@ export function UsersListPage() {
     },
     {
       key: 'email',
-      header: 'Email',
+      header: 'E-mail',
       render: (u: User) => <span className="text-muted">{truncate(u.email, 30)}</span>,
     },
     {
@@ -211,7 +211,7 @@ export function UsersListPage() {
     },
     {
       key: 'email',
-      header: 'Email',
+      header: 'E-mail',
       render: (u: User) => <span className="text-muted">{truncate(u.email, 30)}</span>,
     },
     {

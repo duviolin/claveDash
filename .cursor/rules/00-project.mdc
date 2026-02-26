@@ -1,5 +1,5 @@
 ---
-description: Contexto geral do projeto Clave Dashboard - stack, arquitetura e convencoes
+description: Contexto geral do projeto Clave Dashboard - stack, arquitetura e convenções
 alwaysApply: true
 ---
 
@@ -12,37 +12,37 @@ React 19 | TypeScript 5 (strict) | Vite 7 | TanStack React Query 5 | Axios | Rea
 
 ```
 src/
-  api/          -> Modulos HTTP por dominio (um arquivo por recurso)
+  api/          -> Módulos HTTP por domínio (um arquivo por recurso)
   components/
     layout/     -> AppLayout, Header, Sidebar, PageContainer, NotificationBell
-    ui/         -> Componentes reutilizaveis (Button, Table, Modal, Badge, Pagination, DeactivationBlockedModal, etc.)
-  contexts/     -> AuthContext (unico context, useAuth())
+    ui/         -> Componentes reutilizáveis (Button, Table, Modal, Badge, Pagination, DeactivationBlockedModal, etc.)
+  contexts/     -> AuthContext (único context, useAuth())
   lib/          -> utils (cn, formatDate), constants (labels/variants), errorCodes
-  pages/        -> Paginas organizadas por dominio (users/, schools/, courses/, etc.)
+  pages/        -> Páginas organizadas por domínio (users/, schools/, courses/, etc.)
   types/        -> index.ts com TODOS os tipos compartilhados
   routes.tsx    -> createBrowserRouter com guards
 ```
 
 Fluxo: Route -> Page -> useQuery/mutation (API) -> Componentes UI
 
-## Convencoes OBRIGATORIAS
+## Convenções OBRIGATÓRIAS
 
 - **Imports**: alias `@/` para `src/`; `import type` para tipos
-- **Naming**: PascalCase (componentes/arquivos), camelCase (funcoes/variaveis), UPPER_SNAKE (constantes)
+- **Naming**: PascalCase (componentes/arquivos), camelCase (funções/variáveis), UPPER_SNAKE (constantes)
 - **Componentes**: sempre funcionais, props tipadas com `interface XProps`
 - **Styling**: Tailwind classes via `cn()` de `@/lib/utils` (clsx + tailwind-merge)
 - **Tipos**: strict mode, sem `any`, tipos centralizados em `@/types/index.ts`
-- **Erros**: tratamento global no interceptor Axios (toast.error automatico). 409 tratado localmente com `DeactivationBlockedModal`
-- **Formularios**: estado local com `useState` (react-hook-form/zod estao instalados mas NAO sao usados)
+- **Erros**: tratamento global no interceptor Axios (toast.error automático). 409 tratado localmente com `DeactivationBlockedModal`
+- **Formulários**: estado local com `useState` (react-hook-form/zod estão instalados, mas NÃO são usados)
 - **Toasts**: `toast.success()` para sucesso, erros tratados pelo interceptor
-- **Idioma**: UI em portugues (labels, mensagens, placeholders)
+- **Idioma**: UI em português (labels, mensagens e placeholders), com linguagem simples, popular e clara
 - **Tema**: dark mode via CSS variables (--color-bg, --color-surface, --color-text, etc.)
 - **Soft delete**: Todas list pages tem tabs Ativas/Lixeira, delete + restore mutations, DeactivationBlockedModal
 - **Delete**: SEMPRE void (backend envia 204). NUNCA `const { data } = await api.delete(...)`
 - **Error handlers**: SEMPRE `error: unknown` com type assertion (NUNCA `error: any`)
-- **Identificadores publicos**: URLs e navegacao usam `slug` humano. UUID (`id`) e interno e nao deve aparecer na UI
+- **Identificadores públicos**: URLs e navegação usam `slug` humano. UUID (`id`) é interno e não deve aparecer na UI
 - **Rotas de detalhe**: usar `:slug` nas rotas React Router e `navigate()` com `entity.slug`
-- **APIs por recurso**: modulos podem aceitar `idOrSlug`, mas links e breadcrumbs devem priorizar `slug`
+- **APIs por recurso**: módulos podem aceitar `idOrSlug`, mas links e breadcrumbs devem priorizar `slug`
 
 ## Backend (`c:\Users\eduar\Documents\claveBack`)
 
@@ -52,23 +52,23 @@ Fluxo: Route -> Controller -> Service -> UseCase -> Repository -> DB
 
 ### Cursor Rules do Backend (`.cursor/rules/`)
 
-| Rule | Descricao | Quando consultar |
+| Rule | Descrição | Quando consultar |
 |------|-----------|------------------|
-| `00-project.md` | Stack, arquitetura, convencoes gerais | Contexto geral, roles, status HTTP |
-| `01-domain.md` | Entidades, use cases, repositorios, eventos | Cadeia de verificacao de filhos (soft delete) |
+| `00-project.md` | Stack, arquitetura, convenções gerais | Contexto geral, roles, status HTTP |
+| `01-domain.md` | Entidades, use cases, repositórios, eventos | Cadeia de verificação de filhos (soft delete) |
 | `02-application.md` | Services, DTOs, ApplicationRunner | Formato dos DTOs retornados pela API |
-| `03-infrastructure.md` | Controllers, routes, repositories, middleware | Endpoints, rotas, validacao, paginacao |
-| `04-prisma.md` | Schema, queries, migrations | Entidades com/sem soft delete, campos disponiveis |
-| `06-workflow.md` | Workflow de atualizacao de docs/rules | Processo de mudancas no backend |
+| `03-infrastructure.md` | Controllers, routes, repositories, middleware | Endpoints, rotas, validação, paginação |
+| `04-prisma.md` | Schema, queries, migrations | Entidades com/sem soft delete, campos disponíveis |
+| `06-workflow.md` | Workflow de atualização de docs/rules | Processo de mudanças no backend |
 
 ### Convencoes do Backend que afetam o Frontend
 
 - **Status HTTP**: POST=201, GET=200, PATCH=200, DELETE=204 (sem body)
-- **Paginacao**: `{ data: T[], pagination: { page, limit, total, totalPages } }`
-- **Erros**: `{ error: string, code: string, details?: object }` — mensagens em INGLES
+- **Paginação**: `{ data: T[], pagination: { page, limit, total, totalPages } }`
+- **Erros**: `{ error: string, code: string, details?: object }` — mensagens em inglês
 - **409 bloqueado**: `{ error, code: "CONFLICT_INVALID_STATE", details: { childResource, count, names?, studentsCount?, teachersCount? } }`
 - **Auth**: JWT no header `Authorization: Bearer <token>`, roles: ADMIN, DIRECTOR, TEACHER, STUDENT
 - **Soft delete**: `isActive` flag, GET `/deleted` para lixeira, PATCH `/:id/restore` para restaurar
 - **DTOs**: Backend SEMPRE retorna DTO (nunca entidade raw). Frontend mapeia DTO para tipos em `@/types`
 
-Ao fazer mudancas full-stack, LER as rules do backend diretamente em `c:\Users\eduar\Documents\claveBack\.cursor\rules\`.
+Ao fazer mudanças full-stack, LER as rules do backend diretamente em `c:\Users\eduar\Documents\claveBack\.cursor\rules\`.

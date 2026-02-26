@@ -308,11 +308,11 @@ export function ProjectTemplateDetailPage() {
           <Badge variant="default">v{template.version}</Badge>
           {user?.role === 'ADMIN' && (
             <Button size="sm" variant="secondary" onClick={() => setEditingReadinessRules(true)}>
-              Critérios de Publicação
+              Critérios de publicação
             </Button>
           )}
           <Button size="sm" variant="secondary" onClick={() => { setProjectForm({ name: template.name, description: template.description || '', coverImage: template.coverImage || '' }); setEditingProject(true) }}>
-            <Pencil className="h-3.5 w-3.5" /> Editar Info
+            <Pencil className="h-3.5 w-3.5" /> Editar informações
           </Button>
         </div>
       }
@@ -735,6 +735,7 @@ function TrackFormModal({ isOpen, onClose, title, form, setForm, onSubmit, isLoa
 // ---- Materials Section ----
 function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTemplateId: string; projectTemplateSlug: string }) {
   const queryClient = useQueryClient()
+  const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState('active')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<TrackMaterialTemplate | null>(null)
@@ -814,53 +815,69 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><FileText className="h-4 w-4 text-info" /> Materiais ({materials.length})</h3>
-        {!isTrash && <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /></Button>}
+        <button
+          type="button"
+          className="flex flex-1 items-center gap-1.5 text-left text-sm font-semibold text-text"
+          onClick={() => setIsExpanded((prev) => !prev)}
+        >
+          {isExpanded ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
+          <FileText className="h-4 w-4 text-info" />
+          Materiais ({materials.length})
+        </button>
+        {!isTrash && (
+          <Button size="sm" variant="ghost" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
-      <Tabs
-        tabs={[
-          { key: 'active', label: 'Ativos', count: materials.length },
-          { key: 'TRASH', label: 'Lixeira', count: deletedMaterials.length },
-        ]}
-        activeKey={activeTab}
-        onChange={setActiveTab}
-      />
-
-      {!isTrash && (
+      {isExpanded && (
         <>
-          {materials.length > 0 ? (
-            <div className="space-y-1 mt-2">
-              {materials.map((m) => (
-                <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                  <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
-                  <span className="min-w-0 flex-1 truncate text-text" title={m.title}>{m.title}</span>
-                  <button onClick={() => openEdit(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => setDeleteTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+          <Tabs
+            tabs={[
+              { key: 'active', label: 'Ativos', count: materials.length },
+              { key: 'TRASH', label: 'Lixeira', count: deletedMaterials.length },
+            ]}
+            activeKey={activeTab}
+            onChange={setActiveTab}
+          />
+
+          {!isTrash && (
+            <>
+              {materials.length > 0 ? (
+                <div className="space-y-1 mt-2">
+                  {materials.map((m) => (
+                    <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                      <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
+                      <span className="min-w-0 flex-1 truncate text-text" title={m.title}>{m.title}</span>
+                      <button onClick={() => openEdit(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => setDeleteTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted mt-2">Nenhum material ativo</p>
+              ) : (
+                <p className="text-sm text-muted mt-2">Nenhum material ativo</p>
+              )}
+            </>
           )}
-        </>
-      )}
 
-      {isTrash && (
-        <>
-          {deletedMaterials.length > 0 ? (
-            <div className="space-y-1 mt-2">
-              {deletedMaterials.map((m) => (
-                <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                  <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
-                  <span className="min-w-0 flex-1 truncate text-text" title={m.title}>{m.title}</span>
-                  <Badge variant="error" className="text-[10px]">Excluído</Badge>
-                  <button onClick={() => setRestoreTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+          {isTrash && (
+            <>
+              {deletedMaterials.length > 0 ? (
+                <div className="space-y-1 mt-2">
+                  {deletedMaterials.map((m) => (
+                    <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                      <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
+                      <span className="min-w-0 flex-1 truncate text-text" title={m.title}>{m.title}</span>
+                      <Badge variant="error" className="text-[10px]">Excluído</Badge>
+                      <button onClick={() => setRestoreTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+              ) : (
+                <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+              )}
+            </>
           )}
         </>
       )}
@@ -898,6 +915,7 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
 // ---- Study Tracks Section ----
 function StudyTracksSection({ trackTemplateId, projectTemplateSlug }: { trackTemplateId: string; projectTemplateSlug: string }) {
   const queryClient = useQueryClient()
+  const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState('active')
   const [trashPage, setTrashPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
@@ -993,61 +1011,77 @@ function StudyTracksSection({ trackTemplateId, projectTemplateSlug }: { trackTem
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><BookOpen className="h-4 w-4 text-success" /> Trilhas de Estudo ({studyTracks.length})</h3>
-        {!isTrash && <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /></Button>}
+        <button
+          type="button"
+          className="flex flex-1 items-center gap-1.5 text-left text-sm font-semibold text-text"
+          onClick={() => setIsExpanded((prev) => !prev)}
+        >
+          {isExpanded ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
+          <BookOpen className="h-4 w-4 text-success" />
+          Trilhas de Estudo ({studyTracks.length})
+        </button>
+        {!isTrash && (
+          <Button size="sm" variant="ghost" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
-      <Tabs
-        tabs={[
-          { key: 'active', label: 'Ativas', count: studyTracks.length },
-          { key: 'TRASH', label: 'Lixeira', count: pagination?.total ?? deletedStudyTracks.length },
-        ]}
-        activeKey={activeTab}
-        onChange={(key) => { setActiveTab(key); setTrashPage(1) }}
-      />
-
-      {!isTrash && (
+      {isExpanded && (
         <>
-          {studyTracks.length > 0 ? (
-            <div className="space-y-1 mt-2">
-              {studyTracks.map((st) => (
-                <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                  <span className="min-w-0 flex-1 truncate text-text" title={st.title}>{st.title}</span>
-                  <button onClick={() => openEdit(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => setDeleteTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted mt-2">Nenhuma trilha ativa</p>
-          )}
-        </>
-      )}
+          <Tabs
+            tabs={[
+              { key: 'active', label: 'Ativas', count: studyTracks.length },
+              { key: 'TRASH', label: 'Lixeira', count: pagination?.total ?? deletedStudyTracks.length },
+            ]}
+            activeKey={activeTab}
+            onChange={(key) => { setActiveTab(key); setTrashPage(1) }}
+          />
 
-      {isTrash && (
-        <>
-          {deletedStudyTracks.length > 0 ? (
+          {!isTrash && (
             <>
-              <div className="space-y-1 mt-2">
-                {deletedStudyTracks.map((st) => (
-                  <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                    <span className="min-w-0 flex-1 truncate text-text" title={st.title}>{st.title}</span>
-                    <Badge variant="error" className="text-[10px]">Excluído</Badge>
-                    <button onClick={() => setRestoreTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
-                  </div>
-                ))}
-              </div>
-              {pagination && pagination.totalPages > 1 && (
-                <Pagination
-                  page={trashPage}
-                  totalPages={pagination.totalPages}
-                  total={pagination.total}
-                  onPageChange={setTrashPage}
-                />
+              {studyTracks.length > 0 ? (
+                <div className="space-y-1 mt-2">
+                  {studyTracks.map((st) => (
+                    <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                      <span className="min-w-0 flex-1 truncate text-text" title={st.title}>{st.title}</span>
+                      <button onClick={() => openEdit(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => setDeleteTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted mt-2">Nenhuma trilha ativa</p>
               )}
             </>
-          ) : (
-            <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+          )}
+
+          {isTrash && (
+            <>
+              {deletedStudyTracks.length > 0 ? (
+                <>
+                  <div className="space-y-1 mt-2">
+                    {deletedStudyTracks.map((st) => (
+                      <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                        <span className="min-w-0 flex-1 truncate text-text" title={st.title}>{st.title}</span>
+                        <Badge variant="error" className="text-[10px]">Excluído</Badge>
+                        <button onClick={() => setRestoreTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                  {pagination && pagination.totalPages > 1 && (
+                    <Pagination
+                      page={trashPage}
+                      totalPages={pagination.totalPages}
+                      total={pagination.total}
+                      onPageChange={setTrashPage}
+                    />
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+              )}
+            </>
           )}
         </>
       )}
@@ -1118,9 +1152,43 @@ function StudyTracksSection({ trackTemplateId, projectTemplateSlug }: { trackTem
 const QUIZ_TRASH_PAGE_LIMIT = 20
 const STUDY_TRACK_TRASH_PAGE_LIMIT = 20
 
+function normalizeQuestionText(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isQuestionDuplicate(candidate: string, existing: string): boolean {
+  const normalizedCandidate = normalizeQuestionText(candidate)
+  const normalizedExisting = normalizeQuestionText(existing)
+
+  if (!normalizedCandidate || !normalizedExisting) return false
+  if (normalizedCandidate === normalizedExisting) return true
+  if (normalizedCandidate.length >= 24 && normalizedExisting.includes(normalizedCandidate)) return true
+  if (normalizedExisting.length >= 24 && normalizedCandidate.includes(normalizedExisting)) return true
+
+  const candidateTokens = new Set(normalizedCandidate.split(' ').filter((token) => token.length > 2))
+  const existingTokens = new Set(normalizedExisting.split(' ').filter((token) => token.length > 2))
+  if (candidateTokens.size === 0 || existingTokens.size === 0) return false
+
+  let intersection = 0
+  for (const token of candidateTokens) {
+    if (existingTokens.has(token)) intersection += 1
+  }
+  const union = candidateTokens.size + existingTokens.size - intersection
+  const jaccard = union === 0 ? 0 : intersection / union
+
+  return jaccard >= 0.7
+}
+
 // ---- Press Quizzes Section ----
 function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, template }: { trackTemplateId: string; projectTemplateSlug: string; track: TrackSceneTemplate; template?: ProjectTemplate }) {
   const queryClient = useQueryClient()
+  const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState('active')
   const [trashPage, setTrashPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
@@ -1236,6 +1304,15 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
 
   const openCreate = () => { setEditing(null); setForm({ title: '', description: '', questions: [], maxAttempts: 3, passingScore: 70 }); setModalOpen(true) }
   const openEdit = (q: PressQuizTemplate) => { setEditing(q); setForm({ title: q.title, description: q.description || '', questions: q.questionsJson || [], maxAttempts: q.maxAttempts, passingScore: q.passingScore }); setModalOpen(true) }
+  const trackQuestions = quizzes
+    .filter((quiz) => !editing || quiz.id !== editing.id)
+    .flatMap((quiz) => quiz.questionsJson ?? [])
+  const referenceQuestions = [...trackQuestions, ...form.questions]
+  const withNoDuplicateInstruction = (userExtra?: string) => {
+    const duplicateRule = 'NUNCA repita perguntas iguais ou no mesmo sentido das perguntas de referência já existentes.'
+    return userExtra?.trim() ? `${duplicateRule}\n${userExtra.trim()}` : duplicateRule
+  }
+
   const buildQuizAiContext = (userExtra?: string) => ({
     title: form.title || track.title,
     description: form.description,
@@ -1244,8 +1321,8 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
     track: { title: track.title, artist: track.artist, description: track.description, technicalInstruction: track.technicalInstruction, lyrics: track.lyrics },
     materials: materials.map((m) => ({ title: m.title, type: m.type })),
     studyTracks: studyTracks.map((st) => ({ title: st.title, description: st.description, technicalNotes: st.technicalNotes })),
-    existingQuestions: form.questions,
-    userExtra: userExtra || undefined,
+    existingQuestions: referenceQuestions,
+    userExtra: withNoDuplicateInstruction(userExtra),
   })
 
   const parseGeneratedQuestion = (raw: string): QuizQuestion | null => {
@@ -1279,64 +1356,80 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><HelpCircle className="h-4 w-4 text-warning" /> Quizzes</h3>
-        {!isTrash && <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /></Button>}
+        <button
+          type="button"
+          className="flex flex-1 items-center gap-1.5 text-left text-sm font-semibold text-text"
+          onClick={() => setIsExpanded((prev) => !prev)}
+        >
+          {isExpanded ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
+          <HelpCircle className="h-4 w-4 text-warning" />
+          Quizzes ({quizzes.length})
+        </button>
+        {!isTrash && (
+          <Button size="sm" variant="ghost" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
-      <Tabs
-        tabs={[
-          { key: 'active', label: 'Ativos', count: quizzes.length },
-          { key: 'TRASH', label: 'Lixeira', count: pagination?.total ?? deletedQuizzes.length },
-        ]}
-        activeKey={activeTab}
-        onChange={(key) => { setActiveTab(key); setTrashPage(1) }}
-      />
-
-      {!isTrash && (
+      {isExpanded && (
         <>
-          {quizzes.length > 0 ? (
-            <div className="space-y-1 mt-2">
-              {quizzes.map((q) => (
-                <div key={q.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                  <span className="min-w-0 flex-1 truncate text-text" title={q.title}>{q.title}</span>
-                  <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
-                  <span className="text-xs text-muted">{q.passingScore}%</span>
-                  <button onClick={() => openEdit(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => setDeleteTarget(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted mt-2">Nenhum quiz ativo</p>
-          )}
-        </>
-      )}
+          <Tabs
+            tabs={[
+              { key: 'active', label: 'Ativos', count: quizzes.length },
+              { key: 'TRASH', label: 'Lixeira', count: pagination?.total ?? deletedQuizzes.length },
+            ]}
+            activeKey={activeTab}
+            onChange={(key) => { setActiveTab(key); setTrashPage(1) }}
+          />
 
-      {isTrash && (
-        <>
-          {deletedQuizzes.length > 0 ? (
+          {!isTrash && (
             <>
-              <div className="space-y-1 mt-2">
-                {deletedQuizzes.map((q) => (
-                  <div key={q.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
-                    <span className="min-w-0 flex-1 truncate text-text" title={q.title}>{q.title}</span>
-                    <Badge variant="error" className="text-[10px]">Excluído</Badge>
-                    <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
-                    <button onClick={() => setRestoreTarget(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
-                  </div>
-                ))}
-              </div>
-              {pagination && pagination.totalPages > 1 && (
-                <Pagination
-                  page={trashPage}
-                  totalPages={pagination.totalPages}
-                  total={pagination.total}
-                  onPageChange={setTrashPage}
-                />
+              {quizzes.length > 0 ? (
+                <div className="space-y-1 mt-2">
+                  {quizzes.map((q) => (
+                    <div key={q.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                      <span className="min-w-0 flex-1 truncate text-text" title={q.title}>{q.title}</span>
+                      <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
+                      <span className="text-xs text-muted">{q.passingScore}%</span>
+                      <button onClick={() => openEdit(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => setDeleteTarget(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted mt-2">Nenhum quiz ativo</p>
               )}
             </>
-          ) : (
-            <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+          )}
+
+          {isTrash && (
+            <>
+              {deletedQuizzes.length > 0 ? (
+                <>
+                  <div className="space-y-1 mt-2">
+                    {deletedQuizzes.map((q) => (
+                      <div key={q.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                        <span className="min-w-0 flex-1 truncate text-text" title={q.title}>{q.title}</span>
+                        <Badge variant="error" className="text-[10px]">Excluído</Badge>
+                        <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
+                        <button onClick={() => setRestoreTarget(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                  {pagination && pagination.totalPages > 1 && (
+                    <Pagination
+                      page={trashPage}
+                      totalPages={pagination.totalPages}
+                      total={pagination.total}
+                      onPageChange={setTrashPage}
+                    />
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+              )}
+            </>
           )}
         </>
       )}
@@ -1362,7 +1455,27 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
                   try {
                     const parsed = JSON.parse(raw)
                     if (Array.isArray(parsed)) {
-                      setForm({ ...form, questions: parsed })
+                      const validGenerated = parsed.filter((item): item is QuizQuestion => (
+                        item &&
+                        typeof item.question === 'string' &&
+                        Array.isArray(item.options) &&
+                        typeof item.correctIndex === 'number'
+                      ))
+
+                      const uniqueGenerated = validGenerated.filter((item) => (
+                        !referenceQuestions.some((existingQuestion) => isQuestionDuplicate(item.question, existingQuestion.question))
+                      ))
+
+                      if (uniqueGenerated.length === 0) {
+                        toast.error('A IA gerou perguntas repetidas para esta faixa. Tente novamente.')
+                        return
+                      }
+
+                      if (uniqueGenerated.length < validGenerated.length) {
+                        toast('Algumas perguntas repetidas foram removidas automaticamente.')
+                      }
+
+                      setForm({ ...form, questions: uniqueGenerated })
                       return
                     }
                     toast.error('A IA não retornou uma lista de questões.')
@@ -1381,6 +1494,13 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
                   const generatedQuestion = parseGeneratedQuestion(raw)
                   if (!generatedQuestion) {
                     toast.error('Formato inválido retornado para pergunta.')
+                    return
+                  }
+                  const alreadyExists = referenceQuestions.some((existingQuestion) => (
+                    isQuestionDuplicate(generatedQuestion.question, existingQuestion.question)
+                  ))
+                  if (alreadyExists) {
+                    toast.error('Essa pergunta já existe (ou é muito parecida) nesta faixa. Gere outra.')
                     return
                   }
                   setForm({ ...form, questions: [...form.questions, generatedQuestion] })

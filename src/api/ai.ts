@@ -19,7 +19,9 @@ export async function generateWithAI(prompt: string, systemPrompt?: string): Pro
       messages: [
         {
           role: 'system',
-          content: systemPrompt || 'Você é um assistente especializado em educação musical. Responda em português do Brasil.',
+          content:
+            systemPrompt ||
+            'Você é um assistente especializado em educação musical. Responda sempre em português do Brasil correto, claro e natural, usando linguagem popular, simples e fácil de entender.',
         },
         { role: 'user', content: prompt },
       ],
@@ -123,11 +125,18 @@ export async function generateQuiz(context: QuizGenerationContext): Promise<stri
     })
   }
 
+  parts.push(`\n## Estilo de linguagem obrigatório`)
+  parts.push(`- Use linguagem popular, simples e direta.`)
+  parts.push(`- Use português do Brasil correto, claro e natural.`)
+  parts.push(`- Evite palavras difíceis, jargões e frases longas.`)
   parts.push(`\nRetorne APENAS um JSON array, sem markdown, no formato:`)
   parts.push(`[{"question":"...","options":["A","B","C","D"],"correctIndex":0}]`)
 
   const prompt = parts.join('\n')
-  return generateWithAI(prompt, 'Você gera quizzes educacionais de música e teatro. Use o contexto fornecido para criar questões assertivas e relevantes. Retorne APENAS JSON válido, sem blocos de código markdown.')
+  return generateWithAI(
+    prompt,
+    'Você gera quizzes educacionais de música e teatro. Use o contexto fornecido para criar questões assertivas e relevantes. Escreva perguntas e alternativas em linguagem popular, simples e direta, com português do Brasil correto, claro e natural. Retorne APENAS JSON válido, sem blocos de código markdown.'
+  )
 }
 
 export async function generateQuizQuestion(context: QuizGenerationContext): Promise<string> {
@@ -178,33 +187,37 @@ export async function generateQuizQuestion(context: QuizGenerationContext): Prom
     parts.push(context.userExtra.trim())
   }
 
+  parts.push(`\n## Estilo de linguagem obrigatório`)
+  parts.push(`- Use linguagem popular, simples e direta.`)
+  parts.push(`- Use português do Brasil correto, claro e natural.`)
+  parts.push(`- Evite palavras difíceis, jargões e frases longas.`)
   parts.push(`\nRetorne APENAS um JSON object, sem markdown, no formato:`)
   parts.push(`{"question":"...","options":["A","B","C","D"],"correctIndex":0}`)
 
   const prompt = parts.join('\n')
   return generateWithAI(
     prompt,
-    'Você gera uma única questão de quiz educacional, contextualizada, sem repetir questões existentes. Retorne APENAS JSON válido, sem bloco markdown.'
+    'Você gera uma única questão de quiz educacional, contextualizada, sem repetir questões existentes. Escreva a pergunta e as alternativas em linguagem popular, simples e direta, com português do Brasil correto, claro e natural. Retorne APENAS JSON válido, sem bloco markdown.'
   )
 }
 
 export async function generateDescription(context: { name: string; type?: string }): Promise<string> {
-  const prompt = `Crie uma descrição envolvente para o projeto "${context.name}"${context.type ? ` do tipo ${context.type === 'ALBUM' ? 'álbum musical' : 'peça teatral'}` : ''}. Máximo 3 parágrafos.`
+  const prompt = `Crie uma descrição envolvente para o projeto "${context.name}"${context.type ? ` do tipo ${context.type === 'ALBUM' ? 'álbum musical' : 'peça teatral'}` : ''}. Máximo 3 parágrafos. Use linguagem popular, simples e direta, com português do Brasil correto, claro e natural.`
   return generateWithAI(prompt)
 }
 
 export async function generateTechnicalInstruction(context: { title: string; artist?: string }): Promise<string> {
-  const prompt = `Escreva instruções técnicas detalhadas para a faixa "${context.title}"${context.artist ? ` do artista "${context.artist}"` : ''}. Inclua dicas de prática, técnicas vocais/instrumentais e pontos de atenção.`
+  const prompt = `Escreva instruções técnicas detalhadas para a faixa "${context.title}"${context.artist ? ` do artista "${context.artist}"` : ''}. Inclua dicas de prática, técnicas vocais/instrumentais e pontos de atenção. Use linguagem popular, simples e direta, com português do Brasil correto, claro e natural.`
   return generateWithAI(prompt)
 }
 
 export async function generateMaterialContent(context: { title: string; courseType?: string }): Promise<string> {
-  const prompt = `Crie um texto explicativo sobre "${context.title}" para alunos de ${context.courseType === 'THEATER' ? 'teatro' : 'música'}. Inclua dicas de prática e referências úteis.`
+  const prompt = `Crie um texto explicativo sobre "${context.title}" para alunos de ${context.courseType === 'THEATER' ? 'teatro' : 'música'}. Inclua dicas de prática e referências úteis. Use linguagem popular, simples e direta, com português do Brasil correto, claro e natural.`
   return generateWithAI(prompt)
 }
 
 export async function generateStudyNotes(context: { title: string }): Promise<string> {
-  const prompt = `Crie notas técnicas para a trilha de estudo "${context.title}". Inclua objetivos de aprendizagem, exercícios e dicas.`
+  const prompt = `Crie notas técnicas para a trilha de estudo "${context.title}". Inclua objetivos de aprendizagem, exercícios e dicas. Use linguagem popular, simples e direta, com português do Brasil correto, claro e natural.`
   return generateWithAI(prompt)
 }
 
@@ -246,7 +259,7 @@ export async function generatePublicationQualitativeAnalysis(context: Publicatio
     .map((rule) => {
       const target = `Meta: ${rule.targetValue}`
       const actual = typeof rule.actualValue === 'number' ? ` | Atual: ${rule.actualValue}` : ''
-      const status = typeof rule.isMet === 'boolean' ? ` | Status: ${rule.isMet ? 'atendido' : 'nao atendido'}` : ''
+      const status = typeof rule.isMet === 'boolean' ? ` | Status: ${rule.isMet ? 'atendido' : 'não atendido'}` : ''
       const description = rule.description?.trim() ? `\n  - Critério detalhado (editável pelo admin): ${rule.description.trim()}` : ''
       return `- ${rule.title} (${target}${actual}${status})${description}`
     })
@@ -255,11 +268,12 @@ export async function generatePublicationQualitativeAnalysis(context: Publicatio
     'Faça uma análise qualitativa curta e direta sobre a aptidão de publicação de um template de projeto educacional.',
     '',
     '## Regras obrigatórias da resposta',
-    '- Seja objetivo, com frases curtas e linguagem simples.',
+    '- Seja objetivo, com frases curtas e linguagem popular e simples.',
     '- Evite texto longo e repetições.',
     '- Se o projeto não estiver pronto, diga isso de forma clara.',
     '- Traga ações práticas para o próximo passo.',
-    '- Escrever em português do Brasil.',
+    '- Escreva em português do Brasil correto, claro e natural.',
+    '- Evite palavras difíceis, jargões e construções rebuscadas.',
     '',
     '## Projeto',
     `- Nome: ${context.project.name}`,
@@ -302,6 +316,6 @@ export async function generatePublicationQualitativeAnalysis(context: Publicatio
 
   return generateWithAI(
     prompt,
-    'Você é um avaliador pedagógico especialista em curadoria de conteúdo educacional. Responda de forma concisa, direta e orientativa.'
+    'Você é um avaliador pedagógico especialista em curadoria de conteúdo educacional. Responda de forma concisa, direta e orientativa, usando linguagem popular e simples, com português do Brasil correto, claro e natural.'
   )
 }

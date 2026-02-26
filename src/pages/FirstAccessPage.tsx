@@ -59,7 +59,7 @@ export function FirstAccessPage() {
         <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-surface p-6 space-y-4">
           <Input
             id="email"
-            label="Email"
+            label="E-mail"
             type="email"
             placeholder="seu@email.com"
             value={email}
