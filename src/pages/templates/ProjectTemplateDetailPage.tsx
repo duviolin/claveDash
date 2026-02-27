@@ -59,7 +59,6 @@ import type {
   DeactivationErrorDetails,
   QuizQuestion,
   ProjectTemplateReadinessSummary,
-  ProjectTemplateQualitativeAnalysis,
 } from '@/types'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import toast from 'react-hot-toast'
@@ -779,7 +778,7 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
     if (/^https?:\/\//i.test(viewingContentUrl)) return viewingContentUrl
     return previewSourceUrl || null
   })()
-  const previewFileName = viewingContentUrl ? viewingContentUrl.split('/').pop() || viewing.title : viewing?.title || ''
+  const previewFileName = viewingContentUrl ? viewingContentUrl.split('/').pop() || viewing?.title || '' : viewing?.title || ''
   const previewMimeType = viewing?.type === 'PDF'
     ? 'application/pdf'
     : viewing?.type === 'AUDIO'

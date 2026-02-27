@@ -104,7 +104,7 @@ export function ProjectTemplatesListPage() {
   })
 
   const coverBySlug = Object.fromEntries(
-    templatesList.map((template, index) => [template.slug, coverResults[index]?.data ?? null])
+    templatesList.map((template, index) => [template.slug, coverResults[index]?.data ?? undefined])
   )
 
   const createMutation = useMutation({
