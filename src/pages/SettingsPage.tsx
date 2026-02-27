@@ -4,7 +4,6 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/Button'
 import { PasswordInput } from '@/components/ui/PasswordInput'
-import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { changePassword } from '@/api/auth'
@@ -26,7 +25,6 @@ export function SettingsPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [editingReadinessRules, setEditingReadinessRules] = useState(false)
   const [readinessRulesForm, setReadinessRulesForm] = useState<Record<string, { description: string; targetValue: string; weight: string; isActive: boolean }>>({})
 
   const { data: readinessRules = [] } = useQuery({
@@ -37,18 +35,16 @@ export function SettingsPage() {
 
   useEffect(() => {
     if (!readinessRules.length) return
-    setReadinessRulesForm((prev) => {
-      const next = { ...prev }
-      for (const rule of readinessRules) {
-        next[rule.id] = {
-          description: rule.description || '',
-          targetValue: String(rule.targetValue),
-          weight: String(rule.weight),
-          isActive: rule.isActive,
-        }
+    const next: Record<string, { description: string; targetValue: string; weight: string; isActive: boolean }> = {}
+    for (const rule of readinessRules) {
+      next[rule.id] = {
+        description: rule.description || '',
+        targetValue: String(rule.targetValue),
+        weight: String(rule.weight),
+        isActive: rule.isActive,
       }
-      return next
-    })
+    }
+    setReadinessRulesForm(next)
   }, [readinessRules])
 
   const saveReadinessRulesMutation = useMutation({
@@ -73,7 +69,6 @@ export function SettingsPage() {
     onSuccess: () => {
       toast.success('Critérios de publicação atualizados!')
       queryClient.invalidateQueries({ queryKey: ['project-template-readiness-rules'] })
-      setEditingReadinessRules(false)
     },
   })
 
@@ -194,91 +189,90 @@ export function SettingsPage() {
             <p className="mt-1 text-sm text-muted">
               Defina as regras usadas para liberar publicação dos templates.
             </p>
-            <div className="mt-4">
+            <div className="mt-5 space-y-3">
+              {readinessRules.map((rule: ProjectTemplateReadinessRule) => {
+                const form = readinessRulesForm[rule.id] ?? {
+                  description: rule.description || '',
+                  targetValue: String(rule.targetValue),
+                  weight: String(rule.weight),
+                  isActive: rule.isActive,
+                }
+
+                return (
+                  <div key={rule.id} className="rounded-lg border border-border bg-surface-2 p-4">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <h3 className="text-sm font-semibold text-text">
+                        {READINESS_RULE_LABELS[rule.code]}
+                      </h3>
+                      <div className="flex items-center">
+                        <label className="inline-flex items-center gap-2 text-sm text-text">
+                          <input
+                            type="checkbox"
+                            checked={form.isActive}
+                            onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, isActive: e.target.checked } }))}
+                          />
+                          Regra ativa
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <Textarea
+                        id={`rule-description-${rule.id}`}
+                        label="Critério de avaliação para IA"
+                        value={form.description}
+                        onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, description: e.target.value } }))}
+                        placeholder="Ex.: Avaliar se a progressão didática da faixa está clara e contextualizada para o artista."
+                        className="sm:col-span-2"
+                      />
+                      <Input
+                        id={`rule-target-${rule.id}`}
+                        label="Meta mínima"
+                        type="number"
+                        min={1}
+                        value={form.targetValue}
+                        onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, targetValue: e.target.value } }))}
+                      />
+                      <Input
+                        id={`rule-weight-${rule.id}`}
+                        label="Peso no score"
+                        type="number"
+                        min={1}
+                        value={form.weight}
+                        onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, weight: e.target.value } }))}
+                      />
+                    </div>
+                    {rule.description && <p className="mt-2 text-xs text-muted">{rule.description}</p>}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-border pt-4">
               <Button
-                size="sm"
                 variant="secondary"
-                onClick={() => setEditingReadinessRules(true)}
+                onClick={() => {
+                  const next: Record<string, { description: string; targetValue: string; weight: string; isActive: boolean }> = {}
+                  for (const rule of readinessRules) {
+                    next[rule.id] = {
+                      description: rule.description || '',
+                      targetValue: String(rule.targetValue),
+                      weight: String(rule.weight),
+                      isActive: rule.isActive,
+                    }
+                  }
+                  setReadinessRulesForm(next)
+                }}
               >
-                Editar critérios
+                Restaurar valores
+              </Button>
+              <Button onClick={() => saveReadinessRulesMutation.mutate()} isLoading={saveReadinessRulesMutation.isPending}>
+                Salvar critérios
               </Button>
             </div>
           </section>
         )}
       </div>
-
-      <Modal
-        isOpen={editingReadinessRules}
-        onClose={() => setEditingReadinessRules(false)}
-        title="Critérios de publicação (somente admin)"
-        size="lg"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setEditingReadinessRules(false)}>Cancelar</Button>
-            <Button onClick={() => saveReadinessRulesMutation.mutate()} isLoading={saveReadinessRulesMutation.isPending}>Salvar critérios</Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          {readinessRules.map((rule: ProjectTemplateReadinessRule) => {
-            const form = readinessRulesForm[rule.id] ?? {
-              description: rule.description || '',
-              targetValue: String(rule.targetValue),
-              weight: String(rule.weight),
-              isActive: rule.isActive,
-            }
-
-            return (
-              <div key={rule.id} className="rounded-lg border border-border bg-surface-2 p-3">
-                <div className="mb-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <p className="text-sm font-medium text-text">Título</p>
-                    <p className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text">
-                      {READINESS_RULE_LABELS[rule.code]}
-                    </p>
-                  </div>
-                  <div className="flex items-end">
-                    <label className="inline-flex items-center gap-2 text-sm text-text">
-                      <input
-                        type="checkbox"
-                        checked={form.isActive}
-                        onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, isActive: e.target.checked } }))}
-                      />
-                      Regra ativa
-                    </label>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Textarea
-                    id={`rule-description-${rule.id}`}
-                    label="Critério de avaliação para IA (editável pelo admin)"
-                    value={form.description}
-                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, description: e.target.value } }))}
-                    placeholder="Ex.: Avaliar se a progressão didática da faixa está clara e contextualizada para o artista."
-                  />
-                  <Input
-                    id={`rule-target-${rule.id}`}
-                    label="Meta mínima"
-                    type="number"
-                    min={1}
-                    value={form.targetValue}
-                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, targetValue: e.target.value } }))}
-                  />
-                  <Input
-                    id={`rule-weight-${rule.id}`}
-                    label="Peso no score"
-                    type="number"
-                    min={1}
-                    value={form.weight}
-                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, weight: e.target.value } }))}
-                  />
-                </div>
-                {rule.description && <p className="mt-2 text-xs text-muted">{rule.description}</p>}
-              </div>
-            )
-          })}
-        </div>
-      </Modal>
     </PageContainer>
   )
 }
