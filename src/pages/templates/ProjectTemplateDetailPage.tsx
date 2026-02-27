@@ -17,10 +17,8 @@ import { QuizBuilder } from '@/components/ui/QuizBuilder'
 import { AIButton } from '@/components/ui/AIButton'
 import { generatePublicationQualitativeAnalysis, generateQuiz, generateQuizQuestion } from '@/api/ai'
 import { presignDownload } from '@/api/storage'
-import { listCourses } from '@/api/courses'
 import {
   getProjectTemplate,
-  updateProjectTemplate,
   listTrackTemplates,
   createTrackTemplate,
   updateTrackTemplate,
@@ -50,11 +48,9 @@ import {
   saveProjectTemplateQualitativeAnalysis,
 } from '@/api/templates'
 import type { AxiosError } from 'axios'
-import { PROJECT_TYPE_LABELS, TRACK_MATERIAL_TYPE_LABELS, TRACK_MATERIAL_TYPE_VARIANT } from '@/lib/constants'
+import { TRACK_MATERIAL_TYPE_LABELS, TRACK_MATERIAL_TYPE_VARIANT } from '@/lib/constants'
 import type {
-  Course,
   ProjectTemplate,
-  ProjectType,
   TrackSceneTemplate,
   TrackMaterialTemplate,
   TrackMaterialType,
@@ -75,8 +71,6 @@ const TRACK_TRASH_PAGE_LIMIT = 20
 export function ProjectTemplateDetailPage() {
   const { slug } = useParams<{ slug: string }>()
   const queryClient = useQueryClient()
-  const [editingProject, setEditingProject] = useState(false)
-  const [projectForm, setProjectForm] = useState({ courseId: '', name: '', type: 'ALBUM' as ProjectType, description: '', coverImage: '' })
   const [isGeneratingQualitativeFeedback, setIsGeneratingQualitativeFeedback] = useState(false)
   const [lastAutoAnalysisAt, setLastAutoAnalysisAt] = useState(0)
   const autoAnalysisRequestIdRef = useRef(0)
@@ -92,11 +86,6 @@ export function ProjectTemplateDetailPage() {
     queryKey: ['track-templates', template?.id],
     queryFn: () => listTrackTemplates(template!.id),
     enabled: !!template?.id,
-  })
-
-  const { data: courses = [] } = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => listCourses(),
   })
 
   const { data: readiness } = useQuery({
@@ -122,15 +111,6 @@ export function ProjectTemplateDetailPage() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const updateProjectMutation = useMutation({
-    mutationFn: () => updateProjectTemplate(slug!, { courseId: projectForm.courseId, name: projectForm.name, description: projectForm.description || undefined, coverImage: projectForm.coverImage || undefined }),
-    onSuccess: () => {
-      toast.success('Template atualizado!')
-      queryClient.invalidateQueries({ queryKey: ['project-template', slug] })
-      setEditingProject(false)
-    },
-  })
-
   const buildPublicationAnalysisContext = (userExtra?: string) => {
     if (!template || !readiness) return null
 
@@ -154,11 +134,10 @@ export function ProjectTemplateDetailPage() {
         missingTips: readiness.missingTips,
       },
       publicationCriteria: readiness.requirements.map((requirement) => ({
-        title: requirement.title,
+        code: requirement.code,
         description: requirement.description,
         targetValue: requirement.targetValue,
-        actualValue: requirement.actualValue,
-        isMet: requirement.isMet,
+        weight: requirement.weight,
         isActive: true,
       })),
       userExtra,
@@ -256,20 +235,12 @@ export function ProjectTemplateDetailPage() {
           </span>
         </div>
       }
-      action={
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={template.type === 'ALBUM' ? 'accent' : 'info'}>{template.type}</Badge>
-          <Badge variant="default">v{template.version}</Badge>
-          <Button size="sm" variant="secondary" onClick={() => { setProjectForm({ courseId: template.courseId, name: template.name, type: template.type, description: template.description || '', coverImage: template.coverImage || '' }); setEditingProject(true) }}>
-            <Pencil className="h-3.5 w-3.5" /> Editar projeto
-          </Button>
-        </div>
-      }
     >
       {template.description && <p className="text-sm text-muted -mt-4 mb-4">{template.description}</p>}
       {readiness && (
         <ProjectTemplateReadinessCard
           readiness={readiness}
+          projectType={template.type}
           qualitativeReadinessFeedback={qualitativeReadinessFeedback}
           isGeneratingQualitativeFeedback={isGeneratingQualitativeFeedback}
           generatedForVersion={generatedForVersion}
@@ -282,55 +253,13 @@ export function ProjectTemplateDetailPage() {
 
       <TracksList projectTemplateSlug={slug!} projectTemplateId={template.id} tracks={tracks} template={template} />
 
-      <Modal
-        isOpen={editingProject}
-        onClose={() => setEditingProject(false)}
-        title="Editar Template"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setEditingProject(false)}>Cancelar</Button>
-            <Button onClick={() => updateProjectMutation.mutate()} isLoading={updateProjectMutation.isPending}>Salvar</Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <Select
-            id="ptCourseId"
-            label="Núcleo artístico"
-            value={projectForm.courseId}
-            onChange={(e) => setProjectForm({ ...projectForm, courseId: e.target.value })}
-            placeholder="Selecionar núcleo artístico..."
-            options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
-          />
-          <Input id="ptName" label="Nome" value={projectForm.name} onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })} />
-          <Select
-            id="ptType"
-            label="Tipo"
-            value={projectForm.type}
-            onChange={(e) => setProjectForm({ ...projectForm, type: e.target.value as ProjectType })}
-            options={Object.entries(PROJECT_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
-            disabled
-          />
-          <Textarea id="ptDesc" label="Descrição" value={projectForm.description} onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })} />
-          <FileUpload
-            fileType="images"
-            entityType="project-template"
-            entityId={template?.id ?? 'draft'}
-            currentValue={projectForm.coverImage || null}
-            onUploadComplete={(key) => setProjectForm({ ...projectForm, coverImage: key })}
-            onRemove={() => setProjectForm({ ...projectForm, coverImage: '' })}
-            label="Imagem de Capa"
-            compact
-          />
-        </div>
-      </Modal>
-
     </PageContainer>
   )
 }
 
 function ProjectTemplateReadinessCard({
   readiness,
+  projectType,
   qualitativeReadinessFeedback,
   isGeneratingQualitativeFeedback,
   generatedForVersion,
@@ -338,12 +267,14 @@ function ProjectTemplateReadinessCard({
   onRequestNewAnalysis,
 }: {
   readiness: ProjectTemplateReadinessSummary
+  projectType: ProjectTemplate['type']
   qualitativeReadinessFeedback: string
   isGeneratingQualitativeFeedback: boolean
   generatedForVersion: number | null
   currentTemplateVersion: number
   onRequestNewAnalysis: () => void
 }) {
+  const trackLabelPlural = projectType === 'PLAY' ? 'Cenas' : 'Faixas'
   const { scorePercentage, statusLabel, isReady, metCount, totalCount, missingTips, trackCount, quizCount, materialCount, studyTrackCount } = readiness
   const isOutdated = generatedForVersion == null || generatedForVersion !== currentTemplateVersion
   const [isAiFeedbackExpanded, setIsAiFeedbackExpanded] = useState(false)
@@ -375,7 +306,7 @@ function ProjectTemplateReadinessCard({
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-xs text-muted sm:grid-cols-4">
-        <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Faixas: <span className="font-semibold text-text">{trackCount}</span></div>
+        <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">{trackLabelPlural}: <span className="font-semibold text-text">{trackCount}</span></div>
         <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Coletivas de imprensa: <span className="font-semibold text-text">{quizCount}</span></div>
         <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Materiais: <span className="font-semibold text-text">{materialCount}</span></div>
         <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Trilhas: <span className="font-semibold text-text">{studyTrackCount}</span></div>
@@ -444,6 +375,9 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
   const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [form, setForm] = useState({ title: '', artist: '', description: '', technicalInstruction: '', lyrics: '', unlockAfterTrackId: '' })
   const isTrash = activeTab === 'TRASH'
+  const trackLabelSingular = template?.type === 'PLAY' ? 'Cena' : 'Faixa'
+  const trackLabelPlural = template?.type === 'PLAY' ? 'Cenas' : 'Faixas'
+  const trackLabelLower = template?.type === 'PLAY' ? 'cena' : 'faixa'
 
   const sortedTracks = [...tracks].sort((a, b) => a.order - b.order)
   const { data: deletedResponse } = useQuery({
@@ -475,7 +409,7 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
       unlockAfterTrackId: form.unlockAfterTrackId || undefined,
     }),
     onSuccess: async () => {
-      toast.success('Faixa criada!')
+      toast.success(`${trackLabelSingular} criada!`)
       queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateSlug] })
       await refreshTemplateVersion()
       setCreateOpen(false)
@@ -493,7 +427,7 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
       unlockAfterTrackId: form.unlockAfterTrackId || null,
     }),
     onSuccess: async () => {
-      toast.success('Faixa atualizada!')
+      toast.success(`${trackLabelSingular} atualizada!`)
       queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateSlug] })
       await refreshTemplateVersion()
       setEditingTrack(null)
@@ -504,7 +438,7 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
   const deleteMutation = useMutation({
     mutationFn: () => deleteTrackTemplate(deleteTarget!.id),
     onSuccess: async () => {
-      toast.success('Faixa desativada!')
+      toast.success(`${trackLabelSingular} desativada!`)
       queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateSlug] })
       queryClient.invalidateQueries({ queryKey: ['track-templates', 'deleted', projectTemplateSlug] })
       await refreshTemplateVersion()
@@ -521,7 +455,7 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
   const restoreMutation = useMutation({
     mutationFn: () => restoreTrackTemplate(restoreTarget!.id),
     onSuccess: async () => {
-      toast.success('Faixa restaurada!')
+      toast.success(`${trackLabelSingular} restaurada!`)
       queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateSlug] })
       queryClient.invalidateQueries({ queryKey: ['track-templates', 'deleted', projectTemplateSlug] })
       await refreshTemplateVersion()
@@ -547,11 +481,11 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-text flex items-center gap-2">
-          <Music className="h-5 w-5 text-accent" /> Faixas ({sortedTracks.length})
+          <Music className="h-5 w-5 text-accent" /> {trackLabelPlural} ({sortedTracks.length})
         </h2>
         {!isTrash && (
           <Button size="sm" onClick={() => { resetForm(); setCreateOpen(true) }}>
-            <Plus className="h-3.5 w-3.5" /> Adicionar Faixa
+            <Plus className="h-3.5 w-3.5" /> Adicionar {trackLabelSingular}
           </Button>
         )}
       </div>
@@ -579,7 +513,7 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
                   <button
                     onClick={() => setExpandedTrack(expandedTrack === track.id ? null : track.id)}
                     className="rounded-lg p-1 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-                    title="Visualizar faixa"
+                    title={`Visualizar ${trackLabelLower}`}
                   >
                     <Eye className="h-3.5 w-3.5" />
                   </button>
@@ -629,7 +563,7 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
             </div>
           ))}
           {sortedTracks.length === 0 && (
-            <p className="text-sm text-muted">Nenhuma faixa ativa</p>
+            <p className="text-sm text-muted">Nenhuma {trackLabelLower} ativa</p>
           )}
         </>
       )}
@@ -668,7 +602,7 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
       <TrackFormModal
         isOpen={createOpen || !!editingTrack}
         onClose={() => { setCreateOpen(false); setEditingTrack(null); resetForm() }}
-        title={editingTrack ? 'Editar Faixa' : 'Criar Faixa'}
+        title={editingTrack ? `Editar ${trackLabelSingular}` : `Criar ${trackLabelSingular}`}
         form={form}
         setForm={setForm}
         onSubmit={() => editingTrack ? updateMutation.mutate() : createMutation.mutate()}
@@ -676,10 +610,11 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
         submitLabel={editingTrack ? 'Salvar' : 'Criar'}
         tracks={sortedTracks}
         editingTrackId={editingTrack?.id}
+        trackLabelLowerPlural={template?.type === 'PLAY' ? 'cenas' : 'faixas'}
       />
 
-      <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMutation.mutate()} isLoading={deleteMutation.isPending} title="Desativar Faixa" message={`Tem certeza que deseja desativar "${deleteTarget?.title}"?`} />
-      <ConfirmModal isOpen={!!restoreTarget} onClose={() => setRestoreTarget(null)} onConfirm={() => restoreMutation.mutate()} isLoading={restoreMutation.isPending} title="Restaurar Faixa" message={`Restaurar "${restoreTarget?.title}"?`} confirmLabel="Restaurar" />
+      <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMutation.mutate()} isLoading={deleteMutation.isPending} title={`Desativar ${trackLabelSingular}`} message={`Tem certeza que deseja desativar "${deleteTarget?.title}"?`} />
+      <ConfirmModal isOpen={!!restoreTarget} onClose={() => setRestoreTarget(null)} onConfirm={() => restoreMutation.mutate()} isLoading={restoreMutation.isPending} title={`Restaurar ${trackLabelSingular}`} message={`Restaurar "${deleteTarget?.title}"?`} confirmLabel="Restaurar" />
       <DeactivationBlockedModal
         isOpen={!!blockedInfo}
         onClose={() => setBlockedInfo(null)}
@@ -691,11 +626,11 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
   )
 }
 
-function TrackFormModal({ isOpen, onClose, title, form, setForm, onSubmit, isLoading, submitLabel, tracks, editingTrackId }: {
+function TrackFormModal({ isOpen, onClose, title, form, setForm, onSubmit, isLoading, submitLabel, tracks, editingTrackId, trackLabelLowerPlural }: {
   isOpen: boolean; onClose: () => void; title: string
   form: { title: string; artist: string; description: string; technicalInstruction: string; lyrics: string; unlockAfterTrackId: string }
   setForm: (f: typeof form) => void; onSubmit: () => void; isLoading: boolean; submitLabel: string
-  tracks: TrackSceneTemplate[]; editingTrackId?: string
+  tracks: TrackSceneTemplate[]; editingTrackId?: string; trackLabelLowerPlural: string
 }) {
   const availableTracks = tracks.filter(t => t.id !== editingTrackId)
 
@@ -722,7 +657,7 @@ function TrackFormModal({ isOpen, onClose, title, form, setForm, onSubmit, isLoa
           />
         )}
         <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-muted">
-          Demo e coletiva de imprensa são obrigatórios para todas as faixas.
+          Demo e coletiva de imprensa são obrigatórios para todas as {trackLabelLowerPlural}.
         </div>
       </div>
     </Modal>
@@ -1328,6 +1263,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
   const [deleteTarget, setDeleteTarget] = useState<PressQuizTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<PressQuizTemplate | null>(null)
   const [form, setForm] = useState({ title: '', description: '', questions: [] as QuizQuestion[], maxAttempts: 3, passingScore: 70 })
+  const trackLabelLower = template?.type === 'PLAY' ? 'cena' : 'faixa'
   const refreshTemplateVersion = async () => {
     queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateSlug], (current) => {
       if (!current) return current
@@ -1602,7 +1538,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
                       ))
 
                       if (uniqueGenerated.length === 0) {
-                        toast.error('A IA gerou perguntas repetidas para esta faixa. Tente novamente.')
+                        toast.error(`A IA gerou perguntas repetidas para esta ${trackLabelLower}. Tente novamente.`)
                         return
                       }
 
@@ -1635,7 +1571,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
                     isQuestionDuplicate(generatedQuestion.question, existingQuestion.question)
                   ))
                   if (alreadyExists) {
-                    toast.error('Essa pergunta já existe (ou é muito parecida) nesta faixa. Gere outra.')
+                    toast.error(`Essa pergunta já existe (ou é muito parecida) nesta ${trackLabelLower}. Gere outra.`)
                     return
                   }
                   setForm({ ...form, questions: [...form.questions, generatedQuestion] })

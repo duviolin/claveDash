@@ -1,3 +1,5 @@
+import type { ReadinessRuleCode } from '@/types'
+
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions'
 
 export async function generateWithAI(prompt: string, systemPrompt?: string): Promise<string> {
@@ -222,11 +224,10 @@ export async function generateStudyNotes(context: { title: string }): Promise<st
 }
 
 export interface PublicationQualitativeAnalysisRule {
-  title: string
+  code: ReadinessRuleCode
   description?: string | null
   targetValue: number
-  actualValue?: number
-  isMet?: boolean
+  weight: number
   isActive?: boolean
 }
 
@@ -257,11 +258,8 @@ export async function generatePublicationQualitativeAnalysis(context: Publicatio
   const criteriaLines = context.publicationCriteria
     .filter((rule) => rule.isActive !== false)
     .map((rule) => {
-      const target = `Meta: ${rule.targetValue}`
-      const actual = typeof rule.actualValue === 'number' ? ` | Atual: ${rule.actualValue}` : ''
-      const status = typeof rule.isMet === 'boolean' ? ` | Status: ${rule.isMet ? 'atendido' : 'não atendido'}` : ''
-      const description = rule.description?.trim() ? `\n  - Critério detalhado (editável pelo admin): ${rule.description.trim()}` : ''
-      return `- ${rule.title} (${target}${actual}${status})${description}`
+      const description = rule.description?.trim() || 'Sem descrição configurada pelo admin.'
+      return `- Código: ${rule.code} | Ativo: sim | Meta mínima: ${rule.targetValue} | Peso no score: ${rule.weight}\n  - Descrição (admin): ${description}`
     })
 
   const promptParts: string[] = [

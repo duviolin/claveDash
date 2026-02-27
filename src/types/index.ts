@@ -90,10 +90,10 @@ export interface ProjectTemplate {
 }
 
 export type ReadinessMetric = 'TRACKS_MIN_TOTAL' | 'TRACKS_WITH_MIN_QUIZZES' | 'TRACKS_WITH_MIN_MATERIALS' | 'TRACKS_WITH_MIN_STUDY_TRACKS'
+export type ReadinessRuleCode = 'PROJECT_MIN_TRACKS' | 'TRACKS_WITH_MIN_QUIZZES' | 'TRACKS_WITH_MIN_MATERIALS' | 'TRACKS_WITH_MIN_STUDY_TRACKS'
 
 export interface ProjectTemplateReadinessRequirement {
-  code: string
-  title: string
+  code: ReadinessRuleCode
   description: string | null
   metric: ReadinessMetric
   targetValue: number
@@ -132,8 +132,7 @@ export interface ProjectTemplateQualitativeAnalysis {
 
 export interface ProjectTemplateReadinessRule {
   id: string
-  code: string
-  title: string
+  code: ReadinessRuleCode
   description: string | null
   metric: ReadinessMetric
   targetValue: number

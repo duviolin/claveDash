@@ -77,7 +77,10 @@ export async function createProjectTemplate(payload: { courseId: string; name: s
   return data
 }
 
-export async function updateProjectTemplate(idOrSlug: string, payload: { courseId?: string; name?: string; description?: string; coverImage?: string }) {
+export async function updateProjectTemplate(
+  idOrSlug: string,
+  payload: { courseId?: string; name?: string; type?: ProjectType; description?: string; coverImage?: string }
+) {
   const { data } = await api.patch<ProjectTemplate>(`/project-templates/${idOrSlug}`, payload)
   return data
 }
@@ -240,7 +243,6 @@ export async function listProjectTemplateReadinessRules() {
 export async function updateProjectTemplateReadinessRule(
   ruleId: string,
   payload: {
-    title?: string
     description?: string | null
     targetValue?: number
     weight?: number

@@ -7,6 +7,7 @@ import type {
   ProjectType,
   DailyMissionTemplateStatus,
   TrackMaterialType,
+  ReadinessRuleCode,
 } from '@/types'
 
 // ── Roles ──────────────────────────────────────────────────
@@ -75,6 +76,13 @@ export const COURSE_TYPE_LABELS: Record<CourseType, string> = {
 export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
   ALBUM: 'Álbum',
   PLAY: 'Peça',
+}
+
+export const READINESS_RULE_LABELS: Record<ReadinessRuleCode, string> = {
+  PROJECT_MIN_TRACKS: 'Quantidade mínima de faixas ativas no projeto',
+  TRACKS_WITH_MIN_QUIZZES: 'Quantidade mínima de quizzes por faixa',
+  TRACKS_WITH_MIN_MATERIALS: 'Quantidade mínima de materiais por faixa',
+  TRACKS_WITH_MIN_STUDY_TRACKS: 'Quantidade mínima de trilhas de estudo por faixa',
 }
 
 // ── Track Material Type ─────────────────────────────────────

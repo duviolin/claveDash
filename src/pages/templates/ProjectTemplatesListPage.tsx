@@ -23,6 +23,7 @@ import {
   restoreProjectTemplate,
   getProjectTemplateReadiness,
 } from '@/api/templates'
+import { presignDownload } from '@/api/storage'
 import { listCourses } from '@/api/courses'
 import { PROJECT_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
@@ -89,6 +90,23 @@ export function ProjectTemplatesListPage() {
       )
     : {}
 
+  const coverResults = useQueries({
+    queries: templatesList.map((template) => ({
+      queryKey: ['project-template-cover-image', template.coverImage],
+      queryFn: async () => {
+        if (!template.coverImage) return null
+        const { downloadUrl } = await presignDownload(template.coverImage)
+        return downloadUrl
+      },
+      enabled: Boolean(template.coverImage),
+      staleTime: 5 * 60 * 1000,
+    })),
+  })
+
+  const coverBySlug = Object.fromEntries(
+    templatesList.map((template, index) => [template.slug, coverResults[index]?.data ?? null])
+  )
+
   const createMutation = useMutation({
     mutationFn: () => createProjectTemplate({
       courseId: form.courseId,
@@ -109,6 +127,7 @@ export function ProjectTemplatesListPage() {
     mutationFn: () => updateProjectTemplate(editingTarget!.id, {
       courseId: form.courseId,
       name: form.name,
+      type: form.type,
       description: form.description || undefined,
       coverImage: form.coverImage || undefined,
     }),
@@ -117,6 +136,18 @@ export function ProjectTemplatesListPage() {
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
       setModalOpen(false)
       setEditingTarget(null)
+    },
+    onError: (error: unknown) => {
+      const err = error as AxiosError<{ code?: string; details?: { tracksCount?: number; projectsCount?: number } }>
+      if (err.response?.status === 409 && err.response?.data?.code === 'CONFLICT_INVALID_STATE') {
+        const tracksCount = err.response.data.details?.tracksCount ?? 0
+        const projectsCount = err.response.data.details?.projectsCount ?? 0
+        const parts: string[] = []
+        if (tracksCount > 0) parts.push(`${tracksCount} ${tracksCount === 1 ? 'faixa/cena' : 'faixas/cenas'}`)
+        if (projectsCount > 0) parts.push(`${projectsCount} ${projectsCount === 1 ? 'projeto ativo' : 'projetos ativos'}`)
+        const reason = parts.length > 0 ? ` (${parts.join(' e ')})` : ''
+        toast.error(`Não dá para alterar o tipo deste template porque ele já possui conteúdo vinculado${reason}.`)
+      }
     },
   })
 
@@ -150,9 +181,20 @@ export function ProjectTemplatesListPage() {
       key: 'name',
       header: 'Nome',
       render: (t: ProjectTemplate) => (
-        <span className="font-medium text-text" title={t.name}>
-          {truncate(t.name, 42)}
-        </span>
+        <div className="flex items-center gap-3">
+          {coverBySlug[t.slug] ? (
+            <img
+              src={coverBySlug[t.slug]}
+              alt={`Capa do template ${t.name}`}
+              className="h-9 w-9 rounded-lg border border-border object-cover"
+            />
+          ) : (
+            <div className="h-9 w-9 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
+          )}
+          <span className="font-medium text-text" title={t.name}>
+            {truncate(t.name, 42)}
+          </span>
+        </div>
       ),
     },
     {
@@ -232,9 +274,20 @@ export function ProjectTemplatesListPage() {
       header: 'Nome',
       render: (t: ProjectTemplate) => (
         <div className="flex items-center gap-2">
-          <span className="font-medium text-text" title={t.name}>
-            {truncate(t.name, 42)}
-          </span>
+          <div className="flex items-center gap-3">
+            {coverBySlug[t.slug] ? (
+              <img
+                src={coverBySlug[t.slug]}
+                alt={`Capa do template ${t.name}`}
+                className="h-9 w-9 rounded-lg border border-border object-cover"
+              />
+            ) : (
+              <div className="h-9 w-9 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
+            )}
+            <span className="font-medium text-text" title={t.name}>
+              {truncate(t.name, 42)}
+            </span>
+          </div>
           <Badge variant="error">Excluído</Badge>
         </div>
       ),
@@ -333,17 +386,41 @@ export function ProjectTemplatesListPage() {
         }
       >
         <div className="space-y-4">
-          <Select id="ptCourseId" label="Núcleo artístico" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} placeholder="Selecionar núcleo artístico..." options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} />
-          <Input id="ptName" label="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <Select id="ptType" label="Tipo" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as ProjectType })} options={[{ value: 'ALBUM', label: 'Álbum' }, { value: 'PLAY', label: 'Peça' }]} />
-          <Textarea id="ptDesc" label="Descrição" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <Select
+            id="ptCourseId"
+            label="Núcleo artístico"
+            value={form.courseId}
+            onChange={(e) => setForm((prev) => ({ ...prev, courseId: e.target.value }))}
+            placeholder="Selecionar núcleo artístico..."
+            options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
+          />
+          <Input
+            id="ptName"
+            label="Nome"
+            value={form.name}
+            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+            required
+          />
+          <Select
+            id="ptType"
+            label="Tipo"
+            value={form.type}
+            onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value as ProjectType }))}
+            options={[{ value: 'ALBUM', label: 'Álbum' }, { value: 'PLAY', label: 'Peça' }]}
+          />
+          <Textarea
+            id="ptDesc"
+            label="Descrição"
+            value={form.description}
+            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+          />
           <FileUpload
             fileType="images"
             entityType="project-template"
-            entityId="draft"
+            entityId={editingTarget?.id || 'draft'}
             currentValue={form.coverImage || null}
-            onUploadComplete={(key) => setForm({ ...form, coverImage: key })}
-            onRemove={() => setForm({ ...form, coverImage: '' })}
+            onUploadComplete={(key) => setForm((prev) => ({ ...prev, coverImage: key }))}
+            onRemove={() => setForm((prev) => ({ ...prev, coverImage: '' }))}
             label="Imagem de Capa"
             compact
           />
