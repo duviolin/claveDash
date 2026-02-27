@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext'
-import { LogOut, ChevronRight } from 'lucide-react'
+import { LogOut, ChevronRight, Menu } from 'lucide-react'
 import { useLocation, Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { getInitials } from '@/lib/utils'
@@ -89,38 +89,51 @@ function Breadcrumb() {
   )
 }
 
-export function Header() {
+interface HeaderProps {
+  onOpenSidebar: () => void
+}
+
+export function Header({ onOpenSidebar }: HeaderProps) {
   const { user, logout } = useAuth()
 
   const roleBadgeVariant = ROLE_BADGE_VARIANT
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface/80 backdrop-blur-sm px-6">
-      <div className="min-w-0 flex-1 pr-4">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface/80 px-3 backdrop-blur-sm sm:px-6">
+      <div className="flex min-w-0 flex-1 items-center gap-2 pr-2 sm:pr-4">
+        <button
+          type="button"
+          onClick={onOpenSidebar}
+          className="rounded-lg p-2 text-muted transition-colors hover:bg-surface-2 hover:text-text lg:hidden"
+          aria-label="Abrir menu"
+          title="Abrir menu"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
         <Breadcrumb />
       </div>
 
-      <div className="flex shrink-0 items-center gap-4">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         {user && (
           <>
             <NotificationBell />
             <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent text-xs font-bold">
-              {getInitials(user.name)}
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-medium text-text">{user.name || user.email}</p>
-              <Badge variant={roleBadgeVariant[user.role]} className="text-[10px]">
-                {ROLE_LABELS[user.role]}
-              </Badge>
-            </div>
-            <button
-              onClick={logout}
-              className="ml-2 rounded-lg p-2 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-              title="Sair"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent">
+                {getInitials(user.name)}
+              </div>
+              <div className="hidden text-right sm:block">
+                <p className="max-w-40 truncate text-sm font-medium text-text">{user.name || user.email}</p>
+                <Badge variant={roleBadgeVariant[user.role]} className="text-[10px]">
+                  {ROLE_LABELS[user.role]}
+                </Badge>
+              </div>
+              <button
+                onClick={logout}
+                className="rounded-lg p-2 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"
+                title="Sair"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           </>
         )}

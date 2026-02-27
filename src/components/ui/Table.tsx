@@ -30,7 +30,7 @@ export function Table<T>({ columns, data, keyExtractor, emptyMessage = 'Nenhum r
   return (
     <div className="rounded-xl border border-border bg-surface overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[640px]">
           <thead>
             <tr className="border-b border-border bg-surface-2">
               {columns.map((col) => (

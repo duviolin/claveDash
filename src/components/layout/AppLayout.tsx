@@ -1,10 +1,20 @@
 import { Outlet, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 
 export function AppLayout() {
   const { user, isLoading } = useAuth()
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isMobileSidebarOpen) return
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isMobileSidebarOpen])
 
   if (isLoading) {
     return (
@@ -31,10 +41,13 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-bg">
-      <Sidebar />
-      <div className="flex-1 ml-[260px]">
-        <Header />
-        <main className="p-6">
+      <Sidebar
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
+      <div className="flex-1 lg:ml-[260px]">
+        <Header onOpenSidebar={() => setIsMobileSidebarOpen(true)} />
+        <main className="p-4 sm:p-6">
           <Outlet />
         </main>
       </div>

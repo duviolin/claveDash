@@ -34,6 +34,11 @@ interface CollapsibleGroup {
   items: NavItem[]
 }
 
+interface SidebarProps {
+  isMobileOpen: boolean
+  onCloseMobile: () => void
+}
+
 const navGroups: NavGroup[] = [
   {
     items: [
@@ -74,10 +79,11 @@ const bottomItems: NavItem[] = [
   { label: 'Configurações', path: '/settings', icon: <Settings className="h-4 w-4" /> },
 ]
 
-function SidebarLink({ item }: { item: NavItem }) {
+function SidebarLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
   return (
     <NavLink
       to={item.path}
+      onClick={onClick}
       className={({ isActive }) =>
         cn(
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
@@ -93,7 +99,7 @@ function SidebarLink({ item }: { item: NavItem }) {
   )
 }
 
-function CollapsibleSection({ group }: { group: CollapsibleGroup }) {
+function CollapsibleSection({ group, onItemClick }: { group: CollapsibleGroup; onItemClick?: () => void }) {
   const location = useLocation()
   const isChildActive = group.items.some((item) => location.pathname.startsWith(item.path))
   const [isOpen, setIsOpen] = useState(isChildActive)
@@ -118,7 +124,7 @@ function CollapsibleSection({ group }: { group: CollapsibleGroup }) {
       {isOpen && (
         <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-3">
           {group.items.map((item) => (
-            <SidebarLink key={item.path} item={item} />
+            <SidebarLink key={item.path} item={item} onClick={onItemClick} />
           ))}
         </div>
       )}
@@ -126,55 +132,71 @@ function CollapsibleSection({ group }: { group: CollapsibleGroup }) {
   )
 }
 
-export function Sidebar() {
+export function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-[260px] flex-col border-r border-border bg-surface">
-      <div className="flex items-center gap-3 border-b border-border px-6 py-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
-          <Music className="h-4 w-4 text-white" />
+    <>
+      <div
+        className={cn(
+          'fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 lg:hidden',
+          isMobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        )}
+        onClick={onCloseMobile}
+        aria-hidden="true"
+      />
+      <aside
+        className={cn(
+          'fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col border-r border-border bg-surface transition-transform duration-200',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full',
+          'lg:z-40 lg:translate-x-0'
+        )}
+      >
+        <div className="flex items-center gap-3 border-b border-border px-6 py-5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
+            <Music className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-lg font-bold text-text">Clave Admin</span>
         </div>
-        <span className="text-lg font-bold text-text">Clave Admin</span>
-      </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <div className="space-y-6">
-          {navGroups.map((group, i) => (
-            <div key={i}>
-              {group.label && (
-                <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted/60">
-                  {group.label}
-                </p>
-              )}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <div className="space-y-6">
+            {navGroups.map((group, i) => (
+              <div key={i}>
+                {group.label && (
+                  <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted/60">
+                    {group.label}
+                  </p>
+                )}
+                <div className="space-y-0.5">
+                  {group.items.map((item) => (
+                    <SidebarLink key={item.path} item={item} onClick={onCloseMobile} />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <div>
+              <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted/60">
+                Conteúdo
+              </p>
               <div className="space-y-0.5">
-                {group.items.map((item) => (
-                  <SidebarLink key={item.path} item={item} />
+                <CollapsibleSection group={templatesGroup} onItemClick={onCloseMobile} />
+                <CollapsibleSection group={instancesGroup} onItemClick={onCloseMobile} />
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted/60">
+                Sistema
+              </p>
+              <div className="space-y-0.5">
+                {bottomItems.map((item) => (
+                  <SidebarLink key={item.path} item={item} onClick={onCloseMobile} />
                 ))}
               </div>
             </div>
-          ))}
-
-          <div>
-            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted/60">
-              Conteúdo
-            </p>
-            <div className="space-y-0.5">
-              <CollapsibleSection group={templatesGroup} />
-              <CollapsibleSection group={instancesGroup} />
-            </div>
           </div>
-
-          <div>
-            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted/60">
-              Sistema
-            </p>
-            <div className="space-y-0.5">
-              {bottomItems.map((item) => (
-                <SidebarLink key={item.path} item={item} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </nav>
-    </aside>
+        </nav>
+      </aside>
+    </>
   )
 }
