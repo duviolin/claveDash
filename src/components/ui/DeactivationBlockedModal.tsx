@@ -14,21 +14,21 @@ interface DeactivationBlockedModalProps {
 }
 
 const CHILD_NAV: Record<string, { label: string; buildUrl: (identifier: string) => string }> = {
-  courses: { label: 'Cursos', buildUrl: (slug) => `/courses?schoolSlug=${slug}` },
+  courses: { label: 'Núcleos artísticos', buildUrl: (slug) => `/courses?schoolSlug=${slug}` },
   seasons: { label: 'Temporadas', buildUrl: (slug) => `/seasons?courseSlug=${slug}` },
-  classes: { label: 'Turmas', buildUrl: (slug) => `/classes?seasonSlug=${slug}` },
-  students: { label: 'Alunos', buildUrl: (slug) => `/classes/${slug}` },
-  teachers: { label: 'Professores', buildUrl: (slug) => `/classes/${slug}` },
+  classes: { label: 'Grupos artísticos', buildUrl: (slug) => `/classes?seasonSlug=${slug}` },
+  students: { label: 'Artistas', buildUrl: (slug) => `/classes/${slug}` },
+  teachers: { label: 'Produtores', buildUrl: (slug) => `/classes/${slug}` },
   members: { label: 'Membros', buildUrl: (slug) => `/classes/${slug}` },
   projectTemplates: { label: 'Templates de Projeto', buildUrl: (slug) => `/templates/projects?courseSlug=${slug}` },
   dailyMissionTemplates: { label: 'Missões Diárias', buildUrl: (slug) => `/templates/daily-missions?courseSlug=${slug}` },
   trackSceneTemplates: { label: 'Cenas', buildUrl: (slug) => `/templates/projects/${slug}` },
   projects: { label: 'Projetos', buildUrl: () => `/instances/projects` },
-  pressQuizTemplates: { label: 'Press Quizzes', buildUrl: (slug) => `/templates/projects/${slug}` },
+  pressQuizTemplates: { label: 'Coletivas de imprensa', buildUrl: (slug) => `/templates/projects/${slug}` },
   studyTrackTemplates: { label: 'Trilhas de Estudo', buildUrl: (slug) => `/templates/projects/${slug}` },
   trackMaterialTemplates: { label: 'Materiais', buildUrl: (slug) => `/templates/projects/${slug}` },
   dailyMissionQuizzes: { label: 'Quizzes', buildUrl: () => `/templates/daily-missions` },
-  schools: { label: 'Escolas', buildUrl: () => `/schools` },
+  schools: { label: 'Unidades artísticas', buildUrl: () => `/schools` },
 }
 
 export function DeactivationBlockedModal({
@@ -101,10 +101,10 @@ export function DeactivationBlockedModal({
 function buildMembersMessage(details: DeactivationErrorDetails): string {
   const parts: string[] = []
   if (details.studentsCount && details.studentsCount > 0) {
-    parts.push(`${details.studentsCount} aluno(s)`)
+    parts.push(`${details.studentsCount} artista(s)`)
   }
   if (details.teachersCount && details.teachersCount > 0) {
-    parts.push(`${details.teachersCount} professor(es)`)
+    parts.push(`${details.teachersCount} produtor(es)`)
   }
   return `${parts.join(' e ')} vinculado(s). Remova os vínculos antes de continuar.`
 }

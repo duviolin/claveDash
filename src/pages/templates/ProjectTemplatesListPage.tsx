@@ -162,7 +162,7 @@ export function ProjectTemplatesListPage() {
     },
     {
       key: 'course',
-      header: 'Curso',
+      header: 'Núcleo artístico',
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
         return (
@@ -246,7 +246,7 @@ export function ProjectTemplatesListPage() {
     },
     {
       key: 'course',
-      header: 'Curso',
+      header: 'Núcleo artístico',
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
         return (
@@ -295,7 +295,7 @@ export function ProjectTemplatesListPage() {
           <Select
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
-            placeholder="Todos os cursos"
+            placeholder="Todos os núcleos artísticos"
             options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
             className="w-full sm:max-w-xs"
           />
@@ -333,7 +333,7 @@ export function ProjectTemplatesListPage() {
         }
       >
         <div className="space-y-4">
-          <Select id="ptCourseId" label="Curso" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} placeholder="Selecionar curso..." options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} />
+          <Select id="ptCourseId" label="Núcleo artístico" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} placeholder="Selecionar núcleo artístico..." options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} />
           <Input id="ptName" label="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <Select id="ptType" label="Tipo" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as ProjectType })} options={[{ value: 'ALBUM', label: 'Álbum' }, { value: 'PLAY', label: 'Peça' }]} />
           <Textarea id="ptDesc" label="Descrição" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />

@@ -67,7 +67,7 @@ export function ClassesListPage() {
         : createClass(form)
     },
     onSuccess: () => {
-      toast.success(editing ? 'Turma atualizada!' : 'Turma criada!')
+      toast.success(editing ? 'Grupo artístico atualizado!' : 'Grupo artístico criado!')
       queryClient.invalidateQueries({ queryKey: ['classes'] })
       closeModal()
     },
@@ -76,7 +76,7 @@ export function ClassesListPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteClass(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Turma desativada!')
+      toast.success('Grupo artístico desativado!')
       queryClient.invalidateQueries({ queryKey: ['classes'] })
       setDeleteTarget(null)
     },
@@ -93,7 +93,7 @@ export function ClassesListPage() {
   const restoreMutation = useMutation({
     mutationFn: () => restoreClass(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Turma restaurada!')
+      toast.success('Grupo artístico restaurado!')
       queryClient.invalidateQueries({ queryKey: ['classes'] })
       setRestoreTarget(null)
     },
@@ -121,7 +121,7 @@ export function ClassesListPage() {
     },
     {
       key: 'season',
-      header: 'Semestre',
+      header: 'Temporada',
       render: (c: Class) => {
         const season = seasons.find((s: Season) => s.id === c.seasonId)
         return <span className="text-muted">{season?.name || '—'}</span>
@@ -129,7 +129,7 @@ export function ClassesListPage() {
     },
     {
       key: 'maxStudents',
-      header: 'Máx. Alunos',
+      header: 'Máx. Artistas',
       render: (c: Class) => <span className="text-muted">{c.maxStudents}</span>,
     },
     {
@@ -145,7 +145,7 @@ export function ClassesListPage() {
           <button
             onClick={() => navigate(`/classes/${c.slug}`)}
             className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-            title="Detalhes"
+            title="Visualizar grupo artístico"
           >
             <Eye className="h-4 w-4" />
           </button>
@@ -181,7 +181,7 @@ export function ClassesListPage() {
     },
     {
       key: 'season',
-      header: 'Semestre',
+      header: 'Temporada',
       render: (c: Class) => {
         const season = seasons.find((s: Season) => s.id === c.seasonId)
         return <span className="text-muted">{season?.name || '—'}</span>
@@ -189,7 +189,7 @@ export function ClassesListPage() {
     },
     {
       key: 'maxStudents',
-      header: 'Máx. Alunos',
+      header: 'Máx. Artistas',
       render: (c: Class) => <span className="text-muted">{c.maxStudents}</span>,
     },
     {
@@ -214,11 +214,11 @@ export function ClassesListPage() {
 
   return (
     <PageContainer
-      title="Turmas"
+      title="Grupos artísticos"
       count={pagination?.total ?? displayData.length}
       action={
         !isTrash ? (
-          <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Turma</Button>
+          <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Grupo artístico</Button>
         ) : undefined
       }
     >
@@ -229,7 +229,7 @@ export function ClassesListPage() {
           <Select
             value={seasonFilter}
             onChange={(e) => setSeasonFilter(e.target.value)}
-            placeholder="Todos os semestres"
+            placeholder="Todas as temporadas"
             options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))}
             className="w-full sm:max-w-xs"
           />
@@ -241,7 +241,7 @@ export function ClassesListPage() {
         data={displayData}
         keyExtractor={(c) => c.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhuma turma encontrada'}
+        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhum grupo artístico encontrado'}
       />
 
       {isTrash && pagination && (
@@ -256,7 +256,7 @@ export function ClassesListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editing ? 'Editar Turma' : 'Criar Turma'}
+        title={editing ? 'Editar Grupo artístico' : 'Criar Grupo artístico'}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
@@ -270,15 +270,15 @@ export function ClassesListPage() {
           {!editing && (
             <Select
               id="seasonId"
-              label="Semestre"
+              label="Temporada"
               value={form.seasonId}
               onChange={(e) => setForm({ ...form, seasonId: e.target.value })}
-              placeholder="Selecionar semestre..."
+              placeholder="Selecionar temporada..."
               options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))}
             />
           )}
           <Input id="className" label="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <Input id="maxStudents" label="Máximo de Alunos" type="number" value={String(form.maxStudents)} onChange={(e) => setForm({ ...form, maxStudents: Number(e.target.value) })} required />
+          <Input id="maxStudents" label="Máximo de Artistas" type="number" value={String(form.maxStudents)} onChange={(e) => setForm({ ...form, maxStudents: Number(e.target.value) })} required />
         </div>
       </Modal>
 
@@ -287,8 +287,8 @@ export function ClassesListPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate()}
         isLoading={deleteMutation.isPending}
-        title="Excluir Turma"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? A turma será desativada.`}
+        title="Excluir Grupo artístico"
+        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? O grupo artístico será desativado.`}
       />
 
       <ConfirmModal
@@ -296,7 +296,7 @@ export function ClassesListPage() {
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
-        title="Restaurar Turma"
+        title="Restaurar Grupo artístico"
         message={`Tem certeza que deseja restaurar "${restoreTarget?.name}"?`}
         confirmLabel="Restaurar"
       />

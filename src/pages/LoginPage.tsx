@@ -49,7 +49,7 @@ export function LoginPage() {
             id="email"
             label="E-mail"
             type="email"
-            placeholder="admin@escola.com"
+            placeholder="admin@unidade.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required

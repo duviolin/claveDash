@@ -36,7 +36,7 @@ export function UserCreatePage() {
     setIsLoading(true)
     try {
       await createUser(form)
-      toast.success('Usuário criado com sucesso!')
+      toast.success('Equipe criada com sucesso!')
       navigate('/users')
     } catch {
       // handled by interceptor
@@ -96,7 +96,7 @@ export function UserCreatePage() {
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" isLoading={isLoading}>
-              Criar Usuário
+              Criar equipe
             </Button>
             <Button type="button" variant="secondary" onClick={() => navigate('/users')}>
               Cancelar

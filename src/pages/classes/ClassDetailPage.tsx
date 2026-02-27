@@ -97,12 +97,12 @@ export function ClassDetailPage() {
 
   const addMutation = useMutation({
     mutationFn: () => {
-      if (!classId) throw new Error('Turma não encontrada')
+      if (!classId) throw new Error('Grupo artístico não encontrado')
       if (activeTab === 'teachers') return addTeacher(classId, selectedUserId)
       return addStudent(classId, selectedUserId)
     },
     onSuccess: () => {
-      toast.success(activeTab === 'teachers' ? 'Professor vinculado!' : 'Aluno matriculado!')
+      toast.success(activeTab === 'teachers' ? 'Produtor vinculado!' : 'Artista vinculado!')
       queryClient.invalidateQueries({ queryKey: [activeTab === 'teachers' ? 'class-teachers' : 'class-students', classId, 'active'] })
       queryClient.invalidateQueries({ queryKey: [activeTab === 'teachers' ? 'class-teachers' : 'class-students', classId, 'deleted'] })
       setAddModalOpen(false)
@@ -113,7 +113,7 @@ export function ClassDetailPage() {
   const removeMutation = useMutation({
     mutationFn: () => {
       if (!removeTarget) throw new Error('Nenhum vínculo selecionado')
-      if (!classId) throw new Error('Turma não encontrada')
+      if (!classId) throw new Error('Grupo artístico não encontrado')
       const userId = getUserId(removeTarget.member)
       if (removeTarget.type === 'teacher') return removeTeacher(classId, userId)
       return removeStudent(classId, userId)
@@ -129,14 +129,14 @@ export function ClassDetailPage() {
   const restoreMutation = useMutation({
     mutationFn: () => {
       if (!restoreTarget) throw new Error('Nenhum vínculo selecionado para restaurar')
-      if (!classId) throw new Error('Turma não encontrada')
+      if (!classId) throw new Error('Grupo artístico não encontrado')
       const userId = getUserId(restoreTarget.member)
       if (restoreTarget.type === 'teacher') return addTeacher(classId, userId)
       return addStudent(classId, userId)
     },
     onSuccess: () => {
       if (!restoreTarget) return
-      toast.success(restoreTarget.type === 'teacher' ? 'Professor restaurado com sucesso!' : 'Aluno restaurado com sucesso!')
+      toast.success(restoreTarget.type === 'teacher' ? 'Produtor restaurado com sucesso!' : 'Artista restaurado com sucesso!')
       queryClient.invalidateQueries({ queryKey: [restoreTarget.type === 'teacher' ? 'class-teachers' : 'class-students', classId, 'active'] })
       queryClient.invalidateQueries({ queryKey: [restoreTarget.type === 'teacher' ? 'class-teachers' : 'class-students', classId, 'deleted'] })
       setRestoreTarget(null)
@@ -207,12 +207,12 @@ export function ClassDetailPage() {
     : (statusTab === 'active' ? loadingStudents : loadingDeletedStudents)
 
   return (
-    <PageContainer title={classData?.name || 'Turma'}>
+    <PageContainer title={classData?.name || 'Grupo artístico'}>
       <div className="flex items-center gap-4">
         <Tabs
           tabs={[
-            { key: 'teachers', label: 'Professores', count: teachers.length },
-            { key: 'students', label: 'Alunos', count: students.length },
+            { key: 'teachers', label: 'Produtores', count: teachers.length },
+            { key: 'students', label: 'Artistas', count: students.length },
           ]}
           activeKey={activeTab}
           onChange={setActiveTab}
@@ -220,7 +220,7 @@ export function ClassDetailPage() {
         {statusTab === 'active' && (
           <Button size="sm" onClick={() => { setSelectedUserId(''); setAddModalOpen(true) }}>
             <Plus className="h-3.5 w-3.5" />
-            {activeTab === 'teachers' ? 'Vincular Professor' : 'Matricular Aluno'}
+            {activeTab === 'teachers' ? 'Vincular Produtor' : 'Vincular Artista'}
           </Button>
         )}
       </div>
@@ -249,27 +249,27 @@ export function ClassDetailPage() {
         isLoading={isMembersLoading}
         emptyMessage={
           statusTab === 'active'
-            ? (activeTab === 'teachers' ? 'Nenhum professor vinculado' : 'Nenhum aluno matriculado')
-            : (activeTab === 'teachers' ? 'Nenhum professor na lixeira' : 'Nenhum aluno na lixeira')
+            ? (activeTab === 'teachers' ? 'Nenhum produtor vinculado' : 'Nenhum artista vinculado')
+            : (activeTab === 'teachers' ? 'Nenhum produtor na lixeira' : 'Nenhum artista na lixeira')
         }
       />
 
       <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        title={activeTab === 'teachers' ? 'Vincular Professor' : 'Matricular Aluno'}
+        title={activeTab === 'teachers' ? 'Vincular Produtor' : 'Vincular Artista'}
         footer={
           <>
             <Button variant="secondary" onClick={() => setAddModalOpen(false)}>Cancelar</Button>
             <Button onClick={() => addMutation.mutate()} isLoading={addMutation.isPending} disabled={!selectedUserId}>
-              {activeTab === 'teachers' ? 'Vincular' : 'Matricular'}
+              Vincular
             </Button>
           </>
         }
       >
         <Select
           id="userId"
-          label={activeTab === 'teachers' ? 'Professor' : 'Aluno'}
+          label={activeTab === 'teachers' ? 'Produtor' : 'Artista'}
           value={selectedUserId}
           onChange={(e) => setSelectedUserId(e.target.value)}
           placeholder="Selecionar..."
@@ -277,7 +277,7 @@ export function ClassDetailPage() {
         />
         {availableUsers.length === 0 && (
           <p className="mt-2 text-sm text-muted">
-            {activeTab === 'teachers' ? 'Todos os professores já estão vinculados.' : 'Todos os alunos já estão matriculados.'}
+            {activeTab === 'teachers' ? 'Todos os produtores já estão vinculados.' : 'Todos os artistas já estão vinculados.'}
           </p>
         )}
       </Modal>
@@ -288,7 +288,7 @@ export function ClassDetailPage() {
         onConfirm={() => removeMutation.mutate()}
         isLoading={removeMutation.isPending}
         title="Remover Vínculo"
-        message={`Tem certeza que deseja remover "${removeTarget?.member.name}" desta turma?`}
+        message={`Tem certeza que deseja remover "${removeTarget?.member.name}" deste grupo artístico?`}
       />
 
       <ConfirmModal
@@ -297,7 +297,7 @@ export function ClassDetailPage() {
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
         title="Restaurar Vínculo"
-        message={`Tem certeza que deseja restaurar "${restoreTarget?.member.name}" nesta turma?`}
+        message={`Tem certeza que deseja restaurar "${restoreTarget?.member.name}" neste grupo artístico?`}
         confirmLabel="Restaurar"
       />
     </PageContainer>

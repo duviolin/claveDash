@@ -124,16 +124,16 @@ export function ProjectInstancesPage() {
       <div className="mb-4 max-w-xs">
         <Select
           id="filterSeason"
-          label="Filtrar por Semestre"
+          label="Filtrar por Temporada"
           value={selectedSeasonId}
           onChange={(e) => setSelectedSeasonId(e.target.value)}
-          placeholder="Selecionar semestre..."
+          placeholder="Selecionar temporada..."
           options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))}
         />
       </div>
 
       {!selectedSeasonId ? (
-        <p className="text-muted text-sm">Selecione um semestre para ver os projetos.</p>
+        <p className="text-muted text-sm">Selecione uma temporada para ver os projetos.</p>
       ) : (
         <Table columns={columns} data={projects} keyExtractor={(p) => p.id} isLoading={isLoading} />
       )}
@@ -148,8 +148,8 @@ export function ProjectInstancesPage() {
               {blockedTemplateCount} template(s) ocultado(s) desta lista por ainda não estarem aptos para publicação.
             </p>
           )}
-          <Select id="instSeason" label="Semestre" value={instForm.seasonId} onChange={(e) => setInstForm({ ...instForm, seasonId: e.target.value })} placeholder="Selecionar semestre..." options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))} />
-          <Select id="instClass" label="Turma" value={instForm.classId} onChange={(e) => setInstForm({ ...instForm, classId: e.target.value })} placeholder="Selecionar turma..." options={classes.map((c: { id: string; name: string }) => ({ value: c.id, label: c.name }))} />
+          <Select id="instSeason" label="Temporada" value={instForm.seasonId} onChange={(e) => setInstForm({ ...instForm, seasonId: e.target.value })} placeholder="Selecionar temporada..." options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))} />
+          <Select id="instClass" label="Grupo artístico" value={instForm.classId} onChange={(e) => setInstForm({ ...instForm, classId: e.target.value })} placeholder="Selecionar grupo artístico..." options={classes.map((c: { id: string; name: string }) => ({ value: c.id, label: c.name }))} />
         </div>
       </Modal>
 

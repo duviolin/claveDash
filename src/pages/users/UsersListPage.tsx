@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, Ban, RotateCcw, Trash2, ArchiveRestore } from 'lucide-react'
+import { Plus, Eye, Pencil, Ban, RotateCcw, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Tabs } from '@/components/ui/Tabs'
 import { Input } from '@/components/ui/Input'
-import { ConfirmModal } from '@/components/ui/Modal'
+import { ConfirmModal, Modal } from '@/components/ui/Modal'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Pagination } from '@/components/ui/Pagination'
 import { listUsers, suspendUser, reactivateUser, softDeleteUser, restoreUser, listDeletedUsers } from '@/api/users'
@@ -25,7 +25,7 @@ const roleTabs = [
 ]
 
 const roleCreateLabel: Record<string, string> = {
-  ALL: 'Criar Usuário',
+  ALL: 'Adicionar membro',
   ...Object.fromEntries(Object.entries(ROLE_LABELS).map(([k, v]) => [k, `Criar ${v}`])),
 }
 
@@ -38,6 +38,7 @@ export function UsersListPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [confirmAction, setConfirmAction] = useState<{ user: User; action: 'suspend' | 'reactivate' | 'delete' | 'restore' } | null>(null)
+  const [previewTarget, setPreviewTarget] = useState<User | null>(null)
   const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
 
   const isTrash = roleFilter === 'TRASH'
@@ -86,16 +87,16 @@ export function UsersListPage() {
       switch (action) {
         case 'suspend':
           await suspendUser(user.id)
-          return 'Usuário suspenso'
+          return 'Equipe suspensa'
         case 'reactivate':
           await reactivateUser(user.id)
-          return 'Usuário reativado'
+          return 'Equipe reativada'
         case 'delete':
           await softDeleteUser(user.id)
-          return 'Usuário movido para a lixeira'
+          return 'Equipe movida para a lixeira'
         case 'restore':
           await restoreUser(user.id)
-          return 'Usuário restaurado'
+          return 'Equipe restaurada'
       }
     },
     onSuccess: (message, { user, action }) => {
@@ -113,7 +114,7 @@ export function UsersListPage() {
         if (err.response?.status === 409 && err.response?.data?.details) {
           setBlockedInfo({ name: user.name, slug: user.slug, details: err.response.data.details })
         } else {
-          toast.error(err.response?.data?.error ?? 'Erro ao excluir usuário')
+          toast.error(err.response?.data?.error ?? 'Erro ao excluir equipe')
         }
       }
     },
@@ -162,6 +163,13 @@ export function UsersListPage() {
       header: 'Ações',
       render: (u: User) => (
         <div className="flex gap-1">
+          <button
+            onClick={() => setPreviewTarget(u)}
+            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
+            title="Visualizar equipe"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
           <button
             onClick={() => navigate(`/users/${u.slug}`)}
             className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
@@ -241,25 +249,25 @@ export function UsersListPage() {
 
   const confirmMessages: Record<string, { title: string; message: (name: string) => string; label: string; variant: 'danger' | 'primary' }> = {
     suspend: {
-      title: 'Suspender Usuário',
-      message: (name) => `Tem certeza que deseja suspender "${name}"? O usuário perderá acesso ao sistema.`,
+      title: 'Suspender equipe',
+      message: (name) => `Tem certeza que deseja suspender "${name}"? A equipe perderá acesso ao sistema.`,
       label: 'Suspender',
       variant: 'danger',
     },
     reactivate: {
-      title: 'Reativar Usuário',
+      title: 'Reativar equipe',
       message: (name) => `Tem certeza que deseja reativar "${name}"?`,
       label: 'Reativar',
       variant: 'primary',
     },
     delete: {
-      title: 'Excluir Usuário',
-      message: (name) => `Tem certeza que deseja excluir "${name}"? O usuário será movido para a lixeira.`,
+      title: 'Excluir equipe',
+      message: (name) => `Tem certeza que deseja excluir "${name}"? A equipe será movida para a lixeira.`,
       label: 'Excluir',
       variant: 'danger',
     },
     restore: {
-      title: 'Restaurar Usuário',
+      title: 'Restaurar equipe',
       message: (name) => `Tem certeza que deseja restaurar "${name}"?`,
       label: 'Restaurar',
       variant: 'primary',
@@ -270,13 +278,13 @@ export function UsersListPage() {
 
   return (
     <PageContainer
-      title="Usuários"
+      title="Equipe"
       count={pagination?.total ?? filteredUsers.length}
       action={
         !isTrash ? (
           <Button onClick={() => navigate(roleFilter === 'ALL' ? '/users/new' : `/users/new?role=${roleFilter}`)}>
             <Plus className="h-4 w-4" />
-            {roleCreateLabel[roleFilter] ?? 'Criar Usuário'}
+            {roleCreateLabel[roleFilter] ?? 'Adicionar membro'}
           </Button>
         ) : undefined
       }
@@ -296,7 +304,7 @@ export function UsersListPage() {
         data={filteredUsers}
         keyExtractor={(u) => u.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhum usuário encontrado'}
+        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhuma equipe encontrada'}
       />
 
       {pagination && (
@@ -307,6 +315,50 @@ export function UsersListPage() {
           onPageChange={setPage}
         />
       )}
+
+      <Modal
+        isOpen={!!previewTarget}
+        onClose={() => setPreviewTarget(null)}
+        title="Preview da equipe"
+        footer={<Button variant="secondary" onClick={() => setPreviewTarget(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Nome</p>
+            <p className="mt-1 font-medium text-text">{previewTarget?.name ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">E-mail</p>
+            <p className="mt-1 text-text">{previewTarget?.email ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Perfil</p>
+            <div className="mt-1">
+              {previewTarget ? (
+                <Badge variant={ROLE_BADGE_VARIANT[previewTarget.role]}>{ROLE_LABELS[previewTarget.role]}</Badge>
+              ) : (
+                <span className="text-muted">—</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Status</p>
+            <div className="mt-1">
+              {previewTarget ? (
+                <Badge variant={previewTarget.status === 'ACTIVE' ? 'success' : 'error'}>
+                  {USER_STATUS_LABELS[previewTarget.status]}
+                </Badge>
+              ) : (
+                <span className="text-muted">—</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Criado em</p>
+            <p className="mt-1 text-text">{previewTarget ? formatDate(previewTarget.createdAt) : '—'}</p>
+          </div>
+        </div>
+      </Modal>
 
       <ConfirmModal
         isOpen={!!confirmAction}

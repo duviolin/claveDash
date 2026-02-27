@@ -8,11 +8,11 @@ import { NotificationBell } from './NotificationBell'
 
 const routeLabels: Record<string, string> = {
   dashboard: 'Painel',
-  users: 'Usuários',
-  schools: 'Escolas',
-  courses: 'Cursos',
-  seasons: 'Semestres',
-  classes: 'Turmas',
+  users: 'Equipe',
+  schools: 'Unidades artísticas',
+  courses: 'Núcleos artísticos',
+  seasons: 'Temporadas',
+  classes: 'Grupos artísticos',
   templates: 'Templates',
   projects: 'Projetos',
   'daily-missions': 'Missões Diárias',
@@ -29,8 +29,8 @@ const uuidSegmentRegex =
 const slugLikeRegex = /^[a-z0-9-]+$/
 
 const detailLabelsByParentSegment: Record<string, string> = {
-  users: 'Detalhes do Usuário',
-  classes: 'Detalhes da Turma',
+  users: 'Detalhes da equipe',
+  classes: 'Detalhes do grupo artístico',
   projects: 'Detalhes do Template',
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, GripVertical, Music, FileText, BookOpen, HelpCircle, ArchiveRestore, CheckCircle2, AlertTriangle, CircleDashed, RotateCw } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, GripVertical, Music, FileText, BookOpen, HelpCircle, ArchiveRestore, CheckCircle2, AlertTriangle, CircleDashed, RotateCw, Eye } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -12,10 +12,12 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Select } from '@/components/ui/Select'
 import { FileUpload } from '@/components/ui/FileUpload'
+import { FilePreview } from '@/components/ui/FilePreview'
 import { QuizBuilder } from '@/components/ui/QuizBuilder'
 import { AIButton } from '@/components/ui/AIButton'
 import { generatePublicationQualitativeAnalysis, generateQuiz, generateQuizQuestion } from '@/api/ai'
 import { presignDownload } from '@/api/storage'
+import { listCourses } from '@/api/courses'
 import {
   getProjectTemplate,
   updateProjectTemplate,
@@ -23,6 +25,8 @@ import {
   createTrackTemplate,
   updateTrackTemplate,
   deleteTrackTemplate,
+  listDeletedTrackTemplates,
+  restoreTrackTemplate,
   listMaterialTemplates,
   createMaterialTemplate,
   updateMaterialTemplate,
@@ -43,14 +47,14 @@ import {
   restorePressQuizTemplate,
   getProjectTemplateReadiness,
   getProjectTemplateQualitativeAnalysis,
-  listProjectTemplateReadinessRules,
-  updateProjectTemplateReadinessRule,
   saveProjectTemplateQualitativeAnalysis,
 } from '@/api/templates'
 import type { AxiosError } from 'axios'
-import { TRACK_MATERIAL_TYPE_LABELS, TRACK_MATERIAL_TYPE_VARIANT } from '@/lib/constants'
+import { PROJECT_TYPE_LABELS, TRACK_MATERIAL_TYPE_LABELS, TRACK_MATERIAL_TYPE_VARIANT } from '@/lib/constants'
 import type {
+  Course,
   ProjectTemplate,
+  ProjectType,
   TrackSceneTemplate,
   TrackMaterialTemplate,
   TrackMaterialType,
@@ -59,24 +63,20 @@ import type {
   DeactivationErrorDetails,
   QuizQuestion,
   ProjectTemplateReadinessSummary,
-  ProjectTemplateReadinessRule,
   ProjectTemplateQualitativeAnalysis,
 } from '@/types'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
-import { useAuth } from '@/contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 const AUTO_PUBLICATION_ANALYSIS_MIN_INTERVAL_MS = 15000
 const AUTO_PUBLICATION_ANALYSIS_DEBOUNCE_MS = 8000
+const TRACK_TRASH_PAGE_LIMIT = 20
 
 export function ProjectTemplateDetailPage() {
   const { slug } = useParams<{ slug: string }>()
-  const { user } = useAuth()
   const queryClient = useQueryClient()
   const [editingProject, setEditingProject] = useState(false)
-  const [editingReadinessRules, setEditingReadinessRules] = useState(false)
-  const [projectForm, setProjectForm] = useState({ name: '', description: '', coverImage: '' })
-  const [readinessRulesForm, setReadinessRulesForm] = useState<Record<string, { title: string; description: string; targetValue: string; weight: string; isActive: boolean }>>({})
+  const [projectForm, setProjectForm] = useState({ courseId: '', name: '', type: 'ALBUM' as ProjectType, description: '', coverImage: '' })
   const [isGeneratingQualitativeFeedback, setIsGeneratingQualitativeFeedback] = useState(false)
   const [lastAutoAnalysisAt, setLastAutoAnalysisAt] = useState(0)
   const autoAnalysisRequestIdRef = useRef(0)
@@ -94,6 +94,11 @@ export function ProjectTemplateDetailPage() {
     enabled: !!template?.id,
   })
 
+  const { data: courses = [] } = useQuery({
+    queryKey: ['courses'],
+    queryFn: () => listCourses(),
+  })
+
   const { data: readiness } = useQuery({
     queryKey: ['project-template-readiness', slug],
     queryFn: () => getProjectTemplateReadiness(slug!),
@@ -105,29 +110,6 @@ export function ProjectTemplateDetailPage() {
     queryFn: () => getProjectTemplateQualitativeAnalysis(slug!),
     enabled: !!slug,
   })
-
-  const { data: readinessRules = [] } = useQuery({
-    queryKey: ['project-template-readiness-rules'],
-    queryFn: () => listProjectTemplateReadinessRules(),
-    enabled: user?.role === 'ADMIN',
-  })
-
-  useEffect(() => {
-    if (!readinessRules.length) return
-    setReadinessRulesForm((prev) => {
-      const next = { ...prev }
-      for (const rule of readinessRules) {
-        next[rule.id] = {
-          title: rule.title,
-          description: rule.description || '',
-          targetValue: String(rule.targetValue),
-          weight: String(rule.weight),
-          isActive: rule.isActive,
-        }
-      }
-      return next
-    })
-  }, [readinessRules])
 
   const { data: coverImageUrl } = useQuery({
     queryKey: ['project-template-cover-image', template?.coverImage],
@@ -141,39 +123,11 @@ export function ProjectTemplateDetailPage() {
   })
 
   const updateProjectMutation = useMutation({
-    mutationFn: () => updateProjectTemplate(slug!, { name: projectForm.name, description: projectForm.description || undefined, coverImage: projectForm.coverImage || undefined }),
+    mutationFn: () => updateProjectTemplate(slug!, { courseId: projectForm.courseId, name: projectForm.name, description: projectForm.description || undefined, coverImage: projectForm.coverImage || undefined }),
     onSuccess: () => {
       toast.success('Template atualizado!')
       queryClient.invalidateQueries({ queryKey: ['project-template', slug] })
       setEditingProject(false)
-    },
-  })
-
-  const saveReadinessRulesMutation = useMutation({
-    mutationFn: async () => {
-      await Promise.all(
-        readinessRules.map((rule) => {
-          const form = readinessRulesForm[rule.id]
-          if (!form) return Promise.resolve()
-
-          const targetValue = Math.max(1, Number(form.targetValue) || 1)
-          const weight = Math.max(1, Number(form.weight) || 1)
-
-          return updateProjectTemplateReadinessRule(rule.id, {
-            title: form.title,
-            description: form.description.trim() || null,
-            targetValue,
-            weight,
-            isActive: form.isActive,
-          })
-        })
-      )
-    },
-    onSuccess: () => {
-      toast.success('Critérios de publicação atualizados!')
-      queryClient.invalidateQueries({ queryKey: ['project-template-readiness-rules'] })
-      queryClient.invalidateQueries({ queryKey: ['project-template-readiness', slug] })
-      setEditingReadinessRules(false)
     },
   })
 
@@ -306,13 +260,8 @@ export function ProjectTemplateDetailPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={template.type === 'ALBUM' ? 'accent' : 'info'}>{template.type}</Badge>
           <Badge variant="default">v{template.version}</Badge>
-          {user?.role === 'ADMIN' && (
-            <Button size="sm" variant="secondary" onClick={() => setEditingReadinessRules(true)}>
-              Critérios de publicação
-            </Button>
-          )}
-          <Button size="sm" variant="secondary" onClick={() => { setProjectForm({ name: template.name, description: template.description || '', coverImage: template.coverImage || '' }); setEditingProject(true) }}>
-            <Pencil className="h-3.5 w-3.5" /> Editar informações
+          <Button size="sm" variant="secondary" onClick={() => { setProjectForm({ courseId: template.courseId, name: template.name, type: template.type, description: template.description || '', coverImage: template.coverImage || '' }); setEditingProject(true) }}>
+            <Pencil className="h-3.5 w-3.5" /> Editar projeto
           </Button>
         </div>
       }
@@ -345,7 +294,23 @@ export function ProjectTemplateDetailPage() {
         }
       >
         <div className="space-y-4">
+          <Select
+            id="ptCourseId"
+            label="Núcleo artístico"
+            value={projectForm.courseId}
+            onChange={(e) => setProjectForm({ ...projectForm, courseId: e.target.value })}
+            placeholder="Selecionar núcleo artístico..."
+            options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
+          />
           <Input id="ptName" label="Nome" value={projectForm.name} onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })} />
+          <Select
+            id="ptType"
+            label="Tipo"
+            value={projectForm.type}
+            onChange={(e) => setProjectForm({ ...projectForm, type: e.target.value as ProjectType })}
+            options={Object.entries(PROJECT_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
+            disabled
+          />
           <Textarea id="ptDesc" label="Descrição" value={projectForm.description} onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })} />
           <FileUpload
             fileType="images"
@@ -360,79 +325,6 @@ export function ProjectTemplateDetailPage() {
         </div>
       </Modal>
 
-      <Modal
-        isOpen={editingReadinessRules}
-        onClose={() => setEditingReadinessRules(false)}
-        title="Critérios de publicação (somente admin)"
-        size="lg"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setEditingReadinessRules(false)}>Cancelar</Button>
-            <Button onClick={() => saveReadinessRulesMutation.mutate()} isLoading={saveReadinessRulesMutation.isPending}>Salvar critérios</Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          {readinessRules.map((rule: ProjectTemplateReadinessRule) => {
-            const form = readinessRulesForm[rule.id] ?? {
-              title: rule.title,
-              description: rule.description || '',
-              targetValue: String(rule.targetValue),
-              weight: String(rule.weight),
-              isActive: rule.isActive,
-            }
-
-            return (
-              <div key={rule.id} className="rounded-lg border border-border bg-surface-2 p-3">
-                <div className="mb-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Input
-                    id={`rule-title-${rule.id}`}
-                    label="Título"
-                    value={form.title}
-                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, title: e.target.value } }))}
-                  />
-                  <div className="flex items-end">
-                    <label className="inline-flex items-center gap-2 text-sm text-text">
-                      <input
-                        type="checkbox"
-                        checked={form.isActive}
-                        onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, isActive: e.target.checked } }))}
-                      />
-                      Regra ativa
-                    </label>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Textarea
-                    id={`rule-description-${rule.id}`}
-                    label="Critério de avaliação para IA (editável pelo admin)"
-                    value={form.description}
-                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, description: e.target.value } }))}
-                    placeholder="Ex.: Avaliar se a progressão didática da faixa está clara e contextualizada para o aluno."
-                  />
-                  <Input
-                    id={`rule-target-${rule.id}`}
-                    label="Meta mínima"
-                    type="number"
-                    min={1}
-                    value={form.targetValue}
-                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, targetValue: e.target.value } }))}
-                  />
-                  <Input
-                    id={`rule-weight-${rule.id}`}
-                    label="Peso no score"
-                    type="number"
-                    min={1}
-                    value={form.weight}
-                    onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, weight: e.target.value } }))}
-                  />
-                </div>
-                {rule.description && <p className="mt-2 text-xs text-muted">{rule.description}</p>}
-              </div>
-            )
-          })}
-        </div>
-      </Modal>
     </PageContainer>
   )
 }
@@ -484,7 +376,7 @@ function ProjectTemplateReadinessCard({
 
       <div className="grid grid-cols-2 gap-2 text-xs text-muted sm:grid-cols-4">
         <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Faixas: <span className="font-semibold text-text">{trackCount}</span></div>
-        <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Quizzes: <span className="font-semibold text-text">{quizCount}</span></div>
+        <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Coletivas de imprensa: <span className="font-semibold text-text">{quizCount}</span></div>
         <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Materiais: <span className="font-semibold text-text">{materialCount}</span></div>
         <div className="rounded-lg border border-border bg-surface-2 px-2 py-1.5">Trilhas: <span className="font-semibold text-text">{studyTrackCount}</span></div>
       </div>
@@ -544,12 +436,25 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState('active')
+  const [trashPage, setTrashPage] = useState(1)
   const [editingTrack, setEditingTrack] = useState<TrackSceneTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TrackSceneTemplate | null>(null)
+  const [restoreTarget, setRestoreTarget] = useState<TrackSceneTemplate | null>(null)
   const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [form, setForm] = useState({ title: '', artist: '', description: '', technicalInstruction: '', lyrics: '', unlockAfterTrackId: '' })
+  const isTrash = activeTab === 'TRASH'
 
   const sortedTracks = [...tracks].sort((a, b) => a.order - b.order)
+  const { data: deletedResponse } = useQuery({
+    queryKey: ['track-templates', 'deleted', projectTemplateSlug, trashPage],
+    queryFn: () => listDeletedTrackTemplates({ page: trashPage, limit: TRACK_TRASH_PAGE_LIMIT }),
+    enabled: isTrash,
+  })
+  const deletedTracks = (deletedResponse?.data ?? [])
+    .filter((trackItem) => trackItem.projectTemplateId === projectTemplateId)
+    .sort((a, b) => a.order - b.order)
+  const trashTotal = deletedResponse?.pagination.total ?? deletedTracks.length
   const refreshTemplateVersion = async () => {
     queryClient.setQueryData<ProjectTemplate>(['project-template', projectTemplateSlug], (current) => {
       if (!current) return current
@@ -601,6 +506,7 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
     onSuccess: async () => {
       toast.success('Faixa desativada!')
       queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateSlug] })
+      queryClient.invalidateQueries({ queryKey: ['track-templates', 'deleted', projectTemplateSlug] })
       await refreshTemplateVersion()
       setDeleteTarget(null)
     },
@@ -610,6 +516,16 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
         setBlockedInfo({ name: deleteTarget!.title, slug: deleteTarget!.slug, details: err.response.data.details })
       }
       setDeleteTarget(null)
+    },
+  })
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreTrackTemplate(restoreTarget!.id),
+    onSuccess: async () => {
+      toast.success('Faixa restaurada!')
+      queryClient.invalidateQueries({ queryKey: ['track-templates', projectTemplateSlug] })
+      queryClient.invalidateQueries({ queryKey: ['track-templates', 'deleted', projectTemplateSlug] })
+      await refreshTemplateVersion()
+      setRestoreTarget(null)
     },
   })
 
@@ -633,41 +549,121 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
         <h2 className="text-lg font-semibold text-text flex items-center gap-2">
           <Music className="h-5 w-5 text-accent" /> Faixas ({sortedTracks.length})
         </h2>
-        <Button size="sm" onClick={() => { resetForm(); setCreateOpen(true) }}>
-          <Plus className="h-3.5 w-3.5" /> Adicionar Faixa
-        </Button>
+        {!isTrash && (
+          <Button size="sm" onClick={() => { resetForm(); setCreateOpen(true) }}>
+            <Plus className="h-3.5 w-3.5" /> Adicionar Faixa
+          </Button>
+        )}
       </div>
 
-      {sortedTracks.map((track) => (
-        <div key={track.id} className="rounded-xl border border-border bg-surface overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-2/50 transition-colors" onClick={() => setExpandedTrack(expandedTrack === track.id ? null : track.id)}>
-            <GripVertical className="h-4 w-4 text-muted/50" />
-            <span className="text-xs text-muted font-mono w-6">{track.order}</span>
-            {expandedTrack === track.id ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
-            <span className="min-w-0 flex-1 truncate font-medium text-text" title={track.title}>{track.title}</span>
-            {track.artist && <span className="max-w-40 truncate text-sm text-muted sm:max-w-56" title={track.artist}>{track.artist}</span>}
-            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => openEdit(track)} className="rounded-lg p-1 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
-              <button onClick={() => setDeleteTarget(track)} className="rounded-lg p-1 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
-            </div>
-          </div>
-          {expandedTrack === track.id && (
-            <div className="border-t border-border px-4 py-4 space-y-4 bg-surface-2/30">
-              {track.description && <div><p className="text-xs font-medium text-muted uppercase">Descrição</p><p className="text-sm text-text mt-1">{track.description}</p></div>}
-              {track.technicalInstruction && <div><p className="text-xs font-medium text-muted uppercase">Instrução Técnica</p><p className="text-sm text-text mt-1">{track.technicalInstruction}</p></div>}
-              {track.lyrics && <div><p className="text-xs font-medium text-muted uppercase">Letra</p><p className="text-sm text-text mt-1 whitespace-pre-wrap">{track.lyrics}</p></div>}
-              {track.unlockAfterTrackId && (() => {
-                const prereq = sortedTracks.find(t => t.id === track.unlockAfterTrackId)
-                return prereq ? <div><p className="text-xs font-medium text-muted uppercase">Pré-requisito</p><p className="text-sm text-text mt-1">Desbloqueia após: {prereq.title}</p></div> : null
-              })()}
+      <Tabs
+        tabs={[
+          { key: 'active', label: 'Ativas', count: sortedTracks.length },
+          { key: 'TRASH', label: 'Lixeira', count: trashTotal },
+        ]}
+        activeKey={activeTab}
+        onChange={(key) => { setActiveTab(key); setTrashPage(1); setExpandedTrack(null) }}
+      />
 
-              <MaterialsSection trackTemplateId={track.id} projectTemplateSlug={projectTemplateSlug} />
-              <StudyTracksSection trackTemplateId={track.id} projectTemplateSlug={projectTemplateSlug} />
-              <PressQuizzesSection trackTemplateId={track.id} projectTemplateSlug={projectTemplateSlug} track={track} template={template} />
+      {!isTrash && (
+        <>
+          {sortedTracks.map((track) => (
+            <div key={track.id} className="rounded-xl border border-border bg-surface overflow-hidden">
+              <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-2/50 transition-colors" onClick={() => setExpandedTrack(expandedTrack === track.id ? null : track.id)}>
+                <GripVertical className="h-4 w-4 text-muted/50" />
+                <span className="text-xs text-muted font-mono w-6">{track.order}</span>
+                {expandedTrack === track.id ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
+                <span className="min-w-0 flex-1 truncate font-medium text-text" title={track.title}>{track.title}</span>
+                {track.artist && <span className="max-w-40 truncate text-sm text-muted sm:max-w-56" title={track.artist}>{track.artist}</span>}
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => setExpandedTrack(expandedTrack === track.id ? null : track.id)}
+                    className="rounded-lg p-1 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
+                    title="Visualizar faixa"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={() => openEdit(track)} className="rounded-lg p-1 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setDeleteTarget(track)} className="rounded-lg p-1 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              </div>
+              {expandedTrack === track.id && (
+                <div className="border-t border-border px-4 py-4 space-y-4 bg-surface-2/30">
+                  <div>
+                    <p className="text-xs font-medium text-muted uppercase">Título</p>
+                    <p className="text-sm text-text mt-1">{track.title}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted uppercase">Artista</p>
+                    <p className="text-sm text-text mt-1">{track.artist || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted uppercase">Descrição</p>
+                    <p className="text-sm text-text mt-1">{track.description || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted uppercase">Instrução Técnica</p>
+                    <p className="text-sm text-text mt-1">{track.technicalInstruction || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted uppercase">Letra</p>
+                    <p className="text-sm text-text mt-1 whitespace-pre-wrap">{track.lyrics || 'Não informado'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted uppercase">Pré-requisito</p>
+                    <p className="text-sm text-text mt-1">
+                      {(() => {
+                        const prereq = track.unlockAfterTrackId
+                          ? sortedTracks.find((t) => t.id === track.unlockAfterTrackId)
+                          : null
+                        return prereq ? `Desbloqueia após: ${prereq.title}` : 'Sem pré-requisito'
+                      })()}
+                    </p>
+                  </div>
+
+                  <MaterialsSection trackTemplateId={track.id} projectTemplateSlug={projectTemplateSlug} />
+                  <StudyTracksSection trackTemplateId={track.id} projectTemplateSlug={projectTemplateSlug} />
+                  <PressQuizzesSection trackTemplateId={track.id} projectTemplateSlug={projectTemplateSlug} track={track} template={template} />
+                </div>
+              )}
             </div>
+          ))}
+          {sortedTracks.length === 0 && (
+            <p className="text-sm text-muted">Nenhuma faixa ativa</p>
           )}
-        </div>
-      ))}
+        </>
+      )}
+
+      {isTrash && (
+        <>
+          {deletedTracks.length > 0 ? (
+            <>
+              <div className="space-y-1">
+                {deletedTracks.map((track) => (
+                  <div key={track.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
+                    <span className="text-xs text-muted font-mono w-6">{track.order}</span>
+                    <span className="min-w-0 flex-1 truncate text-text" title={track.title}>{track.title}</span>
+                    <Badge variant="error" className="text-[10px]">Excluída</Badge>
+                    <button onClick={() => setRestoreTarget(track)} className="rounded-lg p-1 text-muted transition-colors hover:bg-success/10 hover:text-success cursor-pointer" title="Restaurar">
+                      <ArchiveRestore className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {deletedResponse?.pagination && deletedResponse.pagination.totalPages > 1 && (
+                <Pagination
+                  page={trashPage}
+                  totalPages={deletedResponse.pagination.totalPages}
+                  total={deletedResponse.pagination.total}
+                  onPageChange={setTrashPage}
+                />
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted">A lixeira está vazia</p>
+          )}
+        </>
+      )}
 
       <TrackFormModal
         isOpen={createOpen || !!editingTrack}
@@ -683,6 +679,7 @@ function TracksList({ projectTemplateSlug, projectTemplateId, tracks, template }
       />
 
       <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMutation.mutate()} isLoading={deleteMutation.isPending} title="Desativar Faixa" message={`Tem certeza que deseja desativar "${deleteTarget?.title}"?`} />
+      <ConfirmModal isOpen={!!restoreTarget} onClose={() => setRestoreTarget(null)} onConfirm={() => restoreMutation.mutate()} isLoading={restoreMutation.isPending} title="Restaurar Faixa" message={`Restaurar "${restoreTarget?.title}"?`} confirmLabel="Restaurar" />
       <DeactivationBlockedModal
         isOpen={!!blockedInfo}
         onClose={() => setBlockedInfo(null)}
@@ -725,7 +722,7 @@ function TrackFormModal({ isOpen, onClose, title, form, setForm, onSubmit, isLoa
           />
         )}
         <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-muted">
-          Demo e Quiz da coletiva são obrigatórios para todas as faixas.
+          Demo e coletiva de imprensa são obrigatórios para todas as faixas.
         </div>
       </div>
     </Modal>
@@ -738,6 +735,7 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState('active')
   const [modalOpen, setModalOpen] = useState(false)
+  const [viewing, setViewing] = useState<TrackMaterialTemplate | null>(null)
   const [editing, setEditing] = useState<TrackMaterialTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TrackMaterialTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<TrackMaterialTemplate | null>(null)
@@ -765,6 +763,25 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
     enabled: isTrash,
   })
   const deletedMaterials = (deletedResponse?.data ?? []).filter((material) => material.trackSceneTemplateId === trackTemplateId)
+  const viewingContentUrl = viewing?.defaultContentUrl?.trim() || ''
+  const needsPresignedPreview = Boolean(
+    viewing &&
+    viewing.type !== 'TEXT' &&
+    viewing.type !== 'LINK' &&
+    viewingContentUrl &&
+    !/^https?:\/\//i.test(viewingContentUrl)
+  )
+  const { data: previewSourceUrl, isLoading: isLoadingPreview } = useQuery({
+    queryKey: ['material-preview', viewing?.id, viewingContentUrl],
+    queryFn: async () => {
+      if (!viewing || viewing.type === 'TEXT' || viewing.type === 'LINK' || !viewingContentUrl) return null
+      if (/^https?:\/\//i.test(viewingContentUrl)) return viewingContentUrl
+      const { downloadUrl } = await presignDownload(viewingContentUrl)
+      return downloadUrl
+    },
+    enabled: !!viewing && !!viewingContentUrl,
+    staleTime: 5 * 60 * 1000,
+  })
 
   const createMut = useMutation({
     mutationFn: () => createMaterialTemplate(trackTemplateId, { type: form.type, title: form.title, defaultContentUrl: form.defaultContentUrl || undefined, defaultTextContent: form.defaultTextContent || undefined }),
@@ -811,6 +828,31 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
 
   const openCreate = () => { setEditing(null); setForm({ type: 'TEXT', title: '', defaultContentUrl: '', defaultTextContent: '' }); setModalOpen(true) }
   const openEdit = (m: TrackMaterialTemplate) => { setEditing(m); setForm({ type: m.type, title: m.title, defaultContentUrl: m.defaultContentUrl || '', defaultTextContent: m.defaultTextContent || '' }); setModalOpen(true) }
+  const openPreview = (material: TrackMaterialTemplate) => {
+    const contentUrl = material.defaultContentUrl?.trim()
+    if (material.type !== 'TEXT' && !contentUrl) {
+      toast.error('Este material não tem conteúdo para visualizar.')
+      return
+    }
+    setViewing(material)
+  }
+  const resolvedPreviewUrl = (() => {
+    if (!viewing) return null
+    if (viewing.type === 'TEXT') return null
+    if (!viewingContentUrl) return null
+    if (viewing.type === 'LINK') return viewingContentUrl
+    if (/^https?:\/\//i.test(viewingContentUrl)) return viewingContentUrl
+    return previewSourceUrl || null
+  })()
+  const previewFileName = viewingContentUrl ? viewingContentUrl.split('/').pop() || viewing.title : viewing?.title || ''
+  const previewMimeType = viewing?.type === 'PDF'
+    ? 'application/pdf'
+    : viewing?.type === 'AUDIO'
+      ? 'audio/*'
+      : viewing?.type === 'VIDEO'
+        ? 'video/*'
+        : undefined
+  const showPreviewLoading = !!viewing && viewing.type !== 'TEXT' && needsPresignedPreview && isLoadingPreview
 
   return (
     <div>
@@ -850,6 +892,13 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
                     <div key={m.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
                       <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[m.type]} className="text-[10px]">{TRACK_MATERIAL_TYPE_LABELS[m.type]}</Badge>
                       <span className="min-w-0 flex-1 truncate text-text" title={m.title}>{m.title}</span>
+                      <button
+                        onClick={() => openPreview(m)}
+                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"
+                        title="Visualizar"
+                      >
+                        <Eye className="h-3.5 w-3.5" /> Visualizar
+                      </button>
                       <button onClick={() => openEdit(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
                       <button onClick={() => setDeleteTarget(m)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
@@ -905,6 +954,51 @@ function MaterialsSection({ trackTemplateId, projectTemplateSlug }: { trackTempl
           {form.type === 'TEXT' && <Textarea id="matText" label="Conteúdo" value={form.defaultTextContent} onChange={(e) => setForm({ ...form, defaultTextContent: e.target.value })} />}
         </div>
       </Modal>
+      <Modal
+        isOpen={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Visualizar Material"
+        footer={<Button variant="secondary" onClick={() => setViewing(null)}>Fechar</Button>}
+      >
+        {viewing && (
+          <div className="space-y-4">
+            <Input id="matViewTitle" label="Título" value={viewing.title} readOnly />
+            <Input id="matViewType" label="Tipo" value={TRACK_MATERIAL_TYPE_LABELS[viewing.type]} readOnly />
+            {viewing.type === 'TEXT' ? (
+              <Textarea id="matViewContent" label="Conteúdo" value={viewing.defaultTextContent || 'Sem conteúdo cadastrado'} readOnly />
+            ) : viewing.type === 'LINK' ? (
+              <div className="space-y-2">
+                <Input id="matViewUrl" label="Link" value={viewing.defaultContentUrl || ''} readOnly />
+                {resolvedPreviewUrl ? (
+                  <iframe
+                    src={resolvedPreviewUrl}
+                    title={`Preview de ${viewing.title}`}
+                    className="h-[70vh] w-full rounded-lg border border-border bg-surface"
+                  />
+                ) : (
+                  <div className="rounded-lg border border-border bg-surface-2 px-3 py-3 text-sm text-muted">
+                    Não foi possível carregar o preview deste link dentro da plataforma.
+                  </div>
+                )}
+              </div>
+            ) : showPreviewLoading ? (
+              <div className="rounded-lg border border-border bg-surface-2 px-3 py-3 text-sm text-muted">
+                Carregando preview...
+              </div>
+            ) : resolvedPreviewUrl ? (
+              <FilePreview
+                fileName={previewFileName}
+                sourceUrl={resolvedPreviewUrl}
+                mimeType={previewMimeType}
+              />
+            ) : (
+              <div className="rounded-lg border border-border bg-surface-2 px-3 py-3 text-sm text-muted">
+                Não foi possível carregar o preview deste material.
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
 
       <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Desativar Material" message={`Desativar "${deleteTarget?.title}"?`} />
       <ConfirmModal isOpen={!!restoreTarget} onClose={() => setRestoreTarget(null)} onConfirm={() => restoreMut.mutate()} isLoading={restoreMut.isPending} title="Restaurar Material" message={`Restaurar "${restoreTarget?.title}"?`} confirmLabel="Restaurar" />
@@ -919,6 +1013,7 @@ function StudyTracksSection({ trackTemplateId, projectTemplateSlug }: { trackTem
   const [activeTab, setActiveTab] = useState('active')
   const [trashPage, setTrashPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
+  const [viewing, setViewing] = useState<StudyTrackTemplate | null>(null)
   const [editing, setEditing] = useState<StudyTrackTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StudyTrackTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<StudyTrackTemplate | null>(null)
@@ -1045,6 +1140,9 @@ function StudyTracksSection({ trackTemplateId, projectTemplateSlug }: { trackTem
                   {studyTracks.map((st) => (
                     <div key={st.id} className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm transition-colors hover:bg-surface-2/50">
                       <span className="min-w-0 flex-1 truncate text-text" title={st.title}>{st.title}</span>
+                      <button onClick={() => setViewing(st)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer" title="Visualizar">
+                        <Eye className="h-3.5 w-3.5" /> Visualizar
+                      </button>
                       <button onClick={() => openEdit(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
                       <button onClick={() => setDeleteTarget(st)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
@@ -1143,6 +1241,39 @@ function StudyTracksSection({ trackTemplateId, projectTemplateSlug }: { trackTem
         </div>
       </Modal>
 
+      <Modal
+        isOpen={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Visualizar Trilha"
+        size="lg"
+        footer={<Button variant="secondary" onClick={() => setViewing(null)}>Fechar</Button>}
+      >
+        {viewing && (
+          <div className="space-y-4">
+            <Input id="stViewTitle" label="Título" value={viewing.title} readOnly />
+            <Textarea id="stViewDesc" label="Descrição" value={viewing.description || ''} readOnly />
+            <Textarea id="stViewNotes" label="Notas Técnicas" value={viewing.technicalNotes || ''} readOnly />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-text">Arquivos vinculados</p>
+              <div className="rounded-lg border border-border bg-surface-2 p-3 space-y-2 text-sm">
+                <div>
+                  <span className="font-medium text-text">Vídeo:</span>{' '}
+                  <span className="text-muted break-all">{viewing.videoUrl || 'Não informado'}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-text">Áudio:</span>{' '}
+                  <span className="text-muted break-all">{viewing.audioUrl || 'Não informado'}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-text">PDF:</span>{' '}
+                  <span className="text-muted break-all">{viewing.pdfUrl || 'Não informado'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Desativar Trilha" message={`Desativar "${deleteTarget?.title}"?`} />
       <ConfirmModal isOpen={!!restoreTarget} onClose={() => setRestoreTarget(null)} onConfirm={() => restoreMut.mutate()} isLoading={restoreMut.isPending} title="Restaurar Trilha" message={`Restaurar "${restoreTarget?.title}"?`} confirmLabel="Restaurar" />
     </div>
@@ -1192,6 +1323,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
   const [activeTab, setActiveTab] = useState('active')
   const [trashPage, setTrashPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
+  const [viewing, setViewing] = useState<PressQuizTemplate | null>(null)
   const [editing, setEditing] = useState<PressQuizTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<PressQuizTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<PressQuizTemplate | null>(null)
@@ -1248,7 +1380,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
       passingScore: form.passingScore,
     }),
     onSuccess: async () => {
-      toast.success('Quiz criado!')
+      toast.success('Coletiva de imprensa criada!')
       queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] })
       await refreshTemplateVersion()
       setModalOpen(false)
@@ -1264,7 +1396,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
       passingScore: form.passingScore,
     }),
     onSuccess: async () => {
-      toast.success('Quiz atualizado!')
+      toast.success('Coletiva de imprensa atualizada!')
       queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] })
       await refreshTemplateVersion()
       setEditing(null)
@@ -1274,7 +1406,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
       const err = error as AxiosError<{ code?: string }>
       if (err.response?.status === 404 || err.response?.data?.code === 'RESOURCE_NOT_FOUND') {
         setEditing(null)
-        toast('Quiz antigo não encontrado. Criando um novo com os dados atuais...')
+        toast('Coletiva antiga não encontrada. Criando uma nova com os dados atuais...')
         createMut.mutate()
       }
     },
@@ -1283,7 +1415,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
   const deleteMut = useMutation({
     mutationFn: () => deletePressQuizTemplate(deleteTarget!.id),
     onSuccess: async () => {
-      toast.success('Quiz desativado!')
+      toast.success('Coletiva de imprensa desativada!')
       queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] })
       queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', 'deleted', trackTemplateId] })
       await refreshTemplateVersion()
@@ -1294,7 +1426,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
   const restoreMut = useMutation({
     mutationFn: () => restorePressQuizTemplate(restoreTarget!.id),
     onSuccess: async () => {
-      toast.success('Quiz restaurado!')
+      toast.success('Coletiva de imprensa restaurada!')
       queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', trackTemplateId] })
       queryClient.invalidateQueries({ queryKey: ['press-quiz-templates', 'deleted', trackTemplateId] })
       await refreshTemplateVersion()
@@ -1363,7 +1495,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
         >
           {isExpanded ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
           <HelpCircle className="h-4 w-4 text-warning" />
-          Quizzes ({quizzes.length})
+          Coletivas de imprensa ({quizzes.length})
         </button>
         {!isTrash && (
           <Button size="sm" variant="ghost" onClick={openCreate}>
@@ -1392,13 +1524,16 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
                       <span className="min-w-0 flex-1 truncate text-text" title={q.title}>{q.title}</span>
                       <span className="text-xs text-muted">{q.questionsJson?.length || 0} questões</span>
                       <span className="text-xs text-muted">{q.passingScore}%</span>
+                      <button onClick={() => setViewing(q)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer" title="Visualizar">
+                        <Eye className="h-3.5 w-3.5" /> Visualizar
+                      </button>
                       <button onClick={() => openEdit(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"><Pencil className="h-3.5 w-3.5" /></button>
                       <button onClick={() => setDeleteTarget(q)} className="rounded-lg p-1 text-muted transition-colors hover:bg-error/10 hover:text-error cursor-pointer"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted mt-2">Nenhum quiz ativo</p>
+                <p className="text-sm text-muted mt-2">Nenhuma coletiva de imprensa ativa</p>
               )}
             </>
           )}
@@ -1434,7 +1569,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
         </>
       )}
 
-      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Editar Quiz' : 'Criar Quiz'} size="lg" footer={
+      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Editar Coletiva de imprensa' : 'Criar Coletiva de imprensa'} size="lg" footer={
         <><Button variant="secondary" onClick={() => { setModalOpen(false); setEditing(null) }}>Cancelar</Button>
         <Button onClick={() => editing ? updateMut.mutate() : createMut.mutate()} isLoading={createMut.isPending || updateMut.isPending}>{editing ? 'Salvar' : 'Criar'}</Button></>
       }>
@@ -1447,7 +1582,7 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
             onChange={(questions) => setForm({ ...form, questions })}
             footerActions={form.questions.length === 0 ? (
               <AIButton
-                label="Gerar Quiz com IA"
+                label="Gerar coletiva com IA"
                 extraInputLabel="Instruções extras (opcional)"
                 extraInputPlaceholder="Ex.: foco em teoria musical, dificuldade intermediária, questões sobre a letra..."
                 onGenerate={(userExtra) => generateQuiz(buildQuizAiContext(userExtra))}
@@ -1515,9 +1650,52 @@ function PressQuizzesSection({ trackTemplateId, projectTemplateSlug, track, temp
           </div>
         </div>
       </Modal>
+      <Modal
+        isOpen={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Visualizar Coletiva de imprensa"
+        size="lg"
+        footer={<Button variant="secondary" onClick={() => setViewing(null)}>Fechar</Button>}
+      >
+        {viewing && (
+          <div className="space-y-4">
+            <Input id="pqViewTitle" label="Título" value={viewing.title} readOnly />
+            <Textarea id="pqViewDesc" label="Descrição" value={viewing.description || ''} readOnly />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input id="pqViewAttempts" label="Máximo de tentativas" value={String(viewing.maxAttempts)} readOnly />
+              <Input id="pqViewScore" label="Nota de aprovação (%)" value={String(viewing.passingScore)} readOnly />
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-text">Questões</p>
+              {viewing.questionsJson && viewing.questionsJson.length > 0 ? (
+                <div className="space-y-2">
+                  {viewing.questionsJson.map((question, index) => (
+                    <div key={`${viewing.id}-question-${index}`} className="rounded-lg border border-border bg-surface-2 p-3">
+                      <p className="text-sm font-medium text-text">{index + 1}. {question.question}</p>
+                      <ul className="mt-2 space-y-1">
+                        {question.options.map((option, optionIndex) => (
+                          <li
+                            key={`${viewing.id}-question-${index}-option-${optionIndex}`}
+                            className={`text-sm ${optionIndex === question.correctIndex ? 'text-success' : 'text-muted'}`}
+                          >
+                            {optionIndex + 1}. {option}
+                            {optionIndex === question.correctIndex ? ' (correta)' : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted">Nenhuma questão cadastrada.</p>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
 
-      <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Desativar Quiz" message={`Desativar "${deleteTarget?.title}"?`} />
-      <ConfirmModal isOpen={!!restoreTarget} onClose={() => setRestoreTarget(null)} onConfirm={() => restoreMut.mutate()} isLoading={restoreMut.isPending} title="Restaurar Quiz" message={`Restaurar "${restoreTarget?.title}"?`} confirmLabel="Restaurar" />
+      <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Desativar Coletiva de imprensa" message={`Desativar "${deleteTarget?.title}"?`} />
+      <ConfirmModal isOpen={!!restoreTarget} onClose={() => setRestoreTarget(null)} onConfirm={() => restoreMut.mutate()} isLoading={restoreMut.isPending} title="Restaurar Coletiva de imprensa" message={`Restaurar "${restoreTarget?.title}"?`} confirmLabel="Restaurar" />
     </div>
   )
 }

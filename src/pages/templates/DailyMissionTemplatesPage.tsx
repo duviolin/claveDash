@@ -139,7 +139,7 @@ export function DailyMissionTemplatesPage() {
     },
     {
       key: 'course',
-      header: 'Curso',
+      header: 'Núcleo artístico',
       render: (m: DailyMissionTemplate) => {
         const course = courses.find((c: Course) => c.id === m.courseId)
         return <span className="text-muted">{course?.name ?? '—'}</span>
@@ -184,7 +184,7 @@ export function DailyMissionTemplatesPage() {
           <Select
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
-            placeholder="Todos os cursos"
+            placeholder="Todos os núcleos artísticos"
             options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
             className="w-full sm:max-w-xs"
           />
@@ -251,7 +251,7 @@ export function DailyMissionTemplatesPage() {
         <><Button variant="secondary" onClick={closeModal}>Cancelar</Button><Button onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>{editing ? 'Salvar' : 'Criar'}</Button></>
       }>
         <div className="space-y-4">
-          {!editing && <Select id="dmCourseId" label="Curso" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} placeholder="Selecionar..." options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} />}
+          {!editing && <Select id="dmCourseId" label="Núcleo artístico" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} placeholder="Selecionar..." options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} />}
           <Input id="dmTitle" label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <FileUpload
             fileType="videos"
@@ -443,7 +443,7 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
               onGenerate={(userExtra) => generateQuiz({
                 title: mission.title,
                 count: 5,
-                project: { name: mission.title, description: `Missão diária do curso` },
+                project: { name: mission.title, description: 'Missão diária do núcleo artístico' },
                 userExtra: userExtra || undefined,
               })}
               onAccept={(raw) => {

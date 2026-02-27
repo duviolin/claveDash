@@ -43,11 +43,11 @@ const navGroups: NavGroup[] = [
   {
     label: 'Gestão',
     items: [
-      { label: 'Usuários', path: '/users', icon: <Users className="h-4 w-4" /> },
-      { label: 'Escolas', path: '/schools', icon: <School className="h-4 w-4" /> },
-      { label: 'Cursos', path: '/courses', icon: <BookOpen className="h-4 w-4" /> },
-      { label: 'Semestres', path: '/seasons', icon: <Calendar className="h-4 w-4" /> },
-      { label: 'Turmas', path: '/classes', icon: <GraduationCap className="h-4 w-4" /> },
+      { label: 'Equipes', path: '/users', icon: <Users className="h-4 w-4" /> },
+      { label: 'Unidades artísticas', path: '/schools', icon: <School className="h-4 w-4" /> },
+      { label: 'Núcleos artísticos', path: '/courses', icon: <BookOpen className="h-4 w-4" /> },
+      { label: 'Temporadas', path: '/seasons', icon: <Calendar className="h-4 w-4" /> },
+      { label: 'Grupos artísticos', path: '/classes', icon: <GraduationCap className="h-4 w-4" /> },
     ],
   },
 ]

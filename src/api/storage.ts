@@ -23,7 +23,23 @@ export async function presignUpload(payload: PresignUploadPayload): Promise<Pres
 }
 
 export async function presignDownload(key: string): Promise<{ downloadUrl: string; expiresIn: number }> {
-  const { data } = await api.get<{ success: boolean; data: { downloadUrl: string; expiresIn: number } }>(`/storage/presign-download/${key}`)
+  const trimmedKey = key.trim()
+
+  if (
+    trimmedKey.startsWith('http://') ||
+    trimmedKey.startsWith('https://') ||
+    trimmedKey.startsWith('blob:') ||
+    trimmedKey.startsWith('data:')
+  ) {
+    return { downloadUrl: trimmedKey, expiresIn: 0 }
+  }
+
+  const encodedKey = trimmedKey
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
+
+  const { data } = await api.get<{ success: boolean; data: { downloadUrl: string; expiresIn: number } }>(`/storage/presign-download/${encodedKey}`)
   return data.data
 }
 

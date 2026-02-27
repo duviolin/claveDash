@@ -34,7 +34,7 @@ export function UserDetailPage() {
     setIsLoading(true)
     try {
       await updateUser(slug, form)
-      toast.success('Usuário atualizado!')
+      toast.success('Equipe atualizada!')
       navigate('/users')
     } catch {
       // handled by interceptor
@@ -54,7 +54,7 @@ export function UserDetailPage() {
   }
 
   return (
-    <PageContainer title="Editar Usuário">
+    <PageContainer title="Editar equipe">
       <div className="max-w-lg">
         <div className="mb-4 flex items-center gap-3">
           <Badge variant={ROLE_BADGE_VARIANT[user.role]}>{ROLE_LABELS[user.role]}</Badge>

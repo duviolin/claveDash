@@ -1,6 +1,7 @@
 import type {
   UserRole,
   UserStatus,
+  CourseType,
   SeasonStatus,
   ProjectStatus,
   ProjectType,
@@ -12,9 +13,9 @@ import type {
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: 'Admin',
-  DIRECTOR: 'Diretor',
-  TEACHER: 'Professor',
-  STUDENT: 'Aluno',
+  DIRECTOR: 'Diretor da unidade',
+  TEACHER: 'Produtor',
+  STUDENT: 'Artista',
 }
 
 export const ROLE_OPTIONS = Object.entries(ROLE_LABELS).map(([value, label]) => ({
@@ -66,6 +67,11 @@ export const PROJECT_STATUS_VARIANT: Record<ProjectStatus, 'warning' | 'success'
 
 // ── Project Type ───────────────────────────────────────────
 
+export const COURSE_TYPE_LABELS: Record<CourseType, string> = {
+  MUSIC: 'Música',
+  THEATER: 'Teatro',
+}
+
 export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
   ALBUM: 'Álbum',
   PLAY: 'Peça',
@@ -106,49 +112,49 @@ export const DAILY_MISSION_STATUS_VARIANT: Record<DailyMissionTemplateStatus, 'w
 // ── Domain Events ───────────────────────────────────────────
 
 export const EVENT_TYPE_LABELS: Record<string, string> = {
-  USER_CREATED: 'Usuário criado',
-  USER_UPDATED: 'Usuário atualizado',
-  USER_SUSPENDED: 'Usuário suspenso',
-  USER_REACTIVATED: 'Usuário reativado',
-  USER_SOFT_DELETED: 'Usuário removido',
-  USER_RESTORED: 'Usuário restaurado',
+  USER_CREATED: 'Equipe criada',
+  USER_UPDATED: 'Equipe atualizada',
+  USER_SUSPENDED: 'Equipe suspensa',
+  USER_REACTIVATED: 'Equipe reativada',
+  USER_SOFT_DELETED: 'Equipe removida',
+  USER_RESTORED: 'Equipe restaurada',
   PASSWORD_CHANGED: 'Senha alterada',
 
-  STUDENT_PROFILE_CREATED: 'Perfil de aluno criado',
-  STUDENT_PROFILE_UPDATED: 'Perfil de aluno atualizado',
-  TEACHER_PROFILE_CREATED: 'Perfil de professor criado',
-  TEACHER_PROFILE_UPDATED: 'Perfil de professor atualizado',
-  STUDENT_CONTEXT_ACTIVATED: 'Contexto de aluno ativado',
-  STUDENT_CONTEXT_DEACTIVATED: 'Contexto de aluno desativado',
+  STUDENT_PROFILE_CREATED: 'Perfil de artista criado',
+  STUDENT_PROFILE_UPDATED: 'Perfil de artista atualizado',
+  TEACHER_PROFILE_CREATED: 'Perfil de produtor criado',
+  TEACHER_PROFILE_UPDATED: 'Perfil de produtor atualizado',
+  STUDENT_CONTEXT_ACTIVATED: 'Contexto de artista ativado',
+  STUDENT_CONTEXT_DEACTIVATED: 'Contexto de artista desativado',
 
-  SCHOOL_CREATED: 'Escola criada',
-  SCHOOL_UPDATED: 'Escola atualizada',
-  SCHOOL_ACTIVATED: 'Escola ativada',
-  SCHOOL_DEACTIVATED: 'Escola desativada',
-  SCHOOL_RESTORED: 'Escola restaurada',
+  SCHOOL_CREATED: 'Unidade artística criada',
+  SCHOOL_UPDATED: 'Unidade artística atualizada',
+  SCHOOL_ACTIVATED: 'Unidade artística ativada',
+  SCHOOL_DEACTIVATED: 'Unidade artística desativada',
+  SCHOOL_RESTORED: 'Unidade artística restaurada',
 
-  COURSE_CREATED: 'Curso criado',
-  COURSE_UPDATED: 'Curso atualizado',
-  COURSE_ACTIVATED: 'Curso ativado',
-  COURSE_DEACTIVATED: 'Curso desativado',
-  COURSE_RESTORED: 'Curso restaurado',
+  COURSE_CREATED: 'Núcleo artístico criado',
+  COURSE_UPDATED: 'Núcleo artístico atualizado',
+  COURSE_ACTIVATED: 'Núcleo artístico ativado',
+  COURSE_DEACTIVATED: 'Núcleo artístico desativado',
+  COURSE_RESTORED: 'Núcleo artístico restaurado',
 
-  SEASON_CREATED: 'Semestre criado',
-  SEASON_UPDATED: 'Semestre atualizado',
-  SEASON_STARTED: 'Semestre iniciado',
-  SEASON_CLOSED: 'Semestre encerrado',
-  SEASON_DEACTIVATED: 'Semestre desativado',
-  SEASON_RESTORED: 'Semestre restaurado',
+  SEASON_CREATED: 'Temporada criada',
+  SEASON_UPDATED: 'Temporada atualizada',
+  SEASON_STARTED: 'Temporada iniciada',
+  SEASON_CLOSED: 'Temporada encerrada',
+  SEASON_DEACTIVATED: 'Temporada desativada',
+  SEASON_RESTORED: 'Temporada restaurada',
 
-  CLASS_CREATED: 'Turma criada',
-  CLASS_UPDATED: 'Turma atualizada',
-  CLASS_DEACTIVATED: 'Turma desativada',
-  CLASS_RESTORED: 'Turma restaurada',
-  CLASS_STUDENT_ENROLLED: 'Aluno matriculado',
-  CLASS_STUDENT_TRANSFERRED: 'Aluno transferido',
-  CLASS_STUDENT_DROPPED: 'Aluno desligado',
-  CLASS_TEACHER_ASSIGNED: 'Professor atribuído',
-  CLASS_TEACHER_REMOVED: 'Professor removido',
+  CLASS_CREATED: 'Grupo artístico criado',
+  CLASS_UPDATED: 'Grupo artístico atualizado',
+  CLASS_DEACTIVATED: 'Grupo artístico desativado',
+  CLASS_RESTORED: 'Grupo artístico restaurado',
+  CLASS_STUDENT_ENROLLED: 'Artista matriculado',
+  CLASS_STUDENT_TRANSFERRED: 'Artista transferido',
+  CLASS_STUDENT_DROPPED: 'Artista desligado',
+  CLASS_TEACHER_ASSIGNED: 'Produtor atribuído',
+  CLASS_TEACHER_REMOVED: 'Produtor removido',
 
   PROJECT_TEMPLATE_CREATED: 'Template de projeto criado',
   PROJECT_TEMPLATE_UPDATED: 'Template de projeto atualizado',
@@ -190,17 +196,17 @@ export const EVENT_TYPE_LABELS: Record<string, string> = {
   STUDY_TRACK_TEMPLATE_DEACTIVATED: 'Template de estudo desativado',
   STUDY_TRACK_TEMPLATE_RESTORED: 'Template de estudo restaurado',
 
-  PRESS_QUIZ_TEMPLATE_CREATED: 'Template de quiz press criado',
-  PRESS_QUIZ_TEMPLATE_UPDATED: 'Template de quiz press atualizado',
-  PRESS_QUIZ_TEMPLATE_DEACTIVATED: 'Template de quiz press desativado',
-  PRESS_QUIZ_TEMPLATE_RESTORED: 'Template de quiz press restaurado',
-  PRESS_QUIZ_INSTANTIATED: 'Quiz press instanciado',
-  PRESS_QUIZ_UPDATED: 'Quiz press atualizado',
-  PRESS_QUIZ_ACTIVATED: 'Quiz press ativado',
-  PRESS_QUIZ_PUBLISHED: 'Quiz press publicado',
-  PRESS_QUIZ_ATTEMPTED: 'Quiz press tentado',
-  PRESS_QUIZ_PASSED: 'Quiz press aprovado',
-  PRESS_QUIZ_FAILED: 'Quiz press reprovado',
+  PRESS_QUIZ_TEMPLATE_CREATED: 'Template de coletiva de imprensa criado',
+  PRESS_QUIZ_TEMPLATE_UPDATED: 'Template de coletiva de imprensa atualizado',
+  PRESS_QUIZ_TEMPLATE_DEACTIVATED: 'Template de coletiva de imprensa desativado',
+  PRESS_QUIZ_TEMPLATE_RESTORED: 'Template de coletiva de imprensa restaurado',
+  PRESS_QUIZ_INSTANTIATED: 'Coletiva de imprensa instanciada',
+  PRESS_QUIZ_UPDATED: 'Coletiva de imprensa atualizada',
+  PRESS_QUIZ_ACTIVATED: 'Coletiva de imprensa ativada',
+  PRESS_QUIZ_PUBLISHED: 'Coletiva de imprensa publicada',
+  PRESS_QUIZ_ATTEMPTED: 'Coletiva de imprensa realizada',
+  PRESS_QUIZ_PASSED: 'Coletiva de imprensa aprovada',
+  PRESS_QUIZ_FAILED: 'Coletiva de imprensa reprovada',
 
   SUBMISSION_CREATED: 'Submissão criada',
   SUBMISSION_REJECTED: 'Submissão rejeitada',
@@ -264,7 +270,7 @@ export const EVENT_ACTION_COLORS: Record<EventAction, string> = {
 }
 
 export const ACTOR_TYPE_LABELS: Record<string, string> = {
-  USER: 'Usuário',
+  USER: 'Equipe',
   SYSTEM: 'Sistema',
   RULE_ENGINE: 'Motor de Regras',
 }

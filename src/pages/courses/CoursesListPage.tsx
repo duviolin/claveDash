@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
+import { Plus, Eye, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
@@ -15,6 +15,7 @@ import { Select } from '@/components/ui/Select'
 import type { AxiosError } from 'axios'
 import { listCourses, listCoursesPaginated, createCourse, updateCourse, deleteCourse, listDeletedCourses, restoreCourse } from '@/api/courses'
 import { listSchools } from '@/api/schools'
+import { COURSE_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import type { Course, CourseType, School, DeactivationErrorDetails } from '@/types'
 import toast from 'react-hot-toast'
@@ -34,6 +35,7 @@ export function CoursesListPage() {
   const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [activeTab, setActiveTab] = useState('active')
   const [restoreTarget, setRestoreTarget] = useState<Course | null>(null)
+  const [previewTarget, setPreviewTarget] = useState<Course | null>(null)
 
   const isTrash = activeTab === 'TRASH'
 
@@ -84,7 +86,7 @@ export function CoursesListPage() {
         : createCourse({ schoolId: form.schoolId, name: form.name, type: form.type })
     },
     onSuccess: () => {
-      toast.success(editing ? 'Curso atualizado!' : 'Curso criado!')
+      toast.success(editing ? 'Núcleo artístico atualizado!' : 'Núcleo artístico criado!')
       queryClient.invalidateQueries({ queryKey: ['courses'] })
       closeModal()
     },
@@ -93,7 +95,7 @@ export function CoursesListPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteCourse(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Curso desativado!')
+      toast.success('Núcleo artístico desativado!')
       queryClient.invalidateQueries({ queryKey: ['courses'] })
       setDeleteTarget(null)
     },
@@ -129,11 +131,11 @@ export function CoursesListPage() {
     {
       key: 'type',
       header: 'Tipo',
-      render: (c: Course) => <Badge variant={c.type === 'MUSIC' ? 'accent' : 'info'}>{c.type}</Badge>,
+      render: (c: Course) => <Badge variant={c.type === 'MUSIC' ? 'accent' : 'info'}>{COURSE_TYPE_LABELS[c.type]}</Badge>,
     },
     {
       key: 'school',
-      header: 'Escola',
+      header: 'Unidade artística',
       render: (c: Course) => {
         const school = schools.find((s: School) => s.id === c.schoolId)
         return <span className="text-muted">{school?.name || '—'}</span>
@@ -149,6 +151,13 @@ export function CoursesListPage() {
       header: 'Ações',
       render: (c: Course) => (
         <div className="flex gap-1">
+          <button
+            onClick={() => setPreviewTarget(c)}
+            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
+            title="Visualizar núcleo artístico"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
           <button onClick={() => openEdit(c)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Editar">
             <Pencil className="h-4 w-4" />
           </button>
@@ -174,11 +183,11 @@ export function CoursesListPage() {
     {
       key: 'type',
       header: 'Tipo',
-      render: (c: Course) => <Badge variant={c.type === 'MUSIC' ? 'accent' : 'info'}>{c.type}</Badge>,
+      render: (c: Course) => <Badge variant={c.type === 'MUSIC' ? 'accent' : 'info'}>{COURSE_TYPE_LABELS[c.type]}</Badge>,
     },
     {
       key: 'school',
-      header: 'Escola',
+      header: 'Unidade artística',
       render: (c: Course) => {
         const school = schools.find((s: School) => s.id === c.schoolId)
         return <span className="text-muted">{school?.name || '—'}</span>
@@ -207,7 +216,7 @@ export function CoursesListPage() {
   const restoreMutation = useMutation({
     mutationFn: () => restoreCourse(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Curso restaurado!')
+      toast.success('Núcleo artístico restaurado!')
       queryClient.invalidateQueries({ queryKey: ['courses'] })
       setRestoreTarget(null)
     },
@@ -216,9 +225,9 @@ export function CoursesListPage() {
 
   return (
     <PageContainer
-      title="Cursos"
+      title="Núcleos artísticos"
       count={pagination?.total ?? courses.length}
-      action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Curso</Button> : undefined}
+      action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Núcleo artístico</Button> : undefined}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Tabs tabs={courseTabs} activeKey={activeTab} onChange={handleTabChange} />
@@ -226,7 +235,7 @@ export function CoursesListPage() {
           <Select
             value={schoolFilter}
             onChange={(e) => setSchoolFilterAndResetPage(e.target.value)}
-            placeholder="Todas as escolas"
+            placeholder="Todas as unidades artísticas"
             options={schools.map((s: School) => ({ value: s.id, label: s.name }))}
             className="w-full sm:max-w-xs"
           />
@@ -238,7 +247,7 @@ export function CoursesListPage() {
         data={courses}
         keyExtractor={(c) => c.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhum curso encontrado'}
+        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhum núcleo artístico encontrado'}
       />
 
       {pagination && (
@@ -253,7 +262,7 @@ export function CoursesListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editing ? 'Editar Curso' : 'Criar Curso'}
+        title={editing ? 'Editar Núcleo artístico' : 'Criar Núcleo artístico'}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
@@ -267,10 +276,10 @@ export function CoursesListPage() {
           {!editing && (
             <Select
               id="schoolId"
-              label="Escola"
+              label="Unidade artística"
               value={form.schoolId}
               onChange={(e) => setForm({ ...form, schoolId: e.target.value })}
-              placeholder="Selecionar escola..."
+              placeholder="Selecionar unidade artística..."
               options={schools.map((s: School) => ({ value: s.id, label: s.name }))}
             />
           )}
@@ -287,11 +296,57 @@ export function CoursesListPage() {
             value={form.type}
             onChange={(e) => setForm({ ...form, type: e.target.value as CourseType })}
             options={[
-              { value: 'MUSIC', label: 'Música' },
-              { value: 'THEATER', label: 'Teatro' },
+              { value: 'MUSIC', label: COURSE_TYPE_LABELS.MUSIC },
+              { value: 'THEATER', label: COURSE_TYPE_LABELS.THEATER },
             ]}
             disabled={!!editing}
           />
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!previewTarget}
+        onClose={() => setPreviewTarget(null)}
+        title="Preview do Núcleo artístico"
+        footer={<Button variant="secondary" onClick={() => setPreviewTarget(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Nome</p>
+            <p className="mt-1 font-medium text-text">{previewTarget?.name ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Tipo</p>
+            <div className="mt-1">
+              {previewTarget ? (
+                <Badge variant={previewTarget.type === 'MUSIC' ? 'accent' : 'info'}>
+                  {COURSE_TYPE_LABELS[previewTarget.type]}
+                </Badge>
+              ) : (
+                <span className="text-muted">—</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Unidade artística</p>
+            <p className="mt-1 text-text">
+              {previewTarget
+                ? (schools.find((s: School) => s.id === previewTarget.schoolId)?.name || '—')
+                : '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Status</p>
+            <div className="mt-1">
+              {previewTarget ? (
+                <Badge variant={previewTarget.isActive ? 'success' : 'error'}>
+                  {previewTarget.isActive ? 'Ativo' : 'Inativo'}
+                </Badge>
+              ) : (
+                <span className="text-muted">—</span>
+              )}
+            </div>
+          </div>
         </div>
       </Modal>
 
@@ -300,8 +355,8 @@ export function CoursesListPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate()}
         isLoading={deleteMutation.isPending}
-        title="Excluir Curso"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? O curso será desativado.`}
+        title="Excluir Núcleo artístico"
+        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? O núcleo artístico será desativado.`}
       />
 
       <ConfirmModal
@@ -309,7 +364,7 @@ export function CoursesListPage() {
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
-        title="Restaurar Curso"
+        title="Restaurar Núcleo artístico"
         message={restoreTarget ? `Tem certeza que deseja restaurar "${restoreTarget.name}"?` : ''}
         confirmLabel="Restaurar"
         variant="primary"

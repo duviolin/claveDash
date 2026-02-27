@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
+import { Plus, Eye, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
@@ -43,6 +43,7 @@ export function SeasonsListPage() {
   })
   const [deleteTarget, setDeleteTarget] = useState<Season | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<Season | null>(null)
+  const [previewTarget, setPreviewTarget] = useState<Season | null>(null)
   const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [page, setPage] = useState(1)
 
@@ -80,7 +81,7 @@ export function SeasonsListPage() {
       return createSeason(form)
     },
     onSuccess: () => {
-      toast.success(editing ? 'Semestre atualizado!' : 'Semestre criado!')
+      toast.success(editing ? 'Temporada atualizada!' : 'Temporada criada!')
       queryClient.invalidateQueries({ queryKey: ['seasons'] })
       closeModal()
     },
@@ -89,7 +90,7 @@ export function SeasonsListPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteSeason(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Semestre desativado!')
+      toast.success('Temporada desativada!')
       queryClient.invalidateQueries({ queryKey: ['seasons'] })
       setDeleteTarget(null)
     },
@@ -105,7 +106,7 @@ export function SeasonsListPage() {
   const restoreMutation = useMutation({
     mutationFn: () => restoreSeason(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Semestre restaurado!')
+      toast.success('Temporada restaurada!')
       queryClient.invalidateQueries({ queryKey: ['seasons'] })
       setRestoreTarget(null)
     },
@@ -139,7 +140,7 @@ export function SeasonsListPage() {
     },
     {
       key: 'course',
-      header: 'Curso',
+      header: 'Núcleo artístico',
       render: (s: Season) => {
         const course = courses.find((c: Course) => c.id === s.courseId)
         return <span className="text-muted">{course?.name || '—'}</span>
@@ -162,6 +163,13 @@ export function SeasonsListPage() {
       header: 'Ações',
       render: (s: Season) => (
         <div className="flex gap-1">
+          <button
+            onClick={() => setPreviewTarget(s)}
+            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
+            title="Visualizar temporada"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
           <button onClick={() => openEdit(s)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Editar">
             <Pencil className="h-4 w-4" />
           </button>
@@ -186,7 +194,7 @@ export function SeasonsListPage() {
     },
     {
       key: 'course',
-      header: 'Curso',
+      header: 'Núcleo artístico',
       render: (s: Season) => {
         const course = courses.find((c: Course) => c.id === s.courseId)
         return <span className="text-muted">{course?.name || '—'}</span>
@@ -221,11 +229,11 @@ export function SeasonsListPage() {
 
   return (
     <PageContainer
-      title="Semestres"
+      title="Temporadas"
       count={pagination?.total ?? displaySeasons.length}
       action={
         !isTrash ? (
-          <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Semestre</Button>
+          <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Temporada</Button>
         ) : undefined
       }
     >
@@ -236,7 +244,7 @@ export function SeasonsListPage() {
           <Select
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
-            placeholder="Todos os cursos"
+            placeholder="Todos os núcleos artísticos"
             options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
             className="w-full sm:max-w-xs"
           />
@@ -248,7 +256,7 @@ export function SeasonsListPage() {
         data={displaySeasons}
         keyExtractor={(s) => s.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhum semestre encontrado'}
+        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhuma temporada encontrada'}
       />
 
       {isTrash && pagination && (
@@ -263,7 +271,7 @@ export function SeasonsListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editing ? 'Editar Semestre' : 'Criar Semestre'}
+        title={editing ? 'Editar Temporada' : 'Criar Temporada'}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
@@ -277,10 +285,10 @@ export function SeasonsListPage() {
           {!editing && (
             <Select
               id="courseId"
-              label="Curso"
+              label="Núcleo artístico"
               value={form.courseId}
               onChange={(e) => setForm({ ...form, courseId: e.target.value })}
-              placeholder="Selecionar curso..."
+              placeholder="Selecionar núcleo artístico..."
               options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
             />
           )}
@@ -303,13 +311,53 @@ export function SeasonsListPage() {
         </div>
       </Modal>
 
+      <Modal
+        isOpen={!!previewTarget}
+        onClose={() => setPreviewTarget(null)}
+        title="Preview da Temporada"
+        footer={<Button variant="secondary" onClick={() => setPreviewTarget(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Nome</p>
+            <p className="mt-1 font-medium text-text">{previewTarget?.name ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Núcleo artístico</p>
+            <p className="mt-1 text-text">
+              {previewTarget
+                ? (courses.find((c: Course) => c.id === previewTarget.courseId)?.name || '—')
+                : '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Período</p>
+            <p className="mt-1 text-text">
+              {previewTarget ? `${formatDate(previewTarget.startDate)} — ${formatDate(previewTarget.endDate)}` : '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Status</p>
+            <div className="mt-1">
+              {previewTarget ? (
+                <Badge variant={SEASON_STATUS_VARIANT[previewTarget.status]}>
+                  {SEASON_STATUS_LABELS[previewTarget.status]}
+                </Badge>
+              ) : (
+                <span className="text-muted">—</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </Modal>
+
       <ConfirmModal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate()}
         isLoading={deleteMutation.isPending}
-        title="Excluir Semestre"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? O semestre será desativado.`}
+        title="Excluir Temporada"
+        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? A temporada será desativada.`}
       />
 
       <ConfirmModal
@@ -317,7 +365,7 @@ export function SeasonsListPage() {
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
-        title="Restaurar Semestre"
+        title="Restaurar Temporada"
         message={`Tem certeza que deseja restaurar "${restoreTarget?.name}"?`}
         confirmLabel="Restaurar"
       />

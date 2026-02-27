@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
+import { Plus, Eye, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
@@ -33,6 +33,7 @@ export function SchoolsListPage() {
   const [form, setForm] = useState({ name: '', directorId: '' })
   const [deleteTarget, setDeleteTarget] = useState<School | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<School | null>(null)
+  const [previewTarget, setPreviewTarget] = useState<School | null>(null)
   const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
   const [page, setPage] = useState(1)
 
@@ -66,7 +67,7 @@ export function SchoolsListPage() {
       return editing ? updateSchool(editing.id, payload) : createSchool(payload)
     },
     onSuccess: () => {
-      toast.success(editing ? 'Escola atualizada!' : 'Escola criada!')
+      toast.success(editing ? 'Unidade artística atualizada!' : 'Unidade artística criada!')
       queryClient.invalidateQueries({ queryKey: ['schools'] })
       closeModal()
     },
@@ -75,7 +76,7 @@ export function SchoolsListPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteSchool(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Escola desativada!')
+      toast.success('Unidade artística desativada!')
       queryClient.invalidateQueries({ queryKey: ['schools'] })
       setDeleteTarget(null)
     },
@@ -91,7 +92,7 @@ export function SchoolsListPage() {
   const restoreMutation = useMutation({
     mutationFn: () => restoreSchool(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Escola restaurada!')
+      toast.success('Unidade artística restaurada!')
       queryClient.invalidateQueries({ queryKey: ['schools'] })
       setRestoreTarget(null)
     },
@@ -122,7 +123,7 @@ export function SchoolsListPage() {
     },
     {
       key: 'director',
-      header: 'Diretor',
+      header: 'Diretor da unidade',
       render: (s: School) => {
         const director = allDirectors.find((d) => d.id === s.directorId)
         return <span className="text-muted">{director?.name || '—'}</span>
@@ -140,6 +141,13 @@ export function SchoolsListPage() {
       header: 'Ações',
       render: (s: School) => (
         <div className="flex gap-1">
+          <button
+            onClick={() => setPreviewTarget(s)}
+            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
+            title="Visualizar unidade artística"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
           <button
             onClick={() => openEdit(s)}
             className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
@@ -172,7 +180,7 @@ export function SchoolsListPage() {
     },
     {
       key: 'director',
-      header: 'Diretor',
+      header: 'Diretor da unidade',
       render: (s: School) => {
         const director = allDirectors.find((d) => d.id === s.directorId)
         return <span className="text-muted">{director?.name || '—'}</span>
@@ -200,12 +208,12 @@ export function SchoolsListPage() {
 
   return (
     <PageContainer
-      title="Escolas"
+      title="Unidades artísticas"
       count={pagination?.total ?? schools.length}
       action={
         !isTrash ? (
           <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> Criar Escola
+            <Plus className="h-4 w-4" /> Criar Unidade artística
           </Button>
         ) : undefined
       }
@@ -216,7 +224,7 @@ export function SchoolsListPage() {
         data={schools}
         keyExtractor={(s) => s.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhuma escola encontrada'}
+        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhuma unidade artística encontrada'}
       />
 
       {pagination && (
@@ -231,7 +239,7 @@ export function SchoolsListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editing ? 'Editar Escola' : 'Criar Escola'}
+        title={editing ? 'Editar Unidade artística' : 'Criar Unidade artística'}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
@@ -251,12 +259,46 @@ export function SchoolsListPage() {
           />
           <Select
             id="directorId"
-            label="Diretor"
+            label="Diretor da unidade"
             value={form.directorId}
             onChange={(e) => setForm({ ...form, directorId: e.target.value })}
-            placeholder="Selecionar diretor..."
+            placeholder="Selecionar diretor da unidade..."
             options={directors.map((d) => ({ value: d.id, label: d.name }))}
           />
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!previewTarget}
+        onClose={() => setPreviewTarget(null)}
+        title="Preview da Unidade artística"
+        footer={<Button variant="secondary" onClick={() => setPreviewTarget(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Nome</p>
+            <p className="mt-1 font-medium text-text">{previewTarget?.name ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Diretor da unidade</p>
+            <p className="mt-1 text-text">
+              {previewTarget
+                ? (allDirectors.find((d) => d.id === previewTarget.directorId)?.name || '—')
+                : '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Status</p>
+            <div className="mt-1">
+              {previewTarget ? (
+                <Badge variant={previewTarget.isActive ? 'success' : 'error'}>
+                  {previewTarget.isActive ? 'Ativa' : 'Inativa'}
+                </Badge>
+              ) : (
+                <span className="text-muted">—</span>
+              )}
+            </div>
+          </div>
         </div>
       </Modal>
 
@@ -265,8 +307,8 @@ export function SchoolsListPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate()}
         isLoading={deleteMutation.isPending}
-        title="Excluir Escola"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? A escola será desativada.`}
+        title="Excluir Unidade artística"
+        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? A unidade artística será desativada.`}
       />
 
       <ConfirmModal
@@ -274,7 +316,7 @@ export function SchoolsListPage() {
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
-        title="Restaurar Escola"
+        title="Restaurar Unidade artística"
         message={`Tem certeza que deseja restaurar "${restoreTarget?.name}"?`}
         confirmLabel="Restaurar"
       />
