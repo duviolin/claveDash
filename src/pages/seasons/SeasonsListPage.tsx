@@ -12,13 +12,16 @@ import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedMod
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Pagination } from '@/components/ui/Pagination'
-import type { AxiosError } from 'axios'
+import { IconButton } from '@/components/ui/IconButton'
+import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import { listSeasons, createSeason, updateSeason, deleteSeason, listDeletedSeasons, restoreSeason } from '@/api/seasons'
 import { listCourses } from '@/api/courses'
 import { formatDate } from '@/lib/utils'
 import { SEASON_STATUS_LABELS, SEASON_STATUS_VARIANT } from '@/lib/constants'
-import type { Season, SeasonStatus, Course, DeactivationErrorDetails } from '@/types'
+import type { Season, SeasonStatus, Course } from '@/types'
 import toast from 'react-hot-toast'
+import { useTrashableListPage } from '@/hooks/useTrashableListPage'
+import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHandler'
 
 const SEASONS_TRASH_LIMIT = 20
 const tabs = [
@@ -31,7 +34,7 @@ export function SeasonsListPage() {
   const [searchParams] = useSearchParams()
   const filterFromUrl = searchParams.get('courseSlug') ?? searchParams.get('courseId') ?? ''
   const [courseFilter, setCourseFilter] = useState(filterFromUrl)
-  const [activeTab, setActiveTab] = useState('active')
+  const { activeTab, isTrash, page, setPage, handleTabChange } = useTrashableListPage()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Season | null>(null)
   const [form, setForm] = useState({
@@ -44,10 +47,7 @@ export function SeasonsListPage() {
   const [deleteTarget, setDeleteTarget] = useState<Season | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<Season | null>(null)
   const [previewTarget, setPreviewTarget] = useState<Season | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
-  const [page, setPage] = useState(1)
-
-  const isTrash = activeTab === 'TRASH'
+  const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
 
   const { data: courses = [] } = useQuery({ queryKey: ['courses'], queryFn: () => listCourses() })
 
@@ -81,7 +81,7 @@ export function SeasonsListPage() {
       return createSeason(form)
     },
     onSuccess: () => {
-      toast.success(editing ? 'Temporada atualizada!' : 'Temporada criada!')
+      toast.success(editing ? 'Semestre atualizado com sucesso.' : 'Semestre cadastrado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['seasons'] })
       closeModal()
     },
@@ -90,15 +90,12 @@ export function SeasonsListPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteSeason(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Temporada desativada!')
+      toast.success('Semestre desativado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['seasons'] })
       setDeleteTarget(null)
     },
     onError: (error: unknown) => {
-      const err = error as AxiosError<{ details: DeactivationErrorDetails }>
-      if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.name, slug: deleteTarget!.slug, details: err.response.data.details })
-      }
+      handleBlockedError(error, deleteTarget!)
       setDeleteTarget(null)
     },
   })
@@ -106,7 +103,7 @@ export function SeasonsListPage() {
   const restoreMutation = useMutation({
     mutationFn: () => restoreSeason(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Temporada restaurada!')
+      toast.success('Semestre restaurado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['seasons'] })
       setRestoreTarget(null)
     },
@@ -140,7 +137,7 @@ export function SeasonsListPage() {
     },
     {
       key: 'course',
-      header: 'Núcleo artístico',
+      header: 'Curso',
       render: (s: Season) => {
         const course = courses.find((c: Course) => c.id === s.courseId)
         return <span className="text-muted">{course?.name || '—'}</span>
@@ -163,19 +160,13 @@ export function SeasonsListPage() {
       header: 'Ações',
       render: (s: Season) => (
         <div className="flex gap-1">
-          <button
+          <IconButton
             onClick={() => setPreviewTarget(s)}
-            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-            title="Visualizar temporada"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-          <button onClick={() => openEdit(s)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Editar">
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button onClick={() => setDeleteTarget(s)} className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer" title="Excluir">
-            <Trash2 className="h-4 w-4" />
-          </button>
+            label="Visualizar semestre"
+            icon={<Eye className="h-4 w-4" />}
+          />
+          <IconButton onClick={() => openEdit(s)} label="Editar cadastro" icon={<Pencil className="h-4 w-4" />} />
+          <IconButton onClick={() => setDeleteTarget(s)} label="Desativar" icon={<Trash2 className="h-4 w-4" />} variant="danger" />
         </div>
       ),
     },
@@ -194,7 +185,7 @@ export function SeasonsListPage() {
     },
     {
       key: 'course',
-      header: 'Núcleo artístico',
+      header: 'Curso',
       render: (s: Season) => {
         const course = courses.find((c: Course) => c.id === s.courseId)
         return <span className="text-muted">{course?.name || '—'}</span>
@@ -216,35 +207,37 @@ export function SeasonsListPage() {
       key: 'actions',
       header: 'Ações',
       render: (s: Season) => (
-        <button
+        <IconButton
           onClick={() => setRestoreTarget(s)}
-          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
-          title="Restaurar"
-        >
-          <ArchiveRestore className="h-4 w-4" />
-        </button>
+          label="Restaurar"
+          icon={<ArchiveRestore className="h-4 w-4" />}
+          variant="success"
+        />
       ),
     },
   ]
 
   return (
     <PageContainer
-      title="Temporadas"
+      title="Semestres"
       count={pagination?.total ?? displaySeasons.length}
       action={
         !isTrash ? (
-          <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Temporada</Button>
+          <Button onClick={openCreate}><Plus className="h-4 w-4" /> Cadastrar semestre</Button>
         ) : undefined
       }
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+        <Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />
 
         {!isTrash && (
           <Select
             value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
-            placeholder="Todos os núcleos artísticos"
+            onChange={(e) => {
+              setCourseFilter(e.target.value)
+              setPage(1)
+            }}
+            placeholder="Todos os cursos"
             options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
             className="w-full sm:max-w-xs"
           />
@@ -256,7 +249,7 @@ export function SeasonsListPage() {
         data={displaySeasons}
         keyExtractor={(s) => s.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhuma temporada encontrada'}
+        emptyMessage={isTrash ? 'A lixeira está vazia.' : 'Nenhum semestre encontrado.'}
       />
 
       {isTrash && pagination && (
@@ -271,12 +264,12 @@ export function SeasonsListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editing ? 'Editar Temporada' : 'Criar Temporada'}
+        title={editing ? 'Editar semestre' : 'Cadastrar semestre'}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>
-              {editing ? 'Salvar' : 'Criar'}
+              {editing ? 'Salvar alterações' : 'Cadastrar'}
             </Button>
           </>
         }
@@ -285,10 +278,10 @@ export function SeasonsListPage() {
           {!editing && (
             <Select
               id="courseId"
-              label="Núcleo artístico"
+              label="Curso"
               value={form.courseId}
               onChange={(e) => setForm({ ...form, courseId: e.target.value })}
-              placeholder="Selecionar núcleo artístico..."
+              placeholder="Selecionar curso..."
               options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
             />
           )}
@@ -314,28 +307,23 @@ export function SeasonsListPage() {
       <Modal
         isOpen={!!previewTarget}
         onClose={() => setPreviewTarget(null)}
-        title="Preview da Temporada"
+        title="Dados do semestre"
         footer={<Button variant="secondary" onClick={() => setPreviewTarget(null)}>Fechar</Button>}
       >
         <div className="space-y-4">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Nome</p>
-            <p className="mt-1 font-medium text-text">{previewTarget?.name ?? '—'}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Núcleo artístico</p>
-            <p className="mt-1 text-text">
-              {previewTarget
-                ? (courses.find((c: Course) => c.id === previewTarget.courseId)?.name || '—')
-                : '—'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Período</p>
-            <p className="mt-1 text-text">
-              {previewTarget ? `${formatDate(previewTarget.startDate)} — ${formatDate(previewTarget.endDate)}` : '—'}
-            </p>
-          </div>
+          <DetailFieldList
+            items={[
+              { label: 'Nome', value: previewTarget?.name ?? '—' },
+              {
+                label: 'Curso',
+                value: previewTarget ? (courses.find((c: Course) => c.id === previewTarget.courseId)?.name || '—') : '—',
+              },
+              {
+                label: 'Período',
+                value: previewTarget ? `${formatDate(previewTarget.startDate)} - ${formatDate(previewTarget.endDate)}` : '—',
+              },
+            ]}
+          />
           <div>
             <p className="text-xs uppercase tracking-wide text-muted">Status</p>
             <div className="mt-1">
@@ -356,8 +344,8 @@ export function SeasonsListPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate()}
         isLoading={deleteMutation.isPending}
-        title="Excluir Temporada"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? A temporada será desativada.`}
+        title="Desativar semestre"
+        message={`Confirma a desativação de "${deleteTarget?.name}"?`}
       />
 
       <ConfirmModal
@@ -365,8 +353,8 @@ export function SeasonsListPage() {
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
-        title="Restaurar Temporada"
-        message={`Tem certeza que deseja restaurar "${restoreTarget?.name}"?`}
+        title="Restaurar semestre"
+        message={`Confirma a restauração de "${restoreTarget?.name}"?`}
         confirmLabel="Restaurar"
       />
 

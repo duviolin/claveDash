@@ -12,13 +12,16 @@ import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedMod
 import { Pagination } from '@/components/ui/Pagination'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import type { AxiosError } from 'axios'
+import { IconButton } from '@/components/ui/IconButton'
+import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import { listCourses, listCoursesPaginated, createCourse, updateCourse, deleteCourse, listDeletedCourses, restoreCourse } from '@/api/courses'
 import { listSchools } from '@/api/schools'
 import { COURSE_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
-import type { Course, CourseType, School, DeactivationErrorDetails } from '@/types'
+import type { Course, CourseType, School } from '@/types'
 import toast from 'react-hot-toast'
+import { useTrashableListPage } from '@/hooks/useTrashableListPage'
+import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHandler'
 
 const COURSES_PAGE_LIMIT = 10
 
@@ -27,22 +30,14 @@ export function CoursesListPage() {
   const [searchParams] = useSearchParams()
   const filterFromUrl = searchParams.get('schoolSlug') ?? searchParams.get('schoolId') ?? ''
   const [schoolFilter, setSchoolFilter] = useState(filterFromUrl)
+  const { activeTab, isTrash, page, setPage, handleTabChange } = useTrashableListPage()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Course | null>(null)
-  const [page, setPage] = useState(1)
   const [form, setForm] = useState({ schoolId: '', name: '', type: 'MUSIC' as CourseType })
   const [deleteTarget, setDeleteTarget] = useState<Course | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
-  const [activeTab, setActiveTab] = useState('active')
+  const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
   const [restoreTarget, setRestoreTarget] = useState<Course | null>(null)
   const [previewTarget, setPreviewTarget] = useState<Course | null>(null)
-
-  const isTrash = activeTab === 'TRASH'
-
-  const handleTabChange = (key: string) => {
-    setActiveTab(key)
-    setPage(1)
-  }
 
   const setSchoolFilterAndResetPage = (value: string) => {
     setSchoolFilter(value)
@@ -86,7 +81,7 @@ export function CoursesListPage() {
         : createCourse({ schoolId: form.schoolId, name: form.name, type: form.type })
     },
     onSuccess: () => {
-      toast.success(editing ? 'Núcleo artístico atualizado!' : 'Núcleo artístico criado!')
+      toast.success(editing ? 'Curso atualizado com sucesso.' : 'Curso cadastrado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['courses'] })
       closeModal()
     },
@@ -95,15 +90,12 @@ export function CoursesListPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteCourse(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Núcleo artístico desativado!')
+      toast.success('Curso desativado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['courses'] })
       setDeleteTarget(null)
     },
     onError: (error: unknown) => {
-      const err = error as AxiosError<{ details: DeactivationErrorDetails }>
-      if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.name, slug: deleteTarget!.slug, details: err.response.data.details })
-      }
+      handleBlockedError(error, deleteTarget!)
       setDeleteTarget(null)
     },
   })
@@ -135,7 +127,7 @@ export function CoursesListPage() {
     },
     {
       key: 'school',
-      header: 'Unidade artística',
+      header: 'Escola',
       render: (c: Course) => {
         const school = schools.find((s: School) => s.id === c.schoolId)
         return <span className="text-muted">{school?.name || '—'}</span>
@@ -151,19 +143,13 @@ export function CoursesListPage() {
       header: 'Ações',
       render: (c: Course) => (
         <div className="flex gap-1">
-          <button
+          <IconButton
             onClick={() => setPreviewTarget(c)}
-            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-            title="Visualizar núcleo artístico"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-          <button onClick={() => openEdit(c)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Editar">
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button onClick={() => setDeleteTarget(c)} className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer" title="Excluir">
-            <Trash2 className="h-4 w-4" />
-          </button>
+            label="Visualizar curso"
+            icon={<Eye className="h-4 w-4" />}
+          />
+          <IconButton onClick={() => openEdit(c)} label="Editar cadastro" icon={<Pencil className="h-4 w-4" />} />
+          <IconButton onClick={() => setDeleteTarget(c)} label="Desativar" icon={<Trash2 className="h-4 w-4" />} variant="danger" />
         </div>
       ),
     },
@@ -187,7 +173,7 @@ export function CoursesListPage() {
     },
     {
       key: 'school',
-      header: 'Unidade artística',
+      header: 'Escola',
       render: (c: Course) => {
         const school = schools.find((s: School) => s.id === c.schoolId)
         return <span className="text-muted">{school?.name || '—'}</span>
@@ -202,13 +188,12 @@ export function CoursesListPage() {
       key: 'actions',
       header: 'Ações',
       render: (c: Course) => (
-        <button
+        <IconButton
           onClick={() => setRestoreTarget(c)}
-          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
-          title="Restaurar"
-        >
-          <ArchiveRestore className="h-4 w-4" />
-        </button>
+          label="Restaurar"
+          icon={<ArchiveRestore className="h-4 w-4" />}
+          variant="success"
+        />
       ),
     },
   ]
@@ -216,7 +201,7 @@ export function CoursesListPage() {
   const restoreMutation = useMutation({
     mutationFn: () => restoreCourse(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Núcleo artístico restaurado!')
+      toast.success('Curso restaurado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['courses'] })
       setRestoreTarget(null)
     },
@@ -225,9 +210,9 @@ export function CoursesListPage() {
 
   return (
     <PageContainer
-      title="Núcleos artísticos"
+      title="Cursos"
       count={pagination?.total ?? courses.length}
-      action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Núcleo artístico</Button> : undefined}
+      action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Cadastrar curso</Button> : undefined}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Tabs tabs={courseTabs} activeKey={activeTab} onChange={handleTabChange} />
@@ -235,7 +220,7 @@ export function CoursesListPage() {
           <Select
             value={schoolFilter}
             onChange={(e) => setSchoolFilterAndResetPage(e.target.value)}
-            placeholder="Todas as unidades artísticas"
+            placeholder="Todas as escolas"
             options={schools.map((s: School) => ({ value: s.id, label: s.name }))}
             className="w-full sm:max-w-xs"
           />
@@ -247,7 +232,7 @@ export function CoursesListPage() {
         data={courses}
         keyExtractor={(c) => c.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhum núcleo artístico encontrado'}
+        emptyMessage={isTrash ? 'A lixeira está vazia.' : 'Nenhum curso encontrado.'}
       />
 
       {pagination && (
@@ -262,12 +247,12 @@ export function CoursesListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editing ? 'Editar Núcleo artístico' : 'Criar Núcleo artístico'}
+        title={editing ? 'Editar curso' : 'Cadastrar curso'}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>
-              {editing ? 'Salvar' : 'Criar'}
+              {editing ? 'Salvar alterações' : 'Cadastrar'}
             </Button>
           </>
         }
@@ -276,10 +261,10 @@ export function CoursesListPage() {
           {!editing && (
             <Select
               id="schoolId"
-              label="Unidade artística"
+              label="Escola"
               value={form.schoolId}
               onChange={(e) => setForm({ ...form, schoolId: e.target.value })}
-              placeholder="Selecionar unidade artística..."
+              placeholder="Selecionar escola..."
               options={schools.map((s: School) => ({ value: s.id, label: s.name }))}
             />
           )}
@@ -307,14 +292,20 @@ export function CoursesListPage() {
       <Modal
         isOpen={!!previewTarget}
         onClose={() => setPreviewTarget(null)}
-        title="Preview do Núcleo artístico"
+        title="Dados do curso"
         footer={<Button variant="secondary" onClick={() => setPreviewTarget(null)}>Fechar</Button>}
       >
         <div className="space-y-4">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Nome</p>
-            <p className="mt-1 font-medium text-text">{previewTarget?.name ?? '—'}</p>
-          </div>
+          <DetailFieldList
+            items={[
+              { label: 'Nome', value: previewTarget?.name ?? '—' },
+              {
+                label: 'Escola',
+                value: previewTarget ? (schools.find((s: School) => s.id === previewTarget.schoolId)?.name || '—') : '—',
+              },
+              { label: 'Atualizado em', value: previewTarget ? formatDate(previewTarget.updatedAt) : '—' },
+            ]}
+          />
           <div>
             <p className="text-xs uppercase tracking-wide text-muted">Tipo</p>
             <div className="mt-1">
@@ -326,14 +317,6 @@ export function CoursesListPage() {
                 <span className="text-muted">—</span>
               )}
             </div>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Unidade artística</p>
-            <p className="mt-1 text-text">
-              {previewTarget
-                ? (schools.find((s: School) => s.id === previewTarget.schoolId)?.name || '—')
-                : '—'}
-            </p>
           </div>
           <div>
             <p className="text-xs uppercase tracking-wide text-muted">Status</p>
@@ -355,8 +338,8 @@ export function CoursesListPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate()}
         isLoading={deleteMutation.isPending}
-        title="Excluir Núcleo artístico"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? O núcleo artístico será desativado.`}
+        title="Desativar curso"
+        message={`Confirma a desativação de "${deleteTarget?.name}"?`}
       />
 
       <ConfirmModal
@@ -364,8 +347,8 @@ export function CoursesListPage() {
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
-        title="Restaurar Núcleo artístico"
-        message={restoreTarget ? `Tem certeza que deseja restaurar "${restoreTarget.name}"?` : ''}
+        title="Restaurar curso"
+        message={restoreTarget ? `Confirma a restauração de "${restoreTarget.name}"?` : ''}
         confirmLabel="Restaurar"
         variant="primary"
       />

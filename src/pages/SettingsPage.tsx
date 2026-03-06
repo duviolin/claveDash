@@ -67,7 +67,7 @@ export function SettingsPage() {
       )
     },
     onSuccess: () => {
-      toast.success('Critérios de publicação atualizados!')
+      toast.success('Critérios de publicação atualizados com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['project-template-readiness-rules'] })
     },
   })
@@ -76,14 +76,14 @@ export function SettingsPage() {
     e.preventDefault()
 
     if (newPassword !== confirmPassword) {
-      toast.error('As senhas não coincidem')
+      toast.error('As senhas informadas não conferem.')
       return
     }
 
     setIsLoading(true)
     try {
       await changePassword(currentPassword, newPassword)
-      toast.success('Senha alterada com sucesso!')
+      toast.success('Senha atualizada com sucesso.')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
@@ -144,8 +144,8 @@ export function SettingsPage() {
 
         {isPasswordPage && (
           <section className="rounded-xl border border-border bg-surface p-6">
-            <h2 className="text-lg font-semibold text-text">Trocar senha</h2>
-            <p className="mt-1 text-sm text-muted">Atualize sua senha de acesso.</p>
+            <h2 className="text-lg font-semibold text-text">Atualização de senha</h2>
+            <p className="mt-1 text-sm text-muted">Atualize sua credencial de acesso.</p>
 
             <form onSubmit={handleSubmit} className="mt-5 space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -222,7 +222,7 @@ export function SettingsPage() {
                         label="Critério de avaliação para IA"
                         value={form.description}
                         onChange={(e) => setReadinessRulesForm((prev) => ({ ...prev, [rule.id]: { ...form, description: e.target.value } }))}
-                        placeholder="Ex.: Avaliar se a progressão didática da faixa está clara e contextualizada para o artista."
+                        placeholder="Ex.: Avaliar se a progressão didática da faixa está clara e contextualizada para o aluno."
                         className="sm:col-span-2"
                       />
                       <Input
@@ -267,7 +267,7 @@ export function SettingsPage() {
                 Restaurar valores
               </Button>
               <Button onClick={() => saveReadinessRulesMutation.mutate()} isLoading={saveReadinessRulesMutation.isPending}>
-                Salvar critérios
+                Salvar alterações
               </Button>
             </div>
           </section>

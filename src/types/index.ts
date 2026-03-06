@@ -120,16 +120,6 @@ export interface ProjectTemplateReadinessSummary {
   requirements: ProjectTemplateReadinessRequirement[]
 }
 
-export interface ProjectTemplateQualitativeAnalysis {
-  projectTemplateId: string
-  projectTemplateSlug: string
-  projectTemplateVersion: number
-  generatedForVersion: number | null
-  analysis: string | null
-  isStale: boolean
-  updatedAt: string | null
-}
-
 export interface ProjectTemplateReadinessRule {
   id: string
   code: ReadinessRuleCode

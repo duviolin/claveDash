@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './Button'
+import { IconButton } from './IconButton'
 
 interface ModalProps {
   isOpen: boolean
@@ -46,9 +47,7 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
           <h2 className="text-base font-semibold text-text sm:text-lg">{title}</h2>
-          <button onClick={onClose} className="text-muted hover:text-text transition-colors cursor-pointer">
-            <X className="h-5 w-5" />
-          </button>
+          <IconButton icon={<X className="h-5 w-5" />} label="Fechar modal" onClick={onClose} size="sm" />
         </div>
         <div className="min-h-0 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">{children}</div>
         {footer && (

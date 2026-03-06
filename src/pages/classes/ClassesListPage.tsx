@@ -12,11 +12,14 @@ import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedMod
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Pagination } from '@/components/ui/Pagination'
+import { IconButton } from '@/components/ui/IconButton'
 import { listClasses, createClass, updateClass, deleteClass, listDeletedClasses, restoreClass } from '@/api/classes'
 import { listSeasons } from '@/api/seasons'
 import { formatDate } from '@/lib/utils'
-import type { Class, Season, DeactivationErrorDetails } from '@/types'
+import type { Class, Season } from '@/types'
 import toast from 'react-hot-toast'
+import { useTrashableListPage } from '@/hooks/useTrashableListPage'
+import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHandler'
 
 const CLASSES_PAGE_LIMIT = 20
 
@@ -31,16 +34,13 @@ export function ClassesListPage() {
   const [searchParams] = useSearchParams()
   const filterFromUrl = searchParams.get('seasonSlug') ?? searchParams.get('seasonId') ?? ''
   const [seasonFilter, setSeasonFilter] = useState(filterFromUrl)
-  const [activeTab, setActiveTab] = useState('active')
+  const { activeTab, isTrash, page, setPage, handleTabChange } = useTrashableListPage()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Class | null>(null)
   const [form, setForm] = useState({ seasonId: '', name: '', maxStudents: 30 })
   const [deleteTarget, setDeleteTarget] = useState<Class | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<Class | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
-  const [page, setPage] = useState(1)
-
-  const isTrash = activeTab === 'TRASH'
+  const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
 
   const { data: seasons = [] } = useQuery({ queryKey: ['seasons'], queryFn: () => listSeasons() })
 
@@ -67,7 +67,7 @@ export function ClassesListPage() {
         : createClass(form)
     },
     onSuccess: () => {
-      toast.success(editing ? 'Grupo artístico atualizado!' : 'Grupo artístico criado!')
+      toast.success(editing ? 'Turma atualizada com sucesso.' : 'Turma cadastrada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['classes'] })
       closeModal()
     },
@@ -76,16 +76,12 @@ export function ClassesListPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteClass(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Grupo artístico desativado!')
+      toast.success('Turma desativada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['classes'] })
       setDeleteTarget(null)
     },
     onError: (error: unknown) => {
-      const axiosError = error as { response?: { status?: number; data?: { details?: DeactivationErrorDetails } } }
-      const details = axiosError.response?.data?.details
-      if (axiosError.response?.status === 409 && details) {
-        setBlockedInfo({ name: deleteTarget!.name, slug: deleteTarget!.slug, details })
-      }
+      handleBlockedError(error, deleteTarget!)
       setDeleteTarget(null)
     },
   })
@@ -93,7 +89,7 @@ export function ClassesListPage() {
   const restoreMutation = useMutation({
     mutationFn: () => restoreClass(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Grupo artístico restaurado!')
+      toast.success('Turma restaurada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['classes'] })
       setRestoreTarget(null)
     },
@@ -121,7 +117,7 @@ export function ClassesListPage() {
     },
     {
       key: 'season',
-      header: 'Temporada',
+      header: 'Semestre',
       render: (c: Class) => {
         const season = seasons.find((s: Season) => s.id === c.seasonId)
         return <span className="text-muted">{season?.name || '—'}</span>
@@ -129,7 +125,7 @@ export function ClassesListPage() {
     },
     {
       key: 'maxStudents',
-      header: 'Máx. Artistas',
+      header: 'Máx. alunos',
       render: (c: Class) => <span className="text-muted">{c.maxStudents}</span>,
     },
     {
@@ -142,27 +138,22 @@ export function ClassesListPage() {
       header: 'Ações',
       render: (c: Class) => (
         <div className="flex gap-1">
-          <button
+          <IconButton
             onClick={() => navigate(`/classes/${c.slug}`)}
-            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-            title="Visualizar grupo artístico"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-          <button
+            label="Visualizar turma"
+            icon={<Eye className="h-4 w-4" />}
+          />
+          <IconButton
             onClick={() => openEdit(c)}
-            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-            title="Editar"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
+            label="Editar cadastro"
+            icon={<Pencil className="h-4 w-4" />}
+          />
+          <IconButton
             onClick={() => setDeleteTarget(c)}
-            className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"
-            title="Excluir"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+            label="Desativar"
+            icon={<Trash2 className="h-4 w-4" />}
+            variant="danger"
+          />
         </div>
       ),
     },
@@ -181,7 +172,7 @@ export function ClassesListPage() {
     },
     {
       key: 'season',
-      header: 'Temporada',
+      header: 'Semestre',
       render: (c: Class) => {
         const season = seasons.find((s: Season) => s.id === c.seasonId)
         return <span className="text-muted">{season?.name || '—'}</span>
@@ -189,7 +180,7 @@ export function ClassesListPage() {
     },
     {
       key: 'maxStudents',
-      header: 'Máx. Artistas',
+      header: 'Máx. alunos',
       render: (c: Class) => <span className="text-muted">{c.maxStudents}</span>,
     },
     {
@@ -201,35 +192,37 @@ export function ClassesListPage() {
       key: 'actions',
       header: 'Ações',
       render: (c: Class) => (
-        <button
+        <IconButton
           onClick={() => setRestoreTarget(c)}
-          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
-          title="Restaurar"
-        >
-          <ArchiveRestore className="h-4 w-4" />
-        </button>
+          label="Restaurar"
+          icon={<ArchiveRestore className="h-4 w-4" />}
+          variant="success"
+        />
       ),
     },
   ]
 
   return (
     <PageContainer
-      title="Grupos artísticos"
+      title="Turmas"
       count={pagination?.total ?? displayData.length}
       action={
         !isTrash ? (
-          <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Grupo artístico</Button>
+          <Button onClick={openCreate}><Plus className="h-4 w-4" /> Cadastrar turma</Button>
         ) : undefined
       }
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+        <Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />
 
         {!isTrash && (
           <Select
             value={seasonFilter}
-            onChange={(e) => setSeasonFilter(e.target.value)}
-            placeholder="Todas as temporadas"
+            onChange={(e) => {
+              setSeasonFilter(e.target.value)
+              setPage(1)
+            }}
+            placeholder="Todos os semestres"
             options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))}
             className="w-full sm:max-w-xs"
           />
@@ -241,7 +234,7 @@ export function ClassesListPage() {
         data={displayData}
         keyExtractor={(c) => c.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhum grupo artístico encontrado'}
+        emptyMessage={isTrash ? 'A lixeira está vazia.' : 'Nenhuma turma encontrada.'}
       />
 
       {isTrash && pagination && (
@@ -256,12 +249,12 @@ export function ClassesListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editing ? 'Editar Grupo artístico' : 'Criar Grupo artístico'}
+        title={editing ? 'Editar turma' : 'Cadastrar turma'}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>
-              {editing ? 'Salvar' : 'Criar'}
+              {editing ? 'Salvar alterações' : 'Cadastrar'}
             </Button>
           </>
         }
@@ -270,15 +263,15 @@ export function ClassesListPage() {
           {!editing && (
             <Select
               id="seasonId"
-              label="Temporada"
+              label="Semestre"
               value={form.seasonId}
               onChange={(e) => setForm({ ...form, seasonId: e.target.value })}
-              placeholder="Selecionar temporada..."
+              placeholder="Selecionar semestre..."
               options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))}
             />
           )}
           <Input id="className" label="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <Input id="maxStudents" label="Máximo de Artistas" type="number" value={String(form.maxStudents)} onChange={(e) => setForm({ ...form, maxStudents: Number(e.target.value) })} required />
+          <Input id="maxStudents" label="Máximo de alunos" type="number" value={String(form.maxStudents)} onChange={(e) => setForm({ ...form, maxStudents: Number(e.target.value) })} required />
         </div>
       </Modal>
 
@@ -287,8 +280,8 @@ export function ClassesListPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate()}
         isLoading={deleteMutation.isPending}
-        title="Excluir Grupo artístico"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? O grupo artístico será desativado.`}
+        title="Desativar turma"
+        message={`Confirma a desativação de "${deleteTarget?.name}"?`}
       />
 
       <ConfirmModal
@@ -296,8 +289,8 @@ export function ClassesListPage() {
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
-        title="Restaurar Grupo artístico"
-        message={`Tem certeza que deseja restaurar "${restoreTarget?.name}"?`}
+        title="Restaurar turma"
+        message={`Confirma a restauração de "${restoreTarget?.name}"?`}
         confirmLabel="Restaurar"
       />
 

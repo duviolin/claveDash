@@ -18,13 +18,13 @@ function formatRelativeTime(dateStr: string): string {
   const diffHour = Math.floor(diffMin / 60)
   const diffDay = Math.floor(diffHour / 24)
 
-  if (diffSec < 60) return 'agora'
-  if (diffMin === 1) return '1 min atrás'
-  if (diffMin < 60) return `${diffMin} min atrás`
-  if (diffHour === 1) return '1h atrás'
-  if (diffHour < 24) return `${diffHour}h atrás`
-  if (diffDay === 1) return 'ontem'
-  if (diffDay < 7) return `${diffDay} dias atrás`
+  if (diffSec < 60) return 'agora mesmo'
+  if (diffMin === 1) return 'há 1 minuto'
+  if (diffMin < 60) return `há ${diffMin} minutos`
+  if (diffHour === 1) return 'há 1 hora'
+  if (diffHour < 24) return `há ${diffHour} horas`
+  if (diffDay === 1) return 'há 1 dia'
+  if (diffDay < 7) return `há ${diffDay} dias`
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 }
 
@@ -109,7 +109,7 @@ export function NotificationBell() {
           <div className="max-h-80 overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-8 text-muted text-sm">
-                Carregando...
+                Carregando notificações...
               </div>
             ) : notifications.length === 0 ? (
               <EmptyState

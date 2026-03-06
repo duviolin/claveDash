@@ -34,7 +34,7 @@ export function StoragePage() {
   const cleanOrphansMut = useMutation({
     mutationFn: () => listOrphans(true),
     onSuccess: () => {
-      toast.success('Arquivos órfãos removidos!')
+      toast.success('Arquivos órfãos removidos com sucesso.')
       refetchOrphans()
       setDeleteConfirm(false)
     },
@@ -47,19 +47,19 @@ export function StoragePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-xl border border-border bg-surface p-6 space-y-4">
           <h2 className="text-lg font-semibold text-text flex items-center gap-2">
-            <Upload className="h-5 w-5 text-accent" /> Upload de Teste
+            <Upload className="h-5 w-5 text-accent" /> Upload de teste
           </h2>
           <Select
             id="fileType"
-            label="Tipo de Arquivo"
+            label="Tipo de arquivo"
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
             options={FILE_TYPES}
           />
           {config && (
             <div className="text-xs text-muted space-y-1">
-              <p>Limite: {config.maxSizeMB}MB</p>
-              <p>Extensões: {config.allowedExtensions.join(', ')}</p>
+              <p>Limite: {config.maxSizeMB} MB</p>
+              <p>Extensões permitidas: {config.allowedExtensions.join(', ')}</p>
             </div>
           )}
           <FileUpload
@@ -67,9 +67,9 @@ export function StoragePage() {
             fileType={selectedType as FileUploadFileType}
             entityType="general"
             entityId="test"
-            helperText="Upload com preview para teste de formatos"
+            helperText="Upload com visualização para validação de formatos"
             onUploadComplete={(key) => {
-              toast.success(`Upload concluído! Key: ${key}`)
+              toast.success(`Upload concluído com sucesso. Chave: ${key}`)
             }}
           />
         </div>
@@ -77,7 +77,7 @@ export function StoragePage() {
         <div className="rounded-xl border border-border bg-surface p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-text flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-warning" /> Arquivos Órfãos
+              <AlertTriangle className="h-5 w-5 text-warning" /> Arquivos órfãos
             </h2>
             {orphanList.length > 0 && (
               <Button size="sm" variant="danger" onClick={() => setDeleteConfirm(true)}>
@@ -103,12 +103,12 @@ export function StoragePage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted py-4 text-center">Nenhum arquivo órfão encontrado</p>
+            <p className="text-sm text-muted py-4 text-center">Nenhum arquivo órfão encontrado.</p>
           )}
         </div>
       </div>
 
-      <ConfirmModal isOpen={deleteConfirm} onClose={() => setDeleteConfirm(false)} onConfirm={() => cleanOrphansMut.mutate()} isLoading={cleanOrphansMut.isPending} title="Limpar Órfãos" message="Tem certeza que deseja deletar todos os arquivos órfãos? Esta ação é irreversível." />
+      <ConfirmModal isOpen={deleteConfirm} onClose={() => setDeleteConfirm(false)} onConfirm={() => cleanOrphansMut.mutate()} isLoading={cleanOrphansMut.isPending} title="Limpar órfãos" message="Confirma a remoção de todos os arquivos órfãos? Esta ação é irreversível." />
     </PageContainer>
   )
 }

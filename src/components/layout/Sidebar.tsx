@@ -39,6 +39,11 @@ interface SidebarProps {
   onCloseMobile: () => void
 }
 
+function extractProjectTemplateSlug(pathname: string): string | null {
+  const match = pathname.match(/^\/templates\/projects\/([^/]+)(?:\/tracks(?:\/[^/]+)?)?\/?$/)
+  return match?.[1] ?? null
+}
+
 const navGroups: NavGroup[] = [
   {
     items: [
@@ -48,11 +53,11 @@ const navGroups: NavGroup[] = [
   {
     label: 'Gestão',
     items: [
-      { label: 'Equipes', path: '/users', icon: <Users className="h-4 w-4" /> },
-      { label: 'Unidades artísticas', path: '/schools', icon: <School className="h-4 w-4" /> },
-      { label: 'Núcleos artísticos', path: '/courses', icon: <BookOpen className="h-4 w-4" /> },
-      { label: 'Temporadas', path: '/seasons', icon: <Calendar className="h-4 w-4" /> },
-      { label: 'Grupos artísticos', path: '/classes', icon: <GraduationCap className="h-4 w-4" /> },
+      { label: 'Usuários', path: '/users', icon: <Users className="h-4 w-4" /> },
+      { label: 'Escolas', path: '/schools', icon: <School className="h-4 w-4" /> },
+      { label: 'Cursos', path: '/courses', icon: <BookOpen className="h-4 w-4" /> },
+      { label: 'Semestres', path: '/seasons', icon: <Calendar className="h-4 w-4" /> },
+      { label: 'Turmas', path: '/classes', icon: <GraduationCap className="h-4 w-4" /> },
     ],
   },
 ]
@@ -62,15 +67,15 @@ const templatesGroup: CollapsibleGroup = {
   icon: <FileText className="h-4 w-4" />,
   items: [
     { label: 'Projetos', path: '/templates/projects', icon: <Music className="h-4 w-4" /> },
-    { label: 'Missões Diárias', path: '/templates/daily-missions', icon: <Target className="h-4 w-4" /> },
+    { label: 'Missões diárias', path: '/templates/daily-missions', icon: <Target className="h-4 w-4" /> },
   ],
 }
 
 const instancesGroup: CollapsibleGroup = {
-  label: 'Instanciação',
+  label: 'Instâncias',
   icon: <FolderKanban className="h-4 w-4" />,
   items: [
-    { label: 'Projetos Ativos', path: '/instances/projects', icon: <Music className="h-4 w-4" /> },
+    { label: 'Projetos ativos', path: '/instances/projects', icon: <Music className="h-4 w-4" /> },
   ],
 }
 
@@ -103,6 +108,8 @@ function CollapsibleSection({ group, onItemClick }: { group: CollapsibleGroup; o
   const location = useLocation()
   const isChildActive = group.items.some((item) => location.pathname.startsWith(item.path))
   const [isOpen, setIsOpen] = useState(isChildActive)
+  const currentProjectSlug = extractProjectTemplateSlug(location.pathname)
+  const currentProjectBasePath = currentProjectSlug ? `/templates/projects/${currentProjectSlug}` : null
 
   return (
     <div>
@@ -123,9 +130,33 @@ function CollapsibleSection({ group, onItemClick }: { group: CollapsibleGroup; o
       </button>
       {isOpen && (
         <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-3">
-          {group.items.map((item) => (
-            <SidebarLink key={item.path} item={item} onClick={onItemClick} />
-          ))}
+          {group.items.map((item) => {
+            const isProjectsItem = item.path === '/templates/projects'
+            return (
+              <div key={item.path} className="space-y-0.5">
+                <SidebarLink item={item} onClick={onItemClick} />
+                {isProjectsItem && currentProjectBasePath && (
+                  <>
+                    <NavLink
+                      to={`${currentProjectBasePath}/tracks`}
+                      onClick={onItemClick}
+                      className={({ isActive }) =>
+                        cn(
+                          'ml-4 flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                          isActive
+                            ? 'bg-accent/10 text-accent'
+                            : 'text-muted hover:bg-surface-2 hover:text-text'
+                        )
+                      }
+                    >
+                      <Music className="h-3.5 w-3.5" />
+                      Faixas
+                    </NavLink>
+                  </>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { Pagination } from '@/components/ui/Pagination'
-import type { AxiosError } from 'axios'
+import { IconButton } from '@/components/ui/IconButton'
 import {
   listProjectTemplates,
   createProjectTemplate,
@@ -27,9 +27,12 @@ import { presignDownload } from '@/api/storage'
 import { listCourses } from '@/api/courses'
 import { PROJECT_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
+import { truncateText } from '@/lib/text'
 import { FileUpload } from '@/components/ui/FileUpload'
-import type { ProjectTemplate, ProjectType, Course, DeactivationErrorDetails } from '@/types'
+import type { ProjectTemplate, ProjectType, Course } from '@/types'
 import toast from 'react-hot-toast'
+import { useTrashableListPage } from '@/hooks/useTrashableListPage'
+import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHandler'
 
 const TRASH_PAGE_LIMIT = 20
 
@@ -44,17 +47,13 @@ export function ProjectTemplatesListPage() {
   const [searchParams] = useSearchParams()
   const filterFromUrl = searchParams.get('courseSlug') ?? searchParams.get('courseId') ?? ''
   const [courseFilter, setCourseFilter] = useState(filterFromUrl)
-  const [activeTab, setActiveTab] = useState('active')
-  const [page, setPage] = useState(1)
+  const { activeTab, isTrash, page, setPage, handleTabChange } = useTrashableListPage()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTarget, setEditingTarget] = useState<ProjectTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ProjectTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<ProjectTemplate | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
+  const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
   const [form, setForm] = useState({ courseId: '', name: '', type: 'ALBUM' as ProjectType, description: '', coverImage: '' })
-
-  const isTrash = activeTab === 'TRASH'
-  const truncate = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}...` : text)
 
   const { data: courses = [] } = useQuery({ queryKey: ['courses'], queryFn: () => listCourses() })
 
@@ -116,7 +115,7 @@ export function ProjectTemplatesListPage() {
       coverImage: form.coverImage || undefined,
     }),
     onSuccess: () => {
-      toast.success('Template criado!')
+      toast.success('Template cadastrado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
       setModalOpen(false)
       setEditingTarget(null)
@@ -132,13 +131,13 @@ export function ProjectTemplatesListPage() {
       coverImage: form.coverImage || undefined,
     }),
     onSuccess: () => {
-      toast.success('Template atualizado!')
+      toast.success('Template atualizado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
       setModalOpen(false)
       setEditingTarget(null)
     },
     onError: (error: unknown) => {
-      const err = error as AxiosError<{ code?: string; details?: { tracksCount?: number; projectsCount?: number } }>
+      const err = error as { response?: { status?: number; data?: { code?: string; details?: { tracksCount?: number; projectsCount?: number } } } }
       if (err.response?.status === 409 && err.response?.data?.code === 'CONFLICT_INVALID_STATE') {
         const tracksCount = err.response.data.details?.tracksCount ?? 0
         const projectsCount = err.response.data.details?.projectsCount ?? 0
@@ -146,7 +145,7 @@ export function ProjectTemplatesListPage() {
         if (tracksCount > 0) parts.push(`${tracksCount} ${tracksCount === 1 ? 'faixa/cena' : 'faixas/cenas'}`)
         if (projectsCount > 0) parts.push(`${projectsCount} ${projectsCount === 1 ? 'projeto ativo' : 'projetos ativos'}`)
         const reason = parts.length > 0 ? ` (${parts.join(' e ')})` : ''
-        toast.error(`Não dá para alterar o tipo deste template porque ele já possui conteúdo vinculado${reason}.`)
+        toast.error(`Não é possível alterar o tipo deste template, pois ele já possui conteúdo vinculado${reason}.`)
       }
     },
   })
@@ -154,15 +153,12 @@ export function ProjectTemplatesListPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteProjectTemplate(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Template desativado!')
+      toast.success('Template desativado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
       setDeleteTarget(null)
     },
     onError: (error: unknown) => {
-      const err = error as AxiosError<{ details: DeactivationErrorDetails }>
-      if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.name, slug: deleteTarget!.slug, details: err.response.data.details })
-      }
+      handleBlockedError(error, deleteTarget!)
       setDeleteTarget(null)
     },
   })
@@ -170,7 +166,7 @@ export function ProjectTemplatesListPage() {
   const restoreMutation = useMutation({
     mutationFn: () => restoreProjectTemplate(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Template restaurado!')
+      toast.success('Template restaurado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
       setRestoreTarget(null)
     },
@@ -180,22 +176,65 @@ export function ProjectTemplatesListPage() {
     {
       key: 'name',
       header: 'Nome',
-      render: (t: ProjectTemplate) => (
-        <div className="flex items-center gap-3">
-          {coverBySlug[t.slug] ? (
-            <img
-              src={coverBySlug[t.slug]}
-              alt={`Capa do template ${t.name}`}
-              className="h-9 w-9 rounded-lg border border-border object-cover"
-            />
-          ) : (
-            <div className="h-9 w-9 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
-          )}
-          <span className="font-medium text-text" title={t.name}>
-            {truncate(t.name, 42)}
-          </span>
-        </div>
-      ),
+      render: (t: ProjectTemplate) => {
+        const readiness = readinessBySlug[t.slug]
+        const readinessVariant = readiness
+          ? readiness.isReady
+            ? 'success'
+            : readiness.scorePercentage >= 70
+              ? 'warning'
+              : 'error'
+          : 'default'
+
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              {coverBySlug[t.slug] ? (
+                <img
+                  src={coverBySlug[t.slug]}
+                  alt={`Capa do template ${t.name}`}
+                  className="h-9 w-9 rounded-lg border border-border object-cover"
+                />
+              ) : (
+                <div className="h-9 w-9 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
+              )}
+              <span className="font-medium text-text" title={t.name}>
+                {truncateText(t.name, 42)}
+              </span>
+            </div>
+
+            {readiness ? (
+              <div className="rounded-lg border border-border bg-surface-2 p-2.5">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <Badge variant={readinessVariant}>{readiness.statusLabel}</Badge>
+                  <span className="text-xs font-medium text-text">{readiness.scorePercentage}%</span>
+                </div>
+                <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-surface">
+                  <div
+                    className="h-full rounded-full bg-accent transition-all"
+                    style={{ width: `${Math.max(0, Math.min(readiness.scorePercentage, 100))}%` }}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-[11px] text-muted">
+                  <span>Faixas: {readiness.trackCount}</span>
+                  <span>Coletivas: {readiness.quizCount}</span>
+                  <span>Materiais: {readiness.materialCount}</span>
+                  <span>Trilhas: {readiness.studyTrackCount}</span>
+                </div>
+                {readiness.missingTips.length > 0 && (
+                  <p className="mt-2 text-[11px] text-warning">
+                    Falta: {readiness.missingTips[0]}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-muted">
+                Calculando aptidão...
+              </div>
+            )}
+          </div>
+        )
+      },
     },
     {
       key: 'type',
@@ -204,12 +243,12 @@ export function ProjectTemplatesListPage() {
     },
     {
       key: 'course',
-      header: 'Núcleo artístico',
+      header: 'Curso',
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
         return (
           <span className="text-muted" title={course?.name}>
-            {course?.name ? truncate(course.name, 30) : '—'}
+            {course?.name ? truncateText(course.name, 30) : '—'}
           </span>
         )
       },
@@ -220,30 +259,12 @@ export function ProjectTemplatesListPage() {
       render: (t: ProjectTemplate) => <span className="text-muted">v{t.version}</span>,
     },
     {
-      key: 'readiness',
-      header: 'Aptidão',
-      render: (t: ProjectTemplate) => {
-        const readiness = readinessBySlug[t.slug]
-        if (!readiness) return <span className="text-xs text-muted">Calculando...</span>
-
-        const variant = readiness.isReady ? 'success' : readiness.scorePercentage >= 70 ? 'warning' : 'error'
-        return (
-          <div className="flex items-center gap-2">
-            <Badge variant={variant}>{readiness.scorePercentage}%</Badge>
-            <span className="text-xs text-muted">{readiness.statusLabel}</span>
-          </div>
-        )
-      },
-    },
-    {
       key: 'actions',
       header: 'Ações',
       render: (t: ProjectTemplate) => (
         <div className="flex gap-1">
-          <button onClick={() => navigate(`/templates/projects/${t.slug}`)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Detalhes">
-            <Eye className="h-4 w-4" />
-          </button>
-          <button
+          <IconButton onClick={() => navigate(`/templates/projects/${t.slug}/tracks`)} label="Detalhes" icon={<Eye className="h-4 w-4" />} />
+          <IconButton
             onClick={() => {
               setEditingTarget(t)
               setForm({
@@ -255,14 +276,10 @@ export function ProjectTemplatesListPage() {
               })
               setModalOpen(true)
             }}
-            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-            title="Editar"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button onClick={() => setDeleteTarget(t)} className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer" title="Desativar">
-            <Trash2 className="h-4 w-4" />
-          </button>
+            label="Editar cadastro"
+            icon={<Pencil className="h-4 w-4" />}
+          />
+          <IconButton onClick={() => setDeleteTarget(t)} label="Desativar" icon={<Trash2 className="h-4 w-4" />} variant="danger" />
         </div>
       ),
     },
@@ -285,7 +302,7 @@ export function ProjectTemplatesListPage() {
               <div className="h-9 w-9 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
             )}
             <span className="font-medium text-text" title={t.name}>
-              {truncate(t.name, 42)}
+              {truncateText(t.name, 42)}
             </span>
           </div>
           <Badge variant="error">Excluído</Badge>
@@ -299,12 +316,12 @@ export function ProjectTemplatesListPage() {
     },
     {
       key: 'course',
-      header: 'Núcleo artístico',
+      header: 'Curso',
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
         return (
           <span className="text-muted" title={course?.name}>
-            {course?.name ? truncate(course.name, 30) : '—'}
+            {course?.name ? truncateText(course.name, 30) : '—'}
           </span>
         )
       },
@@ -318,37 +335,39 @@ export function ProjectTemplatesListPage() {
       key: 'actions',
       header: 'Ações',
       render: (t: ProjectTemplate) => (
-        <button
+        <IconButton
           onClick={() => setRestoreTarget(t)}
-          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
-          title="Restaurar"
-        >
-          <ArchiveRestore className="h-4 w-4" />
-        </button>
+          label="Restaurar"
+          icon={<ArchiveRestore className="h-4 w-4" />}
+          variant="success"
+        />
       ),
     },
   ]
 
   return (
     <PageContainer
-      title="Templates de Projeto"
+      title="Templates de projeto"
       count={pagination?.total ?? templatesList.length}
       action={
         !isTrash ? (
           <Button onClick={() => { setEditingTarget(null); setForm({ courseId: courseFilter, name: '', type: 'ALBUM', description: '', coverImage: '' }); setModalOpen(true) }}>
-            <Plus className="h-4 w-4" /> Criar Template
+            <Plus className="h-4 w-4" /> Cadastrar template
           </Button>
         ) : undefined
       }
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+        <Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />
 
         {!isTrash && (
           <Select
             value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
-            placeholder="Todos os núcleos artísticos"
+            onChange={(e) => {
+              setCourseFilter(e.target.value)
+              setPage(1)
+            }}
+            placeholder="Todos os cursos"
             options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
             className="w-full sm:max-w-xs"
           />
@@ -360,7 +379,7 @@ export function ProjectTemplatesListPage() {
         data={templatesList}
         keyExtractor={(t) => t.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhum template encontrado'}
+        emptyMessage={isTrash ? 'A lixeira está vazia.' : 'Nenhum template encontrado.'}
       />
 
       {isTrash && pagination && (
@@ -375,7 +394,7 @@ export function ProjectTemplatesListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => { setModalOpen(false); setEditingTarget(null) }}
-        title={editingTarget ? 'Editar Template de Projeto' : 'Criar Template de Projeto'}
+        title={editingTarget ? 'Editar template de projeto' : 'Cadastrar template de projeto'}
         footer={
           <>
             <Button variant="secondary" onClick={() => { setModalOpen(false); setEditingTarget(null) }}>Cancelar</Button>
@@ -388,10 +407,10 @@ export function ProjectTemplatesListPage() {
         <div className="space-y-4">
           <Select
             id="ptCourseId"
-            label="Núcleo artístico"
+            label="Curso"
             value={form.courseId}
             onChange={(e) => setForm((prev) => ({ ...prev, courseId: e.target.value }))}
-            placeholder="Selecionar núcleo artístico..."
+            placeholder="Selecionar curso..."
             options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
           />
           <Input
@@ -421,7 +440,7 @@ export function ProjectTemplatesListPage() {
             currentValue={form.coverImage || null}
             onUploadComplete={(key) => setForm((prev) => ({ ...prev, coverImage: key }))}
             onRemove={() => setForm((prev) => ({ ...prev, coverImage: '' }))}
-            label="Imagem de Capa"
+            label="Imagem de capa"
             compact
           />
         </div>
@@ -432,8 +451,8 @@ export function ProjectTemplatesListPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate()}
         isLoading={deleteMutation.isPending}
-        title="Desativar Template"
-        message={`Tem certeza que deseja desativar "${deleteTarget?.name}"? Esta ação desativa o registro.`}
+        title="Desativar template"
+        message={`Confirma a desativação de "${deleteTarget?.name}"?`}
       />
 
       <ConfirmModal
@@ -441,8 +460,8 @@ export function ProjectTemplatesListPage() {
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
-        title="Restaurar Template"
-        message={`Tem certeza que deseja restaurar "${restoreTarget?.name}"?`}
+        title="Restaurar template"
+        message={`Confirma a restauração de "${restoreTarget?.name}"?`}
         confirmLabel="Restaurar"
       />
 

@@ -72,5 +72,5 @@ Ver `docs/DEBITOS_TECNICOS.md` para débitos remanescentes (backend).
 | README front | Stack e funcionalidades alinhadas ao código atual |
 | Mapeamento templates | Rota de detalhe corrigida para `:slug` |
 | Contrato de delete | `DELETE` documentado como `204` sem body |
-| Readiness | Inclusão de `GET/PUT /qualitative-analysis` |
+| Readiness | Consolidação de endpoints de score/regras (`GET /project-template-readiness` e `GET/PATCH /project-template-readiness/rules`) |
 | Back (revisão de referência) | Rotas e permissões conferidas em `src/infrastructure/routes/*` |

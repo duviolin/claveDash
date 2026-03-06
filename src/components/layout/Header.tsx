@@ -8,15 +8,15 @@ import { NotificationBell } from './NotificationBell'
 
 const routeLabels: Record<string, string> = {
   dashboard: 'Painel',
-  users: 'Equipe',
-  schools: 'Unidades artísticas',
-  courses: 'Núcleos artísticos',
-  seasons: 'Temporadas',
-  classes: 'Grupos artísticos',
+  users: 'Usuários',
+  schools: 'Escolas',
+  courses: 'Cursos',
+  seasons: 'Semestres',
+  classes: 'Turmas',
   templates: 'Templates',
   projects: 'Projetos',
-  'daily-missions': 'Missões Diárias',
-  instances: 'Instanciação',
+  'daily-missions': 'Missões diárias',
+  instances: 'Instâncias',
   storage: 'Armazenamento',
   settings: 'Configurações',
   new: 'Novo',
@@ -29,9 +29,9 @@ const uuidSegmentRegex =
 const slugLikeRegex = /^[a-z0-9-]+$/
 
 const detailLabelsByParentSegment: Record<string, string> = {
-  users: 'Detalhes da equipe',
-  classes: 'Detalhes do grupo artístico',
-  projects: 'Detalhes do Template',
+  users: 'Detalhes do usuário',
+  classes: 'Detalhes da turma',
+  projects: 'Detalhes do template',
 }
 
 function prettifySlug(slug: string): string {
@@ -42,6 +42,9 @@ function prettifySlug(slug: string): string {
 }
 
 function getSegmentLabel(segment: string, segments: string[], index: number): string {
+  const isProjectSlugSegment = segments[0] === 'templates' && segments[1] === 'projects' && index === 2
+  if (isProjectSlugSegment) return prettifySlug(segment)
+
   if (uuidSegmentRegex.test(segment)) {
     const parentSegment = index > 0 ? segments[index - 1] : ''
     return detailLabelsByParentSegment[parentSegment] || 'Detalhes'
@@ -55,6 +58,15 @@ function getSegmentLabel(segment: string, segments: string[], index: number): st
   return segment
 }
 
+function getSegmentPath(segments: string[], index: number): string {
+  const isProjectSlugSegment = segments[0] === 'templates' && segments[1] === 'projects' && index === 2
+  if (isProjectSlugSegment) {
+    return `/templates/projects/${segments[2]}/tracks`
+  }
+
+  return '/' + segments.slice(0, index + 1).join('/')
+}
+
 function Breadcrumb() {
   const location = useLocation()
   const segments = location.pathname.split('/').filter(Boolean)
@@ -62,7 +74,7 @@ function Breadcrumb() {
   return (
     <nav className="flex min-w-0 items-center gap-1.5 overflow-hidden text-sm">
       {segments.map((segment, index) => {
-        const path = '/' + segments.slice(0, index + 1).join('/')
+        const path = getSegmentPath(segments, index)
         const label = getSegmentLabel(segment, segments, index)
         const isLast = index === segments.length - 1
 

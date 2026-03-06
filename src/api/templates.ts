@@ -11,7 +11,6 @@ import type {
   QuizQuestion,
   ProjectTemplateReadinessSummary,
   ProjectTemplateReadinessRule,
-  ProjectTemplateQualitativeAnalysis,
 } from '@/types'
 
 // Payload types for template APIs (only updatable fields)
@@ -253,18 +252,3 @@ export async function updateProjectTemplateReadinessRule(
   return data
 }
 
-export async function getProjectTemplateQualitativeAnalysis(idOrSlug: string) {
-  const { data } = await api.get<ProjectTemplateQualitativeAnalysis>(`/project-template-readiness/${idOrSlug}/qualitative-analysis`)
-  return data
-}
-
-export async function saveProjectTemplateQualitativeAnalysis(
-  idOrSlug: string,
-  payload: {
-    analysis: string
-    generatedForVersion?: number
-  }
-) {
-  const { data } = await api.put<ProjectTemplateQualitativeAnalysis>(`/project-template-readiness/${idOrSlug}/qualitative-analysis`, payload)
-  return data
-}

@@ -23,19 +23,19 @@ export function FirstAccessPage() {
     e.preventDefault()
 
     if (newPassword !== confirmPassword) {
-      toast.error('As senhas não coincidem')
+      toast.error('As senhas informadas não conferem.')
       return
     }
 
     if (newPassword.length < 6) {
-      toast.error('A nova senha deve ter pelo menos 6 caracteres')
+      toast.error('A nova senha deve conter pelo menos 6 caracteres.')
       return
     }
 
     setIsLoading(true)
     try {
       const response = await firstAccess(email, currentPassword, newPassword)
-      toast.success('Senha alterada com sucesso!')
+      toast.success('Senha atualizada com sucesso.')
       await loginWithToken(response.token)
       navigate('/dashboard')
     } catch {
@@ -52,8 +52,8 @@ export function FirstAccessPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent">
             <Music className="h-7 w-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-text">Primeiro Acesso</h1>
-          <p className="mt-2 text-sm text-muted">Troque sua senha temporária para continuar</p>
+          <h1 className="text-2xl font-bold text-text">Primeiro acesso</h1>
+          <p className="mt-2 text-sm text-muted">Defina sua senha de acesso para continuar.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-surface p-6 space-y-4">
@@ -91,7 +91,7 @@ export function FirstAccessPage() {
             required
           />
           <Button type="submit" className="w-full" isLoading={isLoading}>
-            Trocar Senha e Entrar
+            Confirmar senha e acessar
           </Button>
           <p className="text-center text-xs text-muted">
             <Link to="/login" className="text-accent hover:underline">

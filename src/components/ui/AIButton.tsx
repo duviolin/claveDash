@@ -38,7 +38,7 @@ export function AIButton({ onGenerate, onAccept, label = 'Gerar com IA', classNa
       const generated = await onGenerate((extra ?? userExtra) || undefined)
       setResult(generated)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao gerar conteúdo')
+      setError(err instanceof Error ? err.message : 'Não foi possível gerar o conteúdo.')
     } finally {
       setIsLoading(false)
     }
@@ -73,7 +73,7 @@ export function AIButton({ onGenerate, onAccept, label = 'Gerar com IA', classNa
       <Modal
         isOpen={isOpen}
         onClose={handleClose}
-        title="Assistente IA"
+        title="Assistente de IA"
         size="lg"
         footer={
           result ? (
@@ -83,7 +83,7 @@ export function AIButton({ onGenerate, onAccept, label = 'Gerar com IA', classNa
                 <RotateCcw className="h-3.5 w-3.5" /> Regenerar
               </Button>
               <Button onClick={handleAccept}>
-                <Check className="h-3.5 w-3.5" /> Usar este
+                <Check className="h-3.5 w-3.5" /> Aplicar conteúdo
               </Button>
             </div>
           ) : (

@@ -11,12 +11,16 @@ import { Input } from '@/components/ui/Input'
 import { ConfirmModal, Modal } from '@/components/ui/Modal'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Pagination } from '@/components/ui/Pagination'
+import { IconButton } from '@/components/ui/IconButton'
+import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import { listUsers, suspendUser, reactivateUser, softDeleteUser, restoreUser, listDeletedUsers } from '@/api/users'
 import { formatDate } from '@/lib/utils'
+import { truncateText } from '@/lib/text'
 import { ROLE_LABELS, ROLE_BADGE_VARIANT, USER_STATUS_LABELS } from '@/lib/constants'
-import type { User, UserRole, PaginatedResponse, DeactivationErrorDetails } from '@/types'
-import type { AxiosError } from 'axios'
+import type { User, UserRole, PaginatedResponse } from '@/types'
 import toast from 'react-hot-toast'
+import { useTrashableListPage } from '@/hooks/useTrashableListPage'
+import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHandler'
 
 const roleTabs = [
   { key: 'ALL', label: 'Todos' },
@@ -25,8 +29,8 @@ const roleTabs = [
 ]
 
 const roleCreateLabel: Record<string, string> = {
-  ALL: 'Adicionar membro',
-  ...Object.fromEntries(Object.entries(ROLE_LABELS).map(([k, v]) => [k, `Criar ${v}`])),
+  ALL: 'Cadastrar usuário',
+  ...Object.fromEntries(Object.entries(ROLE_LABELS).map(([k, v]) => [k, `Cadastrar ${v}`])),
 }
 
 const USERS_PAGE_LIMIT = 10
@@ -34,18 +38,16 @@ const USERS_PAGE_LIMIT = 10
 export function UsersListPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [roleFilter, setRoleFilter] = useState('ALL')
-  const [page, setPage] = useState(1)
+  const { activeTab: roleFilter, page, setPage, handleTabChange: setRoleFilterAndReset } = useTrashableListPage({ defaultTab: 'ALL' })
   const [search, setSearch] = useState('')
   const [confirmAction, setConfirmAction] = useState<{ user: User; action: 'suspend' | 'reactivate' | 'delete' | 'restore' } | null>(null)
   const [previewTarget, setPreviewTarget] = useState<User | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
+  const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
 
   const isTrash = roleFilter === 'TRASH'
 
   const handleTabChange = (key: string) => {
-    setRoleFilter(key)
-    setPage(1)
+    setRoleFilterAndReset(key)
     setSearch('')
   }
 
@@ -87,16 +89,16 @@ export function UsersListPage() {
       switch (action) {
         case 'suspend':
           await suspendUser(user.id)
-          return 'Equipe suspensa'
+          return 'Usuário suspenso.'
         case 'reactivate':
           await reactivateUser(user.id)
-          return 'Equipe reativada'
+          return 'Usuário reativado.'
         case 'delete':
           await softDeleteUser(user.id)
-          return 'Equipe movida para a lixeira'
+          return 'Usuário movido para a lixeira.'
         case 'restore':
           await restoreUser(user.id)
-          return 'Equipe restaurada'
+          return 'Usuário restaurado.'
       }
     },
     onSuccess: (message, { user, action }) => {
@@ -110,11 +112,9 @@ export function UsersListPage() {
     },
     onError: (error: unknown, { user, action }) => {
       if (action === 'delete') {
-        const err = error as AxiosError<{ error?: string; details?: DeactivationErrorDetails }>
-        if (err.response?.status === 409 && err.response?.data?.details) {
-          setBlockedInfo({ name: user.name, slug: user.slug, details: err.response.data.details })
-        } else {
-          toast.error(err.response?.data?.error ?? 'Erro ao excluir equipe')
+        const wasBlocked = handleBlockedError(error, user)
+        if (!wasBlocked) {
+          toast.error('Não foi possível remover o usuário.')
         }
       }
     },
@@ -128,18 +128,16 @@ export function UsersListPage() {
     mutation.mutate(confirmAction)
   }
 
-  const truncate = (text: string, max: number) => text.length > max ? `${text.slice(0, max)}…` : text
-
   const activeColumns = [
     {
       key: 'name',
       header: 'Nome',
-      render: (u: User) => <span className="font-medium text-text">{truncate(u.name, 25)}</span>,
+      render: (u: User) => <span className="font-medium text-text">{truncateText(u.name, 25)}</span>,
     },
     {
       key: 'email',
       header: 'E-mail',
-      render: (u: User) => <span className="text-muted">{truncate(u.email, 30)}</span>,
+      render: (u: User) => <span className="text-muted">{truncateText(u.email, 30)}</span>,
     },
     {
       key: 'role',
@@ -163,44 +161,37 @@ export function UsersListPage() {
       header: 'Ações',
       render: (u: User) => (
         <div className="flex gap-1">
-          <button
+          <IconButton
             onClick={() => setPreviewTarget(u)}
-            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-            title="Visualizar equipe"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-          <button
+            label="Visualizar usuário"
+            icon={<Eye className="h-4 w-4" />}
+          />
+          <IconButton
             onClick={() => navigate(`/users/${u.slug}`)}
-            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-            title="Editar"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
+            label="Editar cadastro"
+            icon={<Pencil className="h-4 w-4" />}
+          />
           {u.status === 'ACTIVE' ? (
-            <button
+            <IconButton
               onClick={() => setConfirmAction({ user: u, action: 'suspend' })}
-              className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"
-              title="Suspender"
-            >
-              <Ban className="h-4 w-4" />
-            </button>
+              label="Suspender"
+              icon={<Ban className="h-4 w-4" />}
+              variant="danger"
+            />
           ) : (
-            <button
+            <IconButton
               onClick={() => setConfirmAction({ user: u, action: 'reactivate' })}
-              className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
-              title="Reativar"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
+              label="Reativar"
+              icon={<RotateCcw className="h-4 w-4" />}
+              variant="success"
+            />
           )}
-          <button
+          <IconButton
             onClick={() => setConfirmAction({ user: u, action: 'delete' })}
-            className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"
-            title="Excluir"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+            label="Remover"
+            icon={<Trash2 className="h-4 w-4" />}
+            variant="danger"
+          />
         </div>
       ),
     },
@@ -212,7 +203,7 @@ export function UsersListPage() {
       header: 'Nome',
       render: (u: User) => (
         <div className="flex items-center gap-2">
-          <span className="font-medium text-text">{truncate(u.name, 25)}</span>
+          <span className="font-medium text-text">{truncateText(u.name, 25)}</span>
           <Badge variant="error">Excluído</Badge>
         </div>
       ),
@@ -220,7 +211,7 @@ export function UsersListPage() {
     {
       key: 'email',
       header: 'E-mail',
-      render: (u: User) => <span className="text-muted">{truncate(u.email, 30)}</span>,
+      render: (u: User) => <span className="text-muted">{truncateText(u.email, 30)}</span>,
     },
     {
       key: 'role',
@@ -236,39 +227,38 @@ export function UsersListPage() {
       key: 'actions',
       header: 'Ações',
       render: (u: User) => (
-        <button
+        <IconButton
           onClick={() => setConfirmAction({ user: u, action: 'restore' })}
-          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
-          title="Restaurar"
-        >
-          <ArchiveRestore className="h-4 w-4" />
-        </button>
+          label="Restaurar"
+          icon={<ArchiveRestore className="h-4 w-4" />}
+          variant="success"
+        />
       ),
     },
   ]
 
   const confirmMessages: Record<string, { title: string; message: (name: string) => string; label: string; variant: 'danger' | 'primary' }> = {
     suspend: {
-      title: 'Suspender equipe',
-      message: (name) => `Tem certeza que deseja suspender "${name}"? A equipe perderá acesso ao sistema.`,
+      title: 'Suspender usuário',
+      message: (name) => `Confirma a suspensão de "${name}"? O acesso ao sistema será bloqueado.`,
       label: 'Suspender',
       variant: 'danger',
     },
     reactivate: {
-      title: 'Reativar equipe',
-      message: (name) => `Tem certeza que deseja reativar "${name}"?`,
+      title: 'Reativar usuário',
+      message: (name) => `Confirma a reativação de "${name}"?`,
       label: 'Reativar',
       variant: 'primary',
     },
     delete: {
-      title: 'Excluir equipe',
-      message: (name) => `Tem certeza que deseja excluir "${name}"? A equipe será movida para a lixeira.`,
-      label: 'Excluir',
+      title: 'Remover usuário',
+      message: (name) => `Confirma a remoção de "${name}"? O usuário será movido para a lixeira.`,
+      label: 'Remover',
       variant: 'danger',
     },
     restore: {
-      title: 'Restaurar equipe',
-      message: (name) => `Tem certeza que deseja restaurar "${name}"?`,
+      title: 'Restaurar usuário',
+      message: (name) => `Confirma a restauração de "${name}"?`,
       label: 'Restaurar',
       variant: 'primary',
     },
@@ -278,13 +268,13 @@ export function UsersListPage() {
 
   return (
     <PageContainer
-      title="Equipe"
+      title="Usuários"
       count={pagination?.total ?? filteredUsers.length}
       action={
         !isTrash ? (
           <Button onClick={() => navigate(roleFilter === 'ALL' ? '/users/new' : `/users/new?role=${roleFilter}`)}>
             <Plus className="h-4 w-4" />
-            {roleCreateLabel[roleFilter] ?? 'Adicionar membro'}
+            {roleCreateLabel[roleFilter] ?? 'Cadastrar usuário'}
           </Button>
         ) : undefined
       }
@@ -292,7 +282,7 @@ export function UsersListPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Tabs tabs={roleTabs} activeKey={roleFilter} onChange={handleTabChange} />
         <Input
-          placeholder="Buscar por nome ou email..."
+          placeholder="Buscar por nome ou e-mail..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full sm:max-w-xs"
@@ -304,7 +294,7 @@ export function UsersListPage() {
         data={filteredUsers}
         keyExtractor={(u) => u.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhuma equipe encontrada'}
+        emptyMessage={isTrash ? 'A lixeira está vazia.' : 'Nenhum usuário encontrado.'}
       />
 
       {pagination && (
@@ -319,18 +309,17 @@ export function UsersListPage() {
       <Modal
         isOpen={!!previewTarget}
         onClose={() => setPreviewTarget(null)}
-        title="Preview da equipe"
+        title="Dados do usuário"
         footer={<Button variant="secondary" onClick={() => setPreviewTarget(null)}>Fechar</Button>}
       >
         <div className="space-y-4">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Nome</p>
-            <p className="mt-1 font-medium text-text">{previewTarget?.name ?? '—'}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">E-mail</p>
-            <p className="mt-1 text-text">{previewTarget?.email ?? '—'}</p>
-          </div>
+          <DetailFieldList
+            items={[
+              { label: 'Nome', value: previewTarget?.name ?? '—' },
+              { label: 'E-mail', value: previewTarget?.email ?? '—' },
+              { label: 'Criado em', value: previewTarget ? formatDate(previewTarget.createdAt) : '—' },
+            ]}
+          />
           <div>
             <p className="text-xs uppercase tracking-wide text-muted">Perfil</p>
             <div className="mt-1">
@@ -352,10 +341,6 @@ export function UsersListPage() {
                 <span className="text-muted">—</span>
               )}
             </div>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Criado em</p>
-            <p className="mt-1 text-text">{previewTarget ? formatDate(previewTarget.createdAt) : '—'}</p>
           </div>
         </div>
       </Modal>

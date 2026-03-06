@@ -77,8 +77,6 @@
 - `GET /project-template-readiness/:idOrSlug`
 - `GET /project-template-readiness/rules`
 - `PATCH /project-template-readiness/rules/:ruleId` (**somente ADMIN**)
-- `GET /project-template-readiness/:idOrSlug/qualitative-analysis`
-- `PUT /project-template-readiness/:idOrSlug/qualitative-analysis`
 
 ### Comportamento em tela
 
@@ -273,8 +271,6 @@
 - `GET /project-template-readiness/:idOrSlug`
 - `GET /project-template-readiness/rules`
 - `PATCH /project-template-readiness/rules/:ruleId` (**somente ADMIN**)
-- `GET /project-template-readiness/:idOrSlug/qualitative-analysis`
-- `PUT /project-template-readiness/:idOrSlug/qualitative-analysis`
 
 ---
 

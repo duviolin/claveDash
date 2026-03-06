@@ -66,6 +66,13 @@ src/
 └── routes.tsx      # Definição de rotas
 ```
 
+## Padrões de UI e Style Guide
+
+- Guia de estilo do Design System: `docs/STYLE_GUIDE.md`
+- Rule global da Cursor: `.cursor/rules/06-style-guide.mdc`
+
+Esse guia define os tokens, componentes base reutilizáveis e padrões obrigatórios de list pages (Ativos/Lixeira, delete/restore e tratamento de 409).
+
 ## Aptidão de Publicação (Project Template Readiness)
 
 Na tela de detalhe de template (`/templates/projects/:slug`) existe um card de aptidão que mostra:
@@ -91,5 +98,3 @@ As regras são persistidas no backend e o card de aptidão é recalculado após 
 - `GET /project-template-readiness/:idOrSlug`
 - `GET /project-template-readiness/rules`
 - `PATCH /project-template-readiness/rules/:ruleId` (**somente ADMIN**)
-- `GET /project-template-readiness/:idOrSlug/qualitative-analysis`
-- `PUT /project-template-readiness/:idOrSlug/qualitative-analysis`

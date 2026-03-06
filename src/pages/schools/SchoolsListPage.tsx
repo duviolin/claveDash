@@ -11,12 +11,15 @@ import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedMod
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Pagination } from '@/components/ui/Pagination'
-import type { AxiosError } from 'axios'
+import { IconButton } from '@/components/ui/IconButton'
+import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import { listSchools, createSchool, updateSchool, deleteSchool, listDeletedSchools, restoreSchool } from '@/api/schools'
 import { listUsers } from '@/api/users'
 import { formatDate } from '@/lib/utils'
-import type { School, User, DeactivationErrorDetails } from '@/types'
+import type { School, User } from '@/types'
 import toast from 'react-hot-toast'
+import { useTrashableListPage } from '@/hooks/useTrashableListPage'
+import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHandler'
 
 const SCHOOLS_PAGE_LIMIT = 10
 
@@ -27,17 +30,14 @@ const tabs = [
 
 export function SchoolsListPage() {
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState('active')
+  const { activeTab, isTrash, page, setPage, handleTabChange } = useTrashableListPage()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<School | null>(null)
   const [form, setForm] = useState({ name: '', directorId: '' })
   const [deleteTarget, setDeleteTarget] = useState<School | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<School | null>(null)
   const [previewTarget, setPreviewTarget] = useState<School | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
-  const [page, setPage] = useState(1)
-
-  const isTrash = activeTab === 'TRASH'
+  const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
 
   const { data: schoolsResponse, isLoading } = useQuery({
     queryKey: ['schools', activeTab, page],
@@ -67,7 +67,7 @@ export function SchoolsListPage() {
       return editing ? updateSchool(editing.id, payload) : createSchool(payload)
     },
     onSuccess: () => {
-      toast.success(editing ? 'Unidade artística atualizada!' : 'Unidade artística criada!')
+      toast.success(editing ? 'Escola atualizada com sucesso.' : 'Escola cadastrada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['schools'] })
       closeModal()
     },
@@ -76,15 +76,12 @@ export function SchoolsListPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteSchool(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Unidade artística desativada!')
+      toast.success('Escola desativada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['schools'] })
       setDeleteTarget(null)
     },
     onError: (error: unknown) => {
-      const err = error as AxiosError<{ details: DeactivationErrorDetails }>
-      if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.name, slug: deleteTarget!.slug, details: err.response.data.details })
-      }
+      handleBlockedError(error, deleteTarget!)
       setDeleteTarget(null)
     },
   })
@@ -92,7 +89,7 @@ export function SchoolsListPage() {
   const restoreMutation = useMutation({
     mutationFn: () => restoreSchool(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Unidade artística restaurada!')
+      toast.success('Escola restaurada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['schools'] })
       setRestoreTarget(null)
     },
@@ -123,7 +120,7 @@ export function SchoolsListPage() {
     },
     {
       key: 'director',
-      header: 'Diretor da unidade',
+      header: 'Diretor escolar',
       render: (s: School) => {
         const director = allDirectors.find((d) => d.id === s.directorId)
         return <span className="text-muted">{director?.name || '—'}</span>
@@ -141,27 +138,22 @@ export function SchoolsListPage() {
       header: 'Ações',
       render: (s: School) => (
         <div className="flex gap-1">
-          <button
+          <IconButton
             onClick={() => setPreviewTarget(s)}
-            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-            title="Visualizar unidade artística"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-          <button
+            label="Visualizar escola"
+            icon={<Eye className="h-4 w-4" />}
+          />
+          <IconButton
             onClick={() => openEdit(s)}
-            className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"
-            title="Editar"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
+            label="Editar cadastro"
+            icon={<Pencil className="h-4 w-4" />}
+          />
+          <IconButton
             onClick={() => setDeleteTarget(s)}
-            className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"
-            title="Excluir"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+            label="Desativar"
+            icon={<Trash2 className="h-4 w-4" />}
+            variant="danger"
+          />
         </div>
       ),
     },
@@ -180,7 +172,7 @@ export function SchoolsListPage() {
     },
     {
       key: 'director',
-      header: 'Diretor da unidade',
+      header: 'Diretor escolar',
       render: (s: School) => {
         const director = allDirectors.find((d) => d.id === s.directorId)
         return <span className="text-muted">{director?.name || '—'}</span>
@@ -195,36 +187,35 @@ export function SchoolsListPage() {
       key: 'actions',
       header: 'Ações',
       render: (s: School) => (
-        <button
+        <IconButton
           onClick={() => setRestoreTarget(s)}
-          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
-          title="Restaurar"
-        >
-          <ArchiveRestore className="h-4 w-4" />
-        </button>
+          label="Restaurar"
+          icon={<ArchiveRestore className="h-4 w-4" />}
+          variant="success"
+        />
       ),
     },
   ]
 
   return (
     <PageContainer
-      title="Unidades artísticas"
+      title="Escolas"
       count={pagination?.total ?? schools.length}
       action={
         !isTrash ? (
           <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> Criar Unidade artística
+            <Plus className="h-4 w-4" /> Cadastrar escola
           </Button>
         ) : undefined
       }
     >
-      <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+      <Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />
       <Table
         columns={isTrash ? trashColumns : columns}
         data={schools}
         keyExtractor={(s) => s.id}
         isLoading={isLoading}
-        emptyMessage={isTrash ? 'A lixeira está vazia' : 'Nenhuma unidade artística encontrada'}
+        emptyMessage={isTrash ? 'A lixeira está vazia.' : 'Nenhuma escola encontrada.'}
       />
 
       {pagination && (
@@ -239,12 +230,12 @@ export function SchoolsListPage() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
-        title={editing ? 'Editar Unidade artística' : 'Criar Unidade artística'}
+        title={editing ? 'Editar escola' : 'Cadastrar escola'}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>
-              {editing ? 'Salvar' : 'Criar'}
+              {editing ? 'Salvar alterações' : 'Cadastrar'}
             </Button>
           </>
         }
@@ -259,10 +250,10 @@ export function SchoolsListPage() {
           />
           <Select
             id="directorId"
-            label="Diretor da unidade"
+            label="Diretor escolar"
             value={form.directorId}
             onChange={(e) => setForm({ ...form, directorId: e.target.value })}
-            placeholder="Selecionar diretor da unidade..."
+            placeholder="Selecionar diretor escolar..."
             options={directors.map((d) => ({ value: d.id, label: d.name }))}
           />
         </div>
@@ -271,22 +262,20 @@ export function SchoolsListPage() {
       <Modal
         isOpen={!!previewTarget}
         onClose={() => setPreviewTarget(null)}
-        title="Preview da Unidade artística"
+        title="Dados da escola"
         footer={<Button variant="secondary" onClick={() => setPreviewTarget(null)}>Fechar</Button>}
       >
         <div className="space-y-4">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Nome</p>
-            <p className="mt-1 font-medium text-text">{previewTarget?.name ?? '—'}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Diretor da unidade</p>
-            <p className="mt-1 text-text">
-              {previewTarget
-                ? (allDirectors.find((d) => d.id === previewTarget.directorId)?.name || '—')
-                : '—'}
-            </p>
-          </div>
+          <DetailFieldList
+            items={[
+              { label: 'Nome', value: previewTarget?.name ?? '—' },
+              {
+                label: 'Diretor escolar',
+                value: previewTarget ? (allDirectors.find((d) => d.id === previewTarget.directorId)?.name || '—') : '—',
+              },
+              { label: 'Atualizado em', value: previewTarget ? formatDate(previewTarget.updatedAt) : '—' },
+            ]}
+          />
           <div>
             <p className="text-xs uppercase tracking-wide text-muted">Status</p>
             <div className="mt-1">
@@ -307,8 +296,8 @@ export function SchoolsListPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate()}
         isLoading={deleteMutation.isPending}
-        title="Excluir Unidade artística"
-        message={`Tem certeza que deseja excluir "${deleteTarget?.name}"? A unidade artística será desativada.`}
+        title="Desativar escola"
+        message={`Confirma a desativação de "${deleteTarget?.name}"?`}
       />
 
       <ConfirmModal
@@ -316,8 +305,8 @@ export function SchoolsListPage() {
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
-        title="Restaurar Unidade artística"
-        message={`Tem certeza que deseja restaurar "${restoreTarget?.name}"?`}
+        title="Restaurar escola"
+        message={`Confirma a restauração de "${restoreTarget?.name}"?`}
         confirmLabel="Restaurar"
       />
 

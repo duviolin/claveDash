@@ -1,5 +1,3 @@
-import type { ReadinessRuleCode } from '@/types'
-
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions'
 
 export async function generateWithAI(prompt: string, systemPrompt?: string): Promise<string> {
@@ -57,7 +55,7 @@ export interface QuizGenerationContext {
   count?: number
   /** Nome e descrição do projeto (template) */
   project?: { name: string; type?: string; description?: string | null }
-  /** Faixa atual (título, artista, descrição, instrução técnica, letra) */
+  /** Faixa atual (título, responsável, descrição, instrução técnica, letra) */
   track?: {
     title: string
     artist?: string | null
@@ -90,7 +88,7 @@ export async function generateQuiz(context: QuizGenerationContext): Promise<stri
   if (context.track) {
     parts.push(`\n## Faixa atual`)
     parts.push(`- Título: ${context.track.title}`)
-    if (context.track.artist) parts.push(`- Artista: ${context.track.artist}`)
+    if (context.track.artist) parts.push(`- Responsável: ${context.track.artist}`)
     if (context.track.description) parts.push(`- Descrição: ${context.track.description}`)
     if (context.track.technicalInstruction) parts.push(`- Instrução técnica: ${context.track.technicalInstruction}`)
     if (context.track.lyrics) parts.push(`- Letra (trecho): ${context.track.lyrics.slice(0, 500)}${context.track.lyrics.length > 500 ? '...' : ''}`)
@@ -156,7 +154,7 @@ export async function generateQuizQuestion(context: QuizGenerationContext): Prom
   if (context.track) {
     parts.push(`\n## Faixa atual`)
     parts.push(`- Título: ${context.track.title}`)
-    if (context.track.artist) parts.push(`- Artista: ${context.track.artist}`)
+    if (context.track.artist) parts.push(`- Responsável: ${context.track.artist}`)
     if (context.track.description) parts.push(`- Descrição: ${context.track.description}`)
     if (context.track.technicalInstruction) parts.push(`- Instrução técnica: ${context.track.technicalInstruction}`)
     if (context.track.lyrics) parts.push(`- Letra (trecho): ${context.track.lyrics.slice(0, 500)}${context.track.lyrics.length > 500 ? '...' : ''}`)
@@ -209,7 +207,7 @@ export async function generateDescription(context: { name: string; type?: string
 }
 
 export async function generateTechnicalInstruction(context: { title: string; artist?: string }): Promise<string> {
-  const prompt = `Escreva instruções técnicas detalhadas para a faixa "${context.title}"${context.artist ? ` do artista "${context.artist}"` : ''}. Inclua dicas de prática, técnicas vocais/instrumentais e pontos de atenção. Use linguagem popular, simples e direta, com português do Brasil correto, claro e natural.`
+  const prompt = `Escreva instruções técnicas detalhadas para a faixa "${context.title}"${context.artist ? ` do responsável "${context.artist}"` : ''}. Inclua dicas de prática, técnicas vocais/instrumentais e pontos de atenção. Use linguagem popular, simples e direta, com português do Brasil correto, claro e natural.`
   return generateWithAI(prompt)
 }
 
@@ -223,97 +221,3 @@ export async function generateStudyNotes(context: { title: string }): Promise<st
   return generateWithAI(prompt)
 }
 
-export interface PublicationQualitativeAnalysisRule {
-  code: ReadinessRuleCode
-  description?: string | null
-  targetValue: number
-  weight: number
-  isActive?: boolean
-}
-
-export interface PublicationQualitativeAnalysisContext {
-  project: {
-    name: string
-    type?: string
-    description?: string | null
-    version?: number
-  }
-  readiness: {
-    scorePercentage: number
-    statusLabel: string
-    isReady: boolean
-    metCount: number
-    totalCount: number
-    trackCount: number
-    quizCount: number
-    materialCount: number
-    studyTrackCount: number
-    missingTips?: string[]
-  }
-  publicationCriteria: PublicationQualitativeAnalysisRule[]
-  userExtra?: string
-}
-
-export async function generatePublicationQualitativeAnalysis(context: PublicationQualitativeAnalysisContext): Promise<string> {
-  const criteriaLines = context.publicationCriteria
-    .filter((rule) => rule.isActive !== false)
-    .map((rule) => {
-      const description = rule.description?.trim() || 'Sem descrição configurada pelo admin.'
-      return `- Código: ${rule.code} | Ativo: sim | Meta mínima: ${rule.targetValue} | Peso no score: ${rule.weight}\n  - Descrição (admin): ${description}`
-    })
-
-  const promptParts: string[] = [
-    'Faça uma análise qualitativa curta e direta sobre a aptidão de publicação de um template de projeto educacional.',
-    '',
-    '## Regras obrigatórias da resposta',
-    '- Seja objetivo, com frases curtas e linguagem popular e simples.',
-    '- Evite texto longo e repetições.',
-    '- Se o projeto não estiver pronto, diga isso de forma clara.',
-    '- Traga ações práticas para o próximo passo.',
-    '- Escreva em português do Brasil correto, claro e natural.',
-    '- Evite palavras difíceis, jargões e construções rebuscadas.',
-    '',
-    '## Projeto',
-    `- Nome: ${context.project.name}`,
-    `- Tipo: ${context.project.type || 'não informado'}`,
-    `- Versão: ${context.project.version ?? 'não informada'}`,
-    `- Descrição: ${context.project.description || 'não informada'}`,
-    '',
-    '## Indicadores de aptidão',
-    `- Status: ${context.readiness.statusLabel}`,
-    `- Score: ${context.readiness.scorePercentage}%`,
-    `- Requisitos atendidos: ${context.readiness.metCount}/${context.readiness.totalCount}`,
-    `- Faixas: ${context.readiness.trackCount}`,
-    `- Quizzes: ${context.readiness.quizCount}`,
-    `- Materiais: ${context.readiness.materialCount}`,
-    `- Trilhas de estudo: ${context.readiness.studyTrackCount}`,
-    '',
-    '## Critérios de publicação ativos (texto editável pelo admin)',
-    ...(criteriaLines.length > 0 ? criteriaLines : ['- Nenhum critério ativo informado.']),
-  ]
-
-  if (context.readiness.missingTips && context.readiness.missingTips.length > 0) {
-    promptParts.push('', '## Pendências detectadas', ...context.readiness.missingTips.map((tip) => `- ${tip}`))
-  }
-
-  if (context.userExtra?.trim()) {
-    promptParts.push('', '## Instruções adicionais do usuário', context.userExtra.trim())
-  }
-
-  promptParts.push(
-    '',
-    '## Formato obrigatório da resposta',
-    '1) Diagnóstico (máximo 2 linhas).',
-    '2) Pontos de atenção (máximo 3 bullets).',
-    '3) Próximos passos (máximo 3 bullets, priorizados).',
-    '4) Veredito final em 1 linha (apto ou não apto no momento).',
-    'Resposta total com no máximo 900 caracteres.'
-  )
-
-  const prompt = promptParts.join('\n')
-
-  return generateWithAI(
-    prompt,
-    'Você é um avaliador pedagógico especialista em curadoria de conteúdo educacional. Responda de forma concisa, direta e orientativa, usando linguagem popular e simples, com português do Brasil correto, claro e natural.'
-  )
-}

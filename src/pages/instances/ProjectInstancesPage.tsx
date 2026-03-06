@@ -61,12 +61,12 @@ export function ProjectInstancesPage() {
     mutationFn: () => {
       const canInstantiate = !!templateReadinessById[instForm.templateId]
       if (!canInstantiate) {
-        throw new Error('Template ainda não está apto para publicação. Complete os critérios antes de instanciar.')
+        throw new Error('O template ainda não está apto para publicação. Conclua os critérios antes de instanciar.')
       }
       return instantiateProject(instForm)
     },
     onSuccess: (data) => {
-      toast.success(`Projeto instanciado! ${JSON.stringify(data).includes('created') ? '' : ''}`)
+      toast.success(`Projeto instanciado com sucesso.${JSON.stringify(data).includes('created') ? '' : ''}`)
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       setInstantiateOpen(false)
     },
@@ -79,7 +79,7 @@ export function ProjectInstancesPage() {
   const updateMut = useMutation({
     mutationFn: () => updateProject(editTarget!.id, { name: editForm.name, description: editForm.description || undefined }),
     onSuccess: () => {
-      toast.success('Projeto atualizado!')
+      toast.success('Projeto atualizado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       setEditTarget(null)
     },
@@ -88,7 +88,7 @@ export function ProjectInstancesPage() {
   const togglePublishMut = useMutation({
     mutationFn: (project: Project) => project.isVisible ? unpublishProject(project.id) : publishProject(project.id),
     onSuccess: () => {
-      toast.success('Visibilidade alterada!')
+      toast.success('Visibilidade atualizada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['projects'] })
     },
   })
@@ -117,44 +117,44 @@ export function ProjectInstancesPage() {
 
   return (
     <PageContainer
-      title="Projetos Instanciados"
+      title="Projetos instanciados"
       count={selectedSeasonId ? projects.length : undefined}
-      action={<Button onClick={() => { setInstForm({ templateId: '', classId: '', seasonId: '' }); setInstantiateOpen(true) }}><Plus className="h-4 w-4" /> Criar Projeto</Button>}
+      action={<Button onClick={() => { setInstForm({ templateId: '', classId: '', seasonId: '' }); setInstantiateOpen(true) }}><Plus className="h-4 w-4" /> Instanciar projeto</Button>}
     >
       <div className="mb-4 max-w-xs">
         <Select
           id="filterSeason"
-          label="Filtrar por Temporada"
+          label="Filtrar por semestre"
           value={selectedSeasonId}
           onChange={(e) => setSelectedSeasonId(e.target.value)}
-          placeholder="Selecionar temporada..."
+          placeholder="Selecionar semestre..."
           options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))}
         />
       </div>
 
       {!selectedSeasonId ? (
-        <p className="text-muted text-sm">Selecione uma temporada para ver os projetos.</p>
+        <p className="text-muted text-sm">Selecione um semestre para visualizar os projetos.</p>
       ) : (
         <Table columns={columns} data={projects} keyExtractor={(p) => p.id} isLoading={isLoading} />
       )}
 
-      <Modal isOpen={instantiateOpen} onClose={() => setInstantiateOpen(false)} title="Criar Projeto" footer={
-        <><Button variant="secondary" onClick={() => setInstantiateOpen(false)}>Cancelar</Button><Button onClick={() => instantiateMut.mutate()} isLoading={instantiateMut.isPending}>Criar</Button></>
+      <Modal isOpen={instantiateOpen} onClose={() => setInstantiateOpen(false)} title="Instanciar projeto" footer={
+        <><Button variant="secondary" onClick={() => setInstantiateOpen(false)}>Cancelar</Button><Button onClick={() => instantiateMut.mutate()} isLoading={instantiateMut.isPending}>Instanciar</Button></>
       }>
         <div className="space-y-4">
           <Select id="instTemplate" label="Template" value={instForm.templateId} onChange={(e) => setInstForm({ ...instForm, templateId: e.target.value })} placeholder="Selecionar template apto..." options={readyTemplates.map((t: ProjectTemplate) => ({ value: t.id, label: t.name }))} />
           {blockedTemplateCount > 0 && (
             <p className="text-xs text-warning">
-              {blockedTemplateCount} template(s) ocultado(s) desta lista por ainda não estarem aptos para publicação.
+              {blockedTemplateCount} template(s) não exibido(s) por ainda não estarem aptos para publicação.
             </p>
           )}
-          <Select id="instSeason" label="Temporada" value={instForm.seasonId} onChange={(e) => setInstForm({ ...instForm, seasonId: e.target.value })} placeholder="Selecionar temporada..." options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))} />
-          <Select id="instClass" label="Grupo artístico" value={instForm.classId} onChange={(e) => setInstForm({ ...instForm, classId: e.target.value })} placeholder="Selecionar grupo artístico..." options={classes.map((c: { id: string; name: string }) => ({ value: c.id, label: c.name }))} />
+          <Select id="instSeason" label="Semestre" value={instForm.seasonId} onChange={(e) => setInstForm({ ...instForm, seasonId: e.target.value })} placeholder="Selecionar semestre..." options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))} />
+          <Select id="instClass" label="Turma" value={instForm.classId} onChange={(e) => setInstForm({ ...instForm, classId: e.target.value })} placeholder="Selecionar turma..." options={classes.map((c: { id: string; name: string }) => ({ value: c.id, label: c.name }))} />
         </div>
       </Modal>
 
-      <Modal isOpen={!!editTarget} onClose={() => setEditTarget(null)} title="Editar Projeto" footer={
-        <><Button variant="secondary" onClick={() => setEditTarget(null)}>Cancelar</Button><Button onClick={() => updateMut.mutate()} isLoading={updateMut.isPending}>Salvar</Button></>
+      <Modal isOpen={!!editTarget} onClose={() => setEditTarget(null)} title="Editar projeto" footer={
+        <><Button variant="secondary" onClick={() => setEditTarget(null)}>Cancelar</Button><Button onClick={() => updateMut.mutate()} isLoading={updateMut.isPending}>Salvar alterações</Button></>
       }>
         <div className="space-y-4">
           <Input id="projName" label="Nome" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />

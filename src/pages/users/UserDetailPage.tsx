@@ -34,7 +34,7 @@ export function UserDetailPage() {
     setIsLoading(true)
     try {
       await updateUser(slug, form)
-      toast.success('Equipe atualizada!')
+      toast.success('Dados do usuário atualizados com sucesso.')
       navigate('/users')
     } catch {
       // handled by interceptor
@@ -45,7 +45,7 @@ export function UserDetailPage() {
 
   if (!user) {
     return (
-      <PageContainer title="Carregando...">
+      <PageContainer title="Carregando dados...">
         <div className="flex justify-center py-12">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
         </div>
@@ -54,7 +54,7 @@ export function UserDetailPage() {
   }
 
   return (
-    <PageContainer title="Editar equipe">
+    <PageContainer title="Editar usuário">
       <div className="max-w-lg">
         <div className="mb-4 flex items-center gap-3">
           <Badge variant={ROLE_BADGE_VARIANT[user.role]}>{ROLE_LABELS[user.role]}</Badge>
@@ -81,7 +81,7 @@ export function UserDetailPage() {
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" isLoading={isLoading}>
-              Salvar
+              Salvar alterações
             </Button>
             <Button type="button" variant="secondary" onClick={() => navigate('/users')}>
               Voltar

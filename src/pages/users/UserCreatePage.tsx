@@ -36,7 +36,7 @@ export function UserCreatePage() {
     setIsLoading(true)
     try {
       await createUser(form)
-      toast.success('Equipe criada com sucesso!')
+      toast.success('Usuário cadastrado com sucesso.')
       navigate('/users')
     } catch {
       // handled by interceptor
@@ -46,7 +46,7 @@ export function UserCreatePage() {
   }
 
   return (
-    <PageContainer title={`Criar ${ROLE_LABELS[form.role]}`}>
+    <PageContainer title={`Cadastrar ${ROLE_LABELS[form.role]}`}>
       <div className="max-w-lg">
         <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-surface p-6 space-y-4">
           <Input
@@ -96,7 +96,7 @@ export function UserCreatePage() {
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" isLoading={isLoading}>
-              Criar equipe
+              Cadastrar usuário
             </Button>
             <Button type="button" variant="secondary" onClick={() => navigate('/users')}>
               Cancelar

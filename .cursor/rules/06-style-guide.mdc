@@ -1,0 +1,37 @@
+---
+description: Style guide e Design System do frontend (tokens, componentes e padroes de UI)
+alwaysApply: true
+---
+
+# Style Guide (Design System)
+
+## Regra principal
+Sempre priorizar o Design System em `src/components/ui` e os tokens de `src/index.css`.
+
+## Tokens e tema
+- Usar somente tokens (`--color-*`, `--radius-*`, `--space-*`, `--shadow-*`).
+- Evitar cores hardcoded em componentes/paginas.
+
+## Componentes padrao
+- Reusar: `Button`, `IconButton`, `Card`, `Table`, `Modal`, `Tabs`, `Pagination`, `Badge`.
+- Reusar: `LoadingState`, `DetailFieldList`, `DeactivationBlockedModal`.
+- Nao criar botoes/inputs/tabelas "inline" se ja existe componente UI equivalente.
+
+## Padrao de list pages
+- Sempre incluir tabs Ativos/Lixeira.
+- Sempre incluir `deleteMutation` + `restoreMutation`.
+- Sempre tratar 409 com `DeactivationBlockedModal`.
+- Sempre usar `error: unknown` (nunca `any`).
+- Preferir hooks compartilhados:
+  - `useTrashableListPage`
+  - `useDeactivationBlockedHandler`
+
+## Repeticao de codigo
+- Antes de copiar blocos, extrair para:
+  - componente em `src/components/ui`
+  - hook em `src/hooks`
+  - helper em `src/lib`
+
+## Linguagem de UI
+- Sempre portugues claro e simples.
+- Corrigir acentuacao e manter consistencia de termos.

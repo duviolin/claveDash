@@ -19,7 +19,7 @@ export function LoginPage() {
     setIsLoading(true)
     try {
       await login(email, password)
-      toast.success('Login realizado com sucesso!')
+      toast.success('Acesso realizado com sucesso.')
       navigate('/dashboard')
     } catch (err: unknown) {
       const error = err as { response?: { data?: { code?: string; error?: string }; status?: number } }
@@ -49,7 +49,7 @@ export function LoginPage() {
             id="email"
             label="E-mail"
             type="email"
-            placeholder="admin@unidade.com"
+            placeholder="admin@escola.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -66,9 +66,9 @@ export function LoginPage() {
             Entrar
           </Button>
           <p className="text-center text-xs text-muted">
-            Primeiro acesso?{' '}
+            Primeiro acesso no portal?{' '}
             <Link to="/first-access" className="text-accent hover:underline">
-              Trocar senha temporária
+              Definir senha de acesso
             </Link>
           </p>
         </form>

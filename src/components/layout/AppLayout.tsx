@@ -32,8 +32,8 @@ export function AppLayout() {
     return (
       <div className="flex h-screen items-center justify-center bg-bg">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-text">Acesso Negado</h1>
-          <p className="mt-2 text-muted">Apenas Admin e Produtor podem acessar o portal.</p>
+          <h1 className="text-2xl font-bold text-text">Acesso negado</h1>
+          <p className="mt-2 text-muted">Apenas administradores e professores podem acessar o portal.</p>
         </div>
       </div>
     )

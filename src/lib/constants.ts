@@ -13,10 +13,10 @@ import type {
 // ── Roles ──────────────────────────────────────────────────
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: 'Admin',
-  DIRECTOR: 'Diretor da unidade',
-  TEACHER: 'Produtor',
-  STUDENT: 'Artista',
+  ADMIN: 'Administrador',
+  DIRECTOR: 'Diretor escolar',
+  TEACHER: 'Professor',
+  STUDENT: 'Aluno',
 }
 
 export const ROLE_OPTIONS = Object.entries(ROLE_LABELS).map(([value, label]) => ({
@@ -80,7 +80,7 @@ export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
 
 export const READINESS_RULE_LABELS: Record<ReadinessRuleCode, string> = {
   PROJECT_MIN_TRACKS: 'Quantidade mínima de faixas ativas no projeto',
-  TRACKS_WITH_MIN_QUIZZES: 'Quantidade mínima de quizzes por faixa',
+  TRACKS_WITH_MIN_QUIZZES: 'Quantidade mínima de questionários por faixa',
   TRACKS_WITH_MIN_MATERIALS: 'Quantidade mínima de materiais por faixa',
   TRACKS_WITH_MIN_STUDY_TRACKS: 'Quantidade mínima de trilhas de estudo por faixa',
 }
@@ -120,49 +120,49 @@ export const DAILY_MISSION_STATUS_VARIANT: Record<DailyMissionTemplateStatus, 'w
 // ── Domain Events ───────────────────────────────────────────
 
 export const EVENT_TYPE_LABELS: Record<string, string> = {
-  USER_CREATED: 'Equipe criada',
-  USER_UPDATED: 'Equipe atualizada',
-  USER_SUSPENDED: 'Equipe suspensa',
-  USER_REACTIVATED: 'Equipe reativada',
-  USER_SOFT_DELETED: 'Equipe removida',
-  USER_RESTORED: 'Equipe restaurada',
+  USER_CREATED: 'Usuário cadastrado',
+  USER_UPDATED: 'Usuário atualizado',
+  USER_SUSPENDED: 'Usuário suspenso',
+  USER_REACTIVATED: 'Usuário reativado',
+  USER_SOFT_DELETED: 'Usuário removido',
+  USER_RESTORED: 'Usuário restaurado',
   PASSWORD_CHANGED: 'Senha alterada',
 
-  STUDENT_PROFILE_CREATED: 'Perfil de artista criado',
-  STUDENT_PROFILE_UPDATED: 'Perfil de artista atualizado',
-  TEACHER_PROFILE_CREATED: 'Perfil de produtor criado',
-  TEACHER_PROFILE_UPDATED: 'Perfil de produtor atualizado',
-  STUDENT_CONTEXT_ACTIVATED: 'Contexto de artista ativado',
-  STUDENT_CONTEXT_DEACTIVATED: 'Contexto de artista desativado',
+  STUDENT_PROFILE_CREATED: 'Perfil de aluno criado',
+  STUDENT_PROFILE_UPDATED: 'Perfil de aluno atualizado',
+  TEACHER_PROFILE_CREATED: 'Perfil de professor criado',
+  TEACHER_PROFILE_UPDATED: 'Perfil de professor atualizado',
+  STUDENT_CONTEXT_ACTIVATED: 'Contexto de aluno ativado',
+  STUDENT_CONTEXT_DEACTIVATED: 'Contexto de aluno desativado',
 
-  SCHOOL_CREATED: 'Unidade artística criada',
-  SCHOOL_UPDATED: 'Unidade artística atualizada',
-  SCHOOL_ACTIVATED: 'Unidade artística ativada',
-  SCHOOL_DEACTIVATED: 'Unidade artística desativada',
-  SCHOOL_RESTORED: 'Unidade artística restaurada',
+  SCHOOL_CREATED: 'Escola criada',
+  SCHOOL_UPDATED: 'Escola atualizada',
+  SCHOOL_ACTIVATED: 'Escola ativada',
+  SCHOOL_DEACTIVATED: 'Escola desativada',
+  SCHOOL_RESTORED: 'Escola restaurada',
 
-  COURSE_CREATED: 'Núcleo artístico criado',
-  COURSE_UPDATED: 'Núcleo artístico atualizado',
-  COURSE_ACTIVATED: 'Núcleo artístico ativado',
-  COURSE_DEACTIVATED: 'Núcleo artístico desativado',
-  COURSE_RESTORED: 'Núcleo artístico restaurado',
+  COURSE_CREATED: 'Curso criado',
+  COURSE_UPDATED: 'Curso atualizado',
+  COURSE_ACTIVATED: 'Curso ativado',
+  COURSE_DEACTIVATED: 'Curso desativado',
+  COURSE_RESTORED: 'Curso restaurado',
 
-  SEASON_CREATED: 'Temporada criada',
-  SEASON_UPDATED: 'Temporada atualizada',
-  SEASON_STARTED: 'Temporada iniciada',
-  SEASON_CLOSED: 'Temporada encerrada',
-  SEASON_DEACTIVATED: 'Temporada desativada',
-  SEASON_RESTORED: 'Temporada restaurada',
+  SEASON_CREATED: 'Semestre criado',
+  SEASON_UPDATED: 'Semestre atualizado',
+  SEASON_STARTED: 'Semestre iniciado',
+  SEASON_CLOSED: 'Semestre encerrado',
+  SEASON_DEACTIVATED: 'Semestre desativado',
+  SEASON_RESTORED: 'Semestre restaurado',
 
-  CLASS_CREATED: 'Grupo artístico criado',
-  CLASS_UPDATED: 'Grupo artístico atualizado',
-  CLASS_DEACTIVATED: 'Grupo artístico desativado',
-  CLASS_RESTORED: 'Grupo artístico restaurado',
-  CLASS_STUDENT_ENROLLED: 'Artista matriculado',
-  CLASS_STUDENT_TRANSFERRED: 'Artista transferido',
-  CLASS_STUDENT_DROPPED: 'Artista desligado',
-  CLASS_TEACHER_ASSIGNED: 'Produtor atribuído',
-  CLASS_TEACHER_REMOVED: 'Produtor removido',
+  CLASS_CREATED: 'Turma criada',
+  CLASS_UPDATED: 'Turma atualizada',
+  CLASS_DEACTIVATED: 'Turma desativada',
+  CLASS_RESTORED: 'Turma restaurada',
+  CLASS_STUDENT_ENROLLED: 'Aluno matriculado',
+  CLASS_STUDENT_TRANSFERRED: 'Aluno transferido',
+  CLASS_STUDENT_DROPPED: 'Aluno desligado',
+  CLASS_TEACHER_ASSIGNED: 'Professor atribuído',
+  CLASS_TEACHER_REMOVED: 'Professor removido',
 
   PROJECT_TEMPLATE_CREATED: 'Template de projeto criado',
   PROJECT_TEMPLATE_UPDATED: 'Template de projeto atualizado',
@@ -278,7 +278,7 @@ export const EVENT_ACTION_COLORS: Record<EventAction, string> = {
 }
 
 export const ACTOR_TYPE_LABELS: Record<string, string> = {
-  USER: 'Equipe',
+  USER: 'Usuário',
   SYSTEM: 'Sistema',
-  RULE_ENGINE: 'Motor de Regras',
+  RULE_ENGINE: 'Motor de regras',
 }

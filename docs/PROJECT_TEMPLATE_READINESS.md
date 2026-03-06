@@ -5,7 +5,6 @@ Este guia explica como usar e evoluir o card de aptidão de publicação dos tem
 ## Onde aparece
 
 - Lista de templates: `src/pages/templates/ProjectTemplatesListPage.tsx`
-- Detalhe de template: `src/pages/templates/ProjectTemplateDetailPage.tsx`
 
 ## O que o usuário vê
 
@@ -23,8 +22,6 @@ Este guia explica como usar e evoluir o card de aptidão de publicação dos tem
 - `getProjectTemplateReadiness(idOrSlug)`
 - `listProjectTemplateReadinessRules()`
 - `updateProjectTemplateReadinessRule(ruleId, payload)`
-- `getProjectTemplateQualitativeAnalysis(idOrSlug)`
-- `saveProjectTemplateQualitativeAnalysis(idOrSlug, payload)`
 
 ### Tipos
 
@@ -48,20 +45,17 @@ No frontend, o botão **Critérios de publicação** aparece apenas quando `user
 2. analisar score/status e dicas
 3. criar/ajustar conteúdo faltante (faixas, quizzes, materiais e trilhas)
 4. (admin) ajustar metas e pesos se a coordenação pedagógica mudar os critérios
-5. gerar/salvar análise qualitativa para registrar diagnóstico e próximos passos
 
 ## Endpoints de readiness em uso
 
 - `GET /project-template-readiness/:idOrSlug`
 - `GET /project-template-readiness/rules`
 - `PATCH /project-template-readiness/rules/:ruleId`
-- `GET /project-template-readiness/:idOrSlug/qualitative-analysis`
-- `PUT /project-template-readiness/:idOrSlug/qualitative-analysis`
 
 ## Evolução
 
 Quando o backend adicionar nova métrica de readiness:
 
 1. atualizar tipos em `src/types/index.ts`
-2. atualizar UI de exibição do requisito no detalhe (se necessário)
+2. atualizar UI de exibição da aptidão na lista (se necessário)
 3. revisar docs e checklist pedagógico

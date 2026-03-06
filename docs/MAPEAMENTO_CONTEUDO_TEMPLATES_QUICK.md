@@ -8,7 +8,7 @@ Guia rápido de de/para para construir e manter o CRUD de templates de projeto c
 - Front page detail: `src/pages/templates/ProjectTemplateDetailPage.tsx`
 - Front API: `src/api/templates.ts`
 - Front tipos: `src/types/index.ts`
-- Front readiness UI: `src/pages/templates/ProjectTemplateDetailPage.tsx` e `src/pages/templates/ProjectTemplatesListPage.tsx`
+- Front readiness UI: `src/pages/templates/ProjectTemplatesListPage.tsx`
 - Back route: `src/infrastructure/routes/projectTemplateRoutes.ts`
 - Back controller: `src/infrastructure/controllers/ProjectTemplateController.ts`
 - Back service/DTO: `src/application/services/ProjectTemplateService.ts`, `src/application/dto/ProjectTemplateDTO.ts`
@@ -64,8 +64,6 @@ Importante para CRUD assertivo:
 | Ler aptidão | `getProjectTemplateReadiness(idOrSlug)` | `GET /project-template-readiness/:idOrSlug` | `ADMIN`, `TEACHER` | `200` + summary com `scorePercentage`, `statusLabel`, `missingTips`, `requirements[]` |
 | Listar regras | `listProjectTemplateReadinessRules()` | `GET /project-template-readiness/rules` | `ADMIN`, `TEACHER` | `200` + regras ativas/inativas |
 | Editar regra | `updateProjectTemplateReadinessRule(ruleId, payload)` | `PATCH /project-template-readiness/rules/:ruleId` | **`ADMIN`** | `200` + regra atualizada |
-| Ler análise qualitativa | `getProjectTemplateQualitativeAnalysis(idOrSlug)` | `GET /project-template-readiness/:idOrSlug/qualitative-analysis` | `ADMIN`, `TEACHER` | `200` + análise salva |
-| Salvar análise qualitativa | `saveProjectTemplateQualitativeAnalysis(idOrSlug, payload)` | `PUT /project-template-readiness/:idOrSlug/qualitative-analysis` | `ADMIN`, `TEACHER` | `200` + análise salva |
 
 Regras seedadas padrão:
 

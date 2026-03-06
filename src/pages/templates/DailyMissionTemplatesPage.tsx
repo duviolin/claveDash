@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { QuizBuilder } from '@/components/ui/QuizBuilder'
 import { AIButton } from '@/components/ui/AIButton'
+import { IconButton } from '@/components/ui/IconButton'
+import { LoadingState } from '@/components/ui/LoadingState'
 import { generateQuiz } from '@/api/ai'
 import { FileUpload } from '@/components/ui/FileUpload'
 import { Pagination } from '@/components/ui/Pagination'
@@ -34,8 +36,10 @@ import {
 import { listCourses } from '@/api/courses'
 import { DAILY_MISSION_STATUS_LABELS, DAILY_MISSION_STATUS_VARIANT } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
-import type { DailyMissionTemplate, DailyMissionQuiz, Course, DeactivationErrorDetails, QuizQuestion } from '@/types'
+import type { DailyMissionTemplate, DailyMissionQuiz, Course, QuizQuestion } from '@/types'
 import toast from 'react-hot-toast'
+import { useTrashableListPage } from '@/hooks/useTrashableListPage'
+import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHandler'
 
 const DAILY_MISSION_PAGE_LIMIT = 10
 const DAILY_MISSION_QUIZ_TRASH_PAGE_LIMIT = 100
@@ -46,18 +50,15 @@ const tabs = [
 
 export function DailyMissionTemplatesPage() {
   const queryClient = useQueryClient()
+  const { activeTab, isTrash, page, setPage, handleTabChange } = useTrashableListPage()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<DailyMissionTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DailyMissionTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<DailyMissionTemplate | null>(null)
-  const [blockedInfo, setBlockedInfo] = useState<{ name: string; slug: string; details: DeactivationErrorDetails } | null>(null)
+  const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
   const [courseFilter, setCourseFilter] = useState('')
   const [expandedMission, setExpandedMission] = useState<string | null>(null)
   const [form, setForm] = useState({ courseId: '', title: '', videoUrl: '' })
-  const [activeTab, setActiveTab] = useState('active')
-  const [page, setPage] = useState(1)
-
-  const isTrash = activeTab === 'TRASH'
 
   const { data: courses = [] } = useQuery({ queryKey: ['courses'], queryFn: () => listCourses() })
 
@@ -83,7 +84,7 @@ export function DailyMissionTemplatesPage() {
         : createDailyMissionTemplate({ ...payload, courseId: form.courseId })
     },
     onSuccess: () => {
-      toast.success(editing ? 'Missão atualizada!' : 'Missão criada!')
+      toast.success(editing ? 'Missão atualizada com sucesso.' : 'Missão cadastrada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['daily-mission-templates'] })
       closeModal()
     },
@@ -92,7 +93,7 @@ export function DailyMissionTemplatesPage() {
   const publishMutation = useMutation({
     mutationFn: (id: string) => publishDailyMissionTemplate(id),
     onSuccess: () => {
-      toast.success('Missão publicada!')
+      toast.success('Missão publicada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['daily-mission-templates'] })
     },
   })
@@ -100,15 +101,12 @@ export function DailyMissionTemplatesPage() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteDailyMissionTemplate(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Missão desativada!')
+      toast.success('Missão desativada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['daily-mission-templates'] })
       setDeleteTarget(null)
     },
     onError: (error: unknown) => {
-      const err = error as AxiosError<{ details: DeactivationErrorDetails }>
-      if (err.response?.status === 409 && err.response?.data?.details) {
-        setBlockedInfo({ name: deleteTarget!.title, slug: deleteTarget!.slug, details: err.response.data.details })
-      }
+      handleBlockedError(error, { name: deleteTarget!.title, slug: deleteTarget!.slug })
       setDeleteTarget(null)
     },
   })
@@ -116,7 +114,7 @@ export function DailyMissionTemplatesPage() {
   const restoreMutation = useMutation({
     mutationFn: () => restoreDailyMissionTemplate(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Missão restaurada!')
+      toast.success('Missão restaurada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['daily-mission-templates'] })
       setRestoreTarget(null)
     },
@@ -139,7 +137,7 @@ export function DailyMissionTemplatesPage() {
     },
     {
       key: 'course',
-      header: 'Núcleo artístico',
+      header: 'Curso',
       render: (m: DailyMissionTemplate) => {
         const course = courses.find((c: Course) => c.id === m.courseId)
         return <span className="text-muted">{course?.name ?? '—'}</span>
@@ -161,30 +159,32 @@ export function DailyMissionTemplatesPage() {
       key: 'actions',
       header: 'Ações',
       render: (m: DailyMissionTemplate) => (
-        <button
+        <IconButton
           onClick={() => setRestoreTarget(m)}
-          className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
-          title="Restaurar"
-        >
-          <ArchiveRestore className="h-4 w-4" />
-        </button>
+          label="Restaurar"
+          icon={<ArchiveRestore className="h-4 w-4" />}
+          variant="success"
+        />
       ),
     },
   ]
 
   return (
     <PageContainer
-      title="Missões Diárias"
+      title="Missões diárias"
       count={isTrash ? (pagination?.total ?? deletedMissions.length) : missions.length}
-      action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Criar Missão</Button> : undefined}
+      action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Cadastrar missão</Button> : undefined}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => { setActiveTab(key); setPage(1) }} />
+        <Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />
         {!isTrash && (
           <Select
             value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
-            placeholder="Todos os núcleos artísticos"
+            onChange={(e) => {
+              setCourseFilter(e.target.value)
+              setPage(1)
+            }}
+            placeholder="Todos os cursos"
             options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
             className="w-full sm:max-w-xs"
           />
@@ -198,7 +198,7 @@ export function DailyMissionTemplatesPage() {
             data={deletedMissions}
             keyExtractor={(m) => m.id}
             isLoading={isLoadingDeleted}
-            emptyMessage="A lixeira está vazia"
+            emptyMessage="A lixeira está vazia."
           />
           {pagination && (
             <Pagination
@@ -212,7 +212,7 @@ export function DailyMissionTemplatesPage() {
       ) : (
         <>
       {isLoading ? (
-        <div className="flex justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" /></div>
+        <LoadingState />
       ) : (
         <div className="space-y-2">
           {missions.map((mission) => (
@@ -226,12 +226,10 @@ export function DailyMissionTemplatesPage() {
                 <Badge variant={DAILY_MISSION_STATUS_VARIANT[mission.status]}>{DAILY_MISSION_STATUS_LABELS[mission.status]}</Badge>
                 <div className="flex gap-1">
                   {mission.status === 'DRAFT' && (
-                    <button onClick={() => publishMutation.mutate(mission.id)} className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer" title="Publicar">
-                      <Send className="h-4 w-4" />
-                    </button>
+                    <IconButton onClick={() => publishMutation.mutate(mission.id)} label="Publicar" icon={<Send className="h-4 w-4" />} variant="success" />
                   )}
-                  <button onClick={() => openEdit(mission)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"><Pencil className="h-4 w-4" /></button>
-                  <button onClick={() => setDeleteTarget(mission)} className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"><Trash2 className="h-4 w-4" /></button>
+                  <IconButton onClick={() => openEdit(mission)} label="Editar cadastro" icon={<Pencil className="h-4 w-4" />} />
+                  <IconButton onClick={() => setDeleteTarget(mission)} label="Desativar" icon={<Trash2 className="h-4 w-4" />} variant="danger" />
                 </div>
               </div>
               {expandedMission === mission.id && (
@@ -241,17 +239,17 @@ export function DailyMissionTemplatesPage() {
               )}
             </div>
           ))}
-          {missions.length === 0 && <p className="text-center text-sm text-muted py-8">Nenhuma missão encontrada</p>}
+          {missions.length === 0 && <p className="text-center text-sm text-muted py-8">Nenhuma missão encontrada.</p>}
         </div>
       )}
         </>
       )}
 
-      <Modal isOpen={modalOpen} onClose={closeModal} title={editing ? 'Editar Missão' : 'Criar Missão'} footer={
-        <><Button variant="secondary" onClick={closeModal}>Cancelar</Button><Button onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>{editing ? 'Salvar' : 'Criar'}</Button></>
+      <Modal isOpen={modalOpen} onClose={closeModal} title={editing ? 'Editar missão' : 'Cadastrar missão'} footer={
+        <><Button variant="secondary" onClick={closeModal}>Cancelar</Button><Button onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>{editing ? 'Salvar alterações' : 'Cadastrar'}</Button></>
       }>
         <div className="space-y-4">
-          {!editing && <Select id="dmCourseId" label="Núcleo artístico" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} placeholder="Selecionar..." options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} />}
+          {!editing && <Select id="dmCourseId" label="Curso" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} placeholder="Selecionar curso..." options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} />}
           <Input id="dmTitle" label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <FileUpload
             fileType="videos"
@@ -260,22 +258,22 @@ export function DailyMissionTemplatesPage() {
             currentValue={form.videoUrl || null}
             onUploadComplete={(key) => setForm({ ...form, videoUrl: key })}
             onRemove={() => setForm({ ...form, videoUrl: '' })}
-            label="Vídeo da Missão"
+            label="Vídeo da missão"
             compact
           />
-          <Input id="dmVideo" label="Ou insira URL manualmente" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} placeholder="https://..." />
+          <Input id="dmVideo" label="Ou informe a URL manualmente" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} placeholder="https://..." />
         </div>
       </Modal>
 
-      <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMutation.mutate()} isLoading={deleteMutation.isPending} title="Desativar Missão" message={`Desativar "${deleteTarget?.title}"?`} />
+      <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMutation.mutate()} isLoading={deleteMutation.isPending} title="Desativar missão" message={`Confirma a desativação de "${deleteTarget?.title}"?`} />
 
       <ConfirmModal
         isOpen={!!restoreTarget}
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMutation.mutate()}
         isLoading={restoreMutation.isPending}
-        title="Restaurar Missão"
-        message={`Tem certeza que deseja restaurar "${restoreTarget?.title}"?`}
+        title="Restaurar missão"
+        message={`Confirma a restauração de "${restoreTarget?.title}"?`}
         confirmLabel="Restaurar"
       />
 
@@ -320,7 +318,7 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
       allowRecoveryAttempt: form.allowRecoveryAttempt,
     }),
     onSuccess: () => {
-      toast.success('Quiz criado!')
+      toast.success('Questionário cadastrado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', missionId] })
       setModalOpen(false)
     },
@@ -333,7 +331,7 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
       allowRecoveryAttempt: form.allowRecoveryAttempt,
     }),
     onSuccess: () => {
-      toast.success('Quiz atualizado!')
+      toast.success('Questionário atualizado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', missionId] })
       setEditing(null)
       setModalOpen(false)
@@ -343,14 +341,14 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
   const deleteMut = useMutation({
     mutationFn: () => deleteDailyMissionQuiz(deleteTarget!.id),
     onSuccess: () => {
-      toast.success('Quiz excluído!')
+      toast.success('Questionário movido para a lixeira.')
       queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', missionId] })
       queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', 'deleted', missionId] })
       setDeleteTarget(null)
     },
     onError: (error: unknown) => {
       const err = error as AxiosError<{ message?: string }>
-      toast.error(err.response?.data?.message ?? 'Erro ao excluir quiz')
+      toast.error(err.response?.data?.message ?? 'Não foi possível remover o questionário.')
       setDeleteTarget(null)
     },
   })
@@ -358,7 +356,7 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
   const restoreMut = useMutation({
     mutationFn: () => restoreDailyMissionQuiz(restoreTarget!.id),
     onSuccess: () => {
-      toast.success('Quiz restaurado!')
+      toast.success('Questionário restaurado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', missionId] })
       queryClient.invalidateQueries({ queryKey: ['daily-mission-quizzes', 'deleted', missionId] })
       setRestoreTarget(null)
@@ -371,8 +369,8 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><HelpCircle className="h-4 w-4 text-warning" /> Quiz da Missão</h3>
-        {!isTrash && <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /> Adicionar Quiz</Button>}
+        <h3 className="text-sm font-semibold text-text flex items-center gap-1.5"><HelpCircle className="h-4 w-4 text-warning" /> Questionário da missão</h3>
+        {!isTrash && <Button size="sm" variant="ghost" onClick={openCreate}><Plus className="h-3.5 w-3.5" /> Adicionar questionário</Button>}
       </div>
 
       <Tabs
@@ -394,13 +392,13 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
                   <span className="text-muted">{q.questionsJson?.length ?? 0} questões</span>
                   <span className="text-muted">{q.maxAttemptsPerDay} tentativas/dia</span>
                   <div className="flex-1" />
-                  <button onClick={() => openEdit(q)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title="Editar"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => setDeleteTarget(q)} className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer" title="Excluir"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <IconButton onClick={() => openEdit(q)} label="Editar cadastro" icon={<Pencil className="h-3.5 w-3.5" />} />
+                  <IconButton onClick={() => setDeleteTarget(q)} label="Remover" icon={<Trash2 className="h-3.5 w-3.5" />} variant="danger" />
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted mt-2">Nenhum quiz ativo</p>
+            <p className="text-sm text-muted mt-2">Nenhum questionário ativo.</p>
           )}
         </>
       )}
@@ -408,9 +406,7 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
       {isTrash && (
         <>
           {isLoadingDeleted ? (
-            <div className="flex justify-center py-6">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-            </div>
+            <LoadingState className="py-6" />
           ) : deletedQuizzes.length > 0 ? (
             <div className="space-y-1 mt-2">
               {deletedQuizzes.map((q) => (
@@ -420,30 +416,30 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
                   <span className="text-muted">{q.questionsJson?.length ?? 0} questões</span>
                   <span className="text-muted">{q.maxAttemptsPerDay} tentativas/dia</span>
                   <div className="flex-1" />
-                  <button onClick={() => setRestoreTarget(q)} className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer" title="Restaurar"><ArchiveRestore className="h-3.5 w-3.5" /></button>
+                  <IconButton onClick={() => setRestoreTarget(q)} label="Restaurar" icon={<ArchiveRestore className="h-3.5 w-3.5" />} variant="success" />
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted mt-2">A lixeira está vazia</p>
+            <p className="text-sm text-muted mt-2">A lixeira está vazia.</p>
           )}
         </>
       )}
 
-      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Editar Quiz da Missão' : 'Criar Quiz da Missão'} size="lg" footer={
-        <><Button variant="secondary" onClick={() => { setModalOpen(false); setEditing(null) }}>Cancelar</Button><Button onClick={() => editing ? updateMut.mutate() : createMut.mutate()} isLoading={createMut.isPending || updateMut.isPending}>{editing ? 'Salvar' : 'Criar'}</Button></>
+      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Editar questionário da missão' : 'Cadastrar questionário da missão'} size="lg" footer={
+        <><Button variant="secondary" onClick={() => { setModalOpen(false); setEditing(null) }}>Cancelar</Button><Button onClick={() => editing ? updateMut.mutate() : createMut.mutate()} isLoading={createMut.isPending || updateMut.isPending}>{editing ? 'Salvar alterações' : 'Cadastrar'}</Button></>
       }>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <label className="block text-sm font-medium text-text">Questões</label>
             <AIButton
-              label="Gerar Quiz com IA"
+              label="Gerar questionário com IA"
               extraInputLabel="Instruções extras (opcional)"
               extraInputPlaceholder="Ex.: foco em prática diária, dificuldade iniciante..."
               onGenerate={(userExtra) => generateQuiz({
                 title: mission.title,
                 count: 5,
-                project: { name: mission.title, description: 'Missão diária do núcleo artístico' },
+                project: { name: mission.title, description: 'Missão diária do curso' },
                 userExtra: userExtra || undefined,
               })}
               onAccept={(raw) => {
@@ -465,14 +461,14 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
         </div>
       </Modal>
 
-      <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Excluir Quiz" message="Tem certeza que deseja excluir este quiz?" />
+      <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={() => deleteMut.mutate()} isLoading={deleteMut.isPending} title="Remover questionário" message="Confirma a remoção deste questionário?" />
       <ConfirmModal
         isOpen={!!restoreTarget}
         onClose={() => setRestoreTarget(null)}
         onConfirm={() => restoreMut.mutate()}
         isLoading={restoreMut.isPending}
-        title="Restaurar Quiz"
-        message="Tem certeza que deseja restaurar este quiz?"
+        title="Restaurar questionário"
+        message="Confirma a restauração deste questionário?"
         confirmLabel="Restaurar"
       />
     </div>

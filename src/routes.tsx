@@ -43,7 +43,9 @@ export const router = createBrowserRouter([
       { path: 'classes/:slug', element: <ClassDetailPage /> },
       // Templates
       { path: 'templates/projects', element: <ProjectTemplatesListPage /> },
-      { path: 'templates/projects/:slug', element: <ProjectTemplateDetailPage /> },
+      { path: 'templates/projects/:slug', element: <Navigate to="tracks" replace /> },
+      { path: 'templates/projects/:slug/tracks', element: <ProjectTemplateDetailPage /> },
+      { path: 'templates/projects/:slug/tracks/:trackSlug', element: <ProjectTemplateDetailPage /> },
       { path: 'templates/daily-missions', element: <DailyMissionTemplatesPage /> },
       // Instances
       { path: 'instances/projects', element: <ProjectInstancesPage /> },

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { Card } from '@/components/ui/Card'
+import { LoadingState } from '@/components/ui/LoadingState'
 
 interface Column<T> {
   key: string
@@ -19,16 +21,14 @@ interface TableProps<T> {
 export function Table<T>({ columns, data, keyExtractor, emptyMessage = 'Nenhum registro encontrado', isLoading }: TableProps<T>) {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border bg-surface overflow-hidden">
-        <div className="p-8 text-center">
-          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-        </div>
-      </div>
+      <Card>
+        <LoadingState />
+      </Card>
     )
   }
 
   return (
-    <div className="rounded-xl border border-border bg-surface overflow-hidden">
+    <Card>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px]">
           <thead>
@@ -64,6 +64,6 @@ export function Table<T>({ columns, data, keyExtractor, emptyMessage = 'Nenhum r
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }

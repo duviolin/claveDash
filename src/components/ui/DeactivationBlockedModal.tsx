@@ -14,21 +14,21 @@ interface DeactivationBlockedModalProps {
 }
 
 const CHILD_NAV: Record<string, { label: string; buildUrl: (identifier: string) => string }> = {
-  courses: { label: 'Núcleos artísticos', buildUrl: (slug) => `/courses?schoolSlug=${slug}` },
-  seasons: { label: 'Temporadas', buildUrl: (slug) => `/seasons?courseSlug=${slug}` },
-  classes: { label: 'Grupos artísticos', buildUrl: (slug) => `/classes?seasonSlug=${slug}` },
-  students: { label: 'Artistas', buildUrl: (slug) => `/classes/${slug}` },
-  teachers: { label: 'Produtores', buildUrl: (slug) => `/classes/${slug}` },
+  courses: { label: 'Cursos', buildUrl: (slug) => `/courses?schoolSlug=${slug}` },
+  seasons: { label: 'Semestres', buildUrl: (slug) => `/seasons?courseSlug=${slug}` },
+  classes: { label: 'Turmas', buildUrl: (slug) => `/classes?seasonSlug=${slug}` },
+  students: { label: 'Alunos', buildUrl: (slug) => `/classes/${slug}` },
+  teachers: { label: 'Professores', buildUrl: (slug) => `/classes/${slug}` },
   members: { label: 'Membros', buildUrl: (slug) => `/classes/${slug}` },
-  projectTemplates: { label: 'Templates de Projeto', buildUrl: (slug) => `/templates/projects?courseSlug=${slug}` },
-  dailyMissionTemplates: { label: 'Missões Diárias', buildUrl: (slug) => `/templates/daily-missions?courseSlug=${slug}` },
+  projectTemplates: { label: 'Templates de projeto', buildUrl: (slug) => `/templates/projects?courseSlug=${slug}` },
+  dailyMissionTemplates: { label: 'Missões diárias', buildUrl: (slug) => `/templates/daily-missions?courseSlug=${slug}` },
   trackSceneTemplates: { label: 'Cenas', buildUrl: (slug) => `/templates/projects/${slug}` },
   projects: { label: 'Projetos', buildUrl: () => `/instances/projects` },
   pressQuizTemplates: { label: 'Coletivas de imprensa', buildUrl: (slug) => `/templates/projects/${slug}` },
-  studyTrackTemplates: { label: 'Trilhas de Estudo', buildUrl: (slug) => `/templates/projects/${slug}` },
+  studyTrackTemplates: { label: 'Trilhas de estudo', buildUrl: (slug) => `/templates/projects/${slug}` },
   trackMaterialTemplates: { label: 'Materiais', buildUrl: (slug) => `/templates/projects/${slug}` },
   dailyMissionQuizzes: { label: 'Quizzes', buildUrl: () => `/templates/daily-missions` },
-  schools: { label: 'Unidades artísticas', buildUrl: () => `/schools` },
+  schools: { label: 'Escolas', buildUrl: () => `/schools` },
 }
 
 export function DeactivationBlockedModal({
@@ -53,13 +53,13 @@ export function DeactivationBlockedModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Não é possível desativar" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Desativação não permitida" size="md">
       <div className="space-y-4">
         <div className="flex items-start gap-3 rounded-lg bg-error/5 border border-error/20 p-4">
           <AlertTriangle className="h-5 w-5 text-error shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-sm font-medium text-text">
-              {entityName} possui registros ativos vinculados
+              {entityName} possui vínculos ativos
             </p>
             <p className="text-sm text-muted">
               {details.count != null
@@ -89,7 +89,7 @@ export function DeactivationBlockedModal({
           {nav && (
             <Button variant="primary" onClick={handleNavigate}>
               <ExternalLink className="h-4 w-4" />
-              Ir para {childLabel}
+              Acessar {childLabel}
             </Button>
           )}
         </div>
@@ -101,10 +101,10 @@ export function DeactivationBlockedModal({
 function buildMembersMessage(details: DeactivationErrorDetails): string {
   const parts: string[] = []
   if (details.studentsCount && details.studentsCount > 0) {
-    parts.push(`${details.studentsCount} artista(s)`)
+    parts.push(`${details.studentsCount} aluno(s)`)
   }
   if (details.teachersCount && details.teachersCount > 0) {
-    parts.push(`${details.teachersCount} produtor(es)`)
+    parts.push(`${details.teachersCount} professor(es)`)
   }
   return `${parts.join(' e ')} vinculado(s). Remova os vínculos antes de continuar.`
 }

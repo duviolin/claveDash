@@ -10,7 +10,7 @@ export async function instantiateProject(payload: {
   return data
 }
 
-/** Lista projetos da temporada. Endpoint pode existir no backend mesmo não documentado. */
+/** Lista projetos do semestre. Endpoint pode existir no backend mesmo não documentado. */
 export async function listProjects(seasonId: string): Promise<Project[]> {
   const { data } = await api.get<Project[]>(`/seasons/${seasonId}/projects`)
   return data

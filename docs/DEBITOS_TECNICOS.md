@@ -72,7 +72,7 @@
 - README do frontend alinhado com stack real (`useState` para formulários; sem `react-hook-form/zod` em uso hoje)
 - Mapeamentos de templates ajustados para rota de detalhe com `:slug`
 - Contrato de `DELETE /project-templates/:id` alinhado para `204` sem body
-- Readiness atualizado com endpoints de análise qualitativa (`GET/PUT /qualitative-analysis`)
+- Readiness atualizado com endpoints de score/regras (`GET /project-template-readiness`, `GET/PATCH /project-template-readiness/rules`)
 
 ### Pontos para manter monitorados
 
