@@ -10,6 +10,7 @@ import {
   FileText,
   Music,
   Target,
+  HelpCircle,
   FolderKanban,
   Cloud,
   Settings,
@@ -39,11 +40,6 @@ interface SidebarProps {
   onCloseMobile: () => void
 }
 
-function extractProjectTemplateSlug(pathname: string): string | null {
-  const match = pathname.match(/^\/templates\/projects\/([^/]+)(?:\/tracks(?:\/[^/]+)?)?\/?$/)
-  return match?.[1] ?? null
-}
-
 const navGroups: NavGroup[] = [
   {
     items: [
@@ -67,6 +63,10 @@ const templatesGroup: CollapsibleGroup = {
   icon: <FileText className="h-4 w-4" />,
   items: [
     { label: 'Projetos', path: '/templates/projects', icon: <Music className="h-4 w-4" /> },
+    { label: 'Faixas', path: '/templates/tracks', icon: <Music className="h-4 w-4" /> },
+    { label: 'Materiais', path: '/templates/materials', icon: <FileText className="h-4 w-4" /> },
+    { label: 'Trilhas', path: '/templates/study-tracks', icon: <BookOpen className="h-4 w-4" /> },
+    { label: 'Quizzes', path: '/templates/press-quizzes', icon: <HelpCircle className="h-4 w-4" /> },
     { label: 'Missões diárias', path: '/templates/daily-missions', icon: <Target className="h-4 w-4" /> },
   ],
 }
@@ -108,8 +108,6 @@ function CollapsibleSection({ group, onItemClick }: { group: CollapsibleGroup; o
   const location = useLocation()
   const isChildActive = group.items.some((item) => location.pathname.startsWith(item.path))
   const [isOpen, setIsOpen] = useState(isChildActive)
-  const currentProjectSlug = extractProjectTemplateSlug(location.pathname)
-  const currentProjectBasePath = currentProjectSlug ? `/templates/projects/${currentProjectSlug}` : null
 
   return (
     <div>
@@ -130,33 +128,13 @@ function CollapsibleSection({ group, onItemClick }: { group: CollapsibleGroup; o
       </button>
       {isOpen && (
         <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-3">
-          {group.items.map((item) => {
-            const isProjectsItem = item.path === '/templates/projects'
-            return (
-              <div key={item.path} className="space-y-0.5">
-                <SidebarLink item={item} onClick={onItemClick} />
-                {isProjectsItem && currentProjectBasePath && (
-                  <>
-                    <NavLink
-                      to={`${currentProjectBasePath}/tracks`}
-                      onClick={onItemClick}
-                      className={({ isActive }) =>
-                        cn(
-                          'ml-4 flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                          isActive
-                            ? 'bg-accent/10 text-accent'
-                            : 'text-muted hover:bg-surface-2 hover:text-text'
-                        )
-                      }
-                    >
-                      <Music className="h-3.5 w-3.5" />
-                      Faixas
-                    </NavLink>
-                  </>
-                )}
-              </div>
-            )
-          })}
+          {group.items.map((item) => (
+            <SidebarLink
+              key={item.path}
+              item={item}
+              onClick={onItemClick}
+            />
+          ))}
         </div>
       )}
     </div>

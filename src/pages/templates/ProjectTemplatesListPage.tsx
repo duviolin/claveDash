@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query'
-import { Plus, Eye, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
+import { Plus, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
@@ -42,7 +42,6 @@ const tabs = [
 ]
 
 export function ProjectTemplatesListPage() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const filterFromUrl = searchParams.get('courseSlug') ?? searchParams.get('courseId') ?? ''
@@ -263,7 +262,6 @@ export function ProjectTemplatesListPage() {
       header: 'Ações',
       render: (t: ProjectTemplate) => (
         <div className="flex gap-1">
-          <IconButton onClick={() => navigate(`/templates/projects/${t.slug}/tracks`)} label="Detalhes" icon={<Eye className="h-4 w-4" />} />
           <IconButton
             onClick={() => {
               setEditingTarget(t)
