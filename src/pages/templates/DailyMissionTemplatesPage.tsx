@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2, Send, ChevronDown, ChevronRight, HelpCircle, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -19,7 +19,7 @@ import { FileUpload } from '@/components/ui/FileUpload'
 import { Pagination } from '@/components/ui/Pagination'
 import type { AxiosError } from 'axios'
 import {
-  listDailyMissionTemplates,
+  listDailyMissionTemplatesPaginated,
   listDeletedDailyMissionTemplates,
   restoreDailyMissionTemplate,
   createDailyMissionTemplate,
@@ -29,7 +29,7 @@ import {
   createDailyMissionQuiz,
   updateDailyMissionQuiz,
   deleteDailyMissionQuiz,
-  listDailyMissionQuizzes,
+  listDailyMissionQuizzesPaginated,
   listDeletedDailyMissionQuizzes,
   restoreDailyMissionQuiz,
 } from '@/api/dailyMissions'
@@ -42,7 +42,7 @@ import { useTrashableListPage } from '@/hooks/useTrashableListPage'
 import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHandler'
 
 const DAILY_MISSION_PAGE_LIMIT = 10
-const DAILY_MISSION_QUIZ_TRASH_PAGE_LIMIT = 100
+const DAILY_MISSION_QUIZ_PAGE_LIMIT = 10
 const tabs = [
   { key: 'active', label: 'Ativos' },
   { key: 'TRASH', label: 'Lixeira' },
@@ -62,19 +62,51 @@ export function DailyMissionTemplatesPage() {
 
   const { data: courses = [] } = useQuery({ queryKey: ['courses'], queryFn: () => listCourses() })
 
-  const { data: missions = [], isLoading } = useQuery({
-    queryKey: ['daily-mission-templates', courseFilter],
-    queryFn: () => listDailyMissionTemplates(courseFilter || undefined),
+  const { data: activeResponse, isLoading: isLoadingActive } = useQuery({
+    queryKey: ['daily-mission-templates', 'active', courseFilter, page],
+    queryFn: () =>
+      listDailyMissionTemplatesPaginated({
+        courseIdOrSlug: courseFilter || undefined,
+        page,
+        limit: DAILY_MISSION_PAGE_LIMIT,
+      }),
     enabled: !isTrash,
+    placeholderData: (previousData) => previousData,
   })
 
   const { data: deletedResponse, isLoading: isLoadingDeleted } = useQuery({
     queryKey: ['daily-mission-templates', 'deleted', page],
     queryFn: () => listDeletedDailyMissionTemplates({ page, limit: DAILY_MISSION_PAGE_LIMIT }),
     enabled: isTrash,
+    placeholderData: (previousData) => previousData,
   })
+  const missions = activeResponse?.data ?? []
   const deletedMissions = deletedResponse?.data ?? []
-  const pagination = deletedResponse?.pagination
+  const pagination = isTrash ? deletedResponse?.pagination : activeResponse?.pagination
+  const isLoading = isTrash ? isLoadingDeleted : isLoadingActive
+
+  useEffect(() => {
+    if (!pagination || page >= pagination.totalPages) return
+    const nextPage = page + 1
+
+    if (isTrash) {
+      queryClient.prefetchQuery({
+        queryKey: ['daily-mission-templates', 'deleted', nextPage],
+        queryFn: () => listDeletedDailyMissionTemplates({ page: nextPage, limit: DAILY_MISSION_PAGE_LIMIT }),
+      })
+      return
+    }
+
+    queryClient.prefetchQuery({
+      queryKey: ['daily-mission-templates', 'active', courseFilter, nextPage],
+      queryFn: () =>
+        listDailyMissionTemplatesPaginated({
+          courseIdOrSlug: courseFilter || undefined,
+          page: nextPage,
+          limit: DAILY_MISSION_PAGE_LIMIT,
+        }),
+    })
+  }, [courseFilter, isTrash, page, pagination, queryClient])
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -172,7 +204,7 @@ export function DailyMissionTemplatesPage() {
   return (
     <PageContainer
       title="Missões diárias"
-      count={isTrash ? (pagination?.total ?? deletedMissions.length) : missions.length}
+      count={pagination?.total ?? (isTrash ? deletedMissions.length : missions.length)}
       action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Cadastrar missão</Button> : undefined}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -200,14 +232,6 @@ export function DailyMissionTemplatesPage() {
             isLoading={isLoadingDeleted}
             emptyMessage="A lixeira está vazia."
           />
-          {pagination && (
-            <Pagination
-              page={pagination.page}
-              totalPages={pagination.totalPages}
-              total={pagination.total}
-              onPageChange={setPage}
-            />
-          )}
         </>
       ) : (
         <>
@@ -241,6 +265,15 @@ export function DailyMissionTemplatesPage() {
           ))}
           {missions.length === 0 && <p className="text-center text-sm text-muted py-8">Nenhuma missão encontrada.</p>}
         </div>
+      )}
+
+      {pagination && (
+        <Pagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          onPageChange={setPage}
+        />
       )}
         </>
       )}
@@ -292,24 +325,31 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('active')
   const [modalOpen, setModalOpen] = useState(false)
+  const [activePage, setActivePage] = useState(1)
+  const [trashPage, setTrashPage] = useState(1)
   const [editing, setEditing] = useState<DailyMissionQuiz | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DailyMissionQuiz | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<DailyMissionQuiz | null>(null)
   const [form, setForm] = useState({ questions: [] as QuizQuestion[], maxAttemptsPerDay: 3, allowRecoveryAttempt: false })
   const isTrash = activeTab === 'TRASH'
 
-  const { data: quizzes = [] } = useQuery({
-    queryKey: ['daily-mission-quizzes', missionId],
-    queryFn: () => listDailyMissionQuizzes(missionId),
+  const { data: quizzesResponse } = useQuery({
+    queryKey: ['daily-mission-quizzes', missionId, 'active', activePage],
+    queryFn: () => listDailyMissionQuizzesPaginated(missionId, { page: activePage, limit: DAILY_MISSION_QUIZ_PAGE_LIMIT }),
     enabled: !isTrash,
+    placeholderData: (previousData) => previousData,
   })
 
   const { data: deletedResponse, isLoading: isLoadingDeleted } = useQuery({
-    queryKey: ['daily-mission-quizzes', 'deleted', missionId],
-    queryFn: () => listDeletedDailyMissionQuizzes({ page: 1, limit: DAILY_MISSION_QUIZ_TRASH_PAGE_LIMIT }),
+    queryKey: ['daily-mission-quizzes', 'deleted', missionId, trashPage],
+    queryFn: () => listDeletedDailyMissionQuizzes({ page: trashPage, limit: DAILY_MISSION_QUIZ_PAGE_LIMIT, dailyMissionId: missionId }),
     enabled: isTrash,
+    placeholderData: (previousData) => previousData,
   })
-  const deletedQuizzes = (deletedResponse?.data ?? []).filter((quiz) => quiz.dailyMissionId === missionId)
+  const quizzes = quizzesResponse?.data ?? []
+  const deletedQuizzes = deletedResponse?.data ?? []
+  const quizzesPagination = quizzesResponse?.pagination
+  const deletedPagination = deletedResponse?.pagination
 
   const createMut = useMutation({
     mutationFn: () => createDailyMissionQuiz(missionId, {
@@ -375,11 +415,15 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
 
       <Tabs
         tabs={[
-          { key: 'active', label: 'Ativos', count: quizzes.length },
-          { key: 'TRASH', label: 'Lixeira', count: deletedQuizzes.length },
+          { key: 'active', label: 'Ativos', count: quizzesPagination?.total ?? quizzes.length },
+          { key: 'TRASH', label: 'Lixeira', count: deletedPagination?.total ?? deletedQuizzes.length },
         ]}
         activeKey={activeTab}
-        onChange={(key) => setActiveTab(key)}
+        onChange={(key) => {
+          setActiveTab(key)
+          setActivePage(1)
+          setTrashPage(1)
+        }}
       />
 
       {!isTrash && (
@@ -425,6 +469,28 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
           )}
         </>
       )}
+
+      {isTrash
+        ? deletedPagination && (
+            <div className="mt-3">
+              <Pagination
+                page={deletedPagination.page}
+                totalPages={deletedPagination.totalPages}
+                total={deletedPagination.total}
+                onPageChange={setTrashPage}
+              />
+            </div>
+          )
+        : quizzesPagination && (
+            <div className="mt-3">
+              <Pagination
+                page={quizzesPagination.page}
+                totalPages={quizzesPagination.totalPages}
+                total={quizzesPagination.total}
+                onPageChange={setActivePage}
+              />
+            </div>
+          )}
 
       <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }} title={editing ? 'Editar questionário da missão' : 'Cadastrar questionário da missão'} size="lg" footer={
         <><Button variant="secondary" onClick={() => { setModalOpen(false); setEditing(null) }}>Cancelar</Button><Button onClick={() => editing ? updateMut.mutate() : createMut.mutate()} isLoading={createMut.isPending || updateMut.isPending}>{editing ? 'Salvar alterações' : 'Cadastrar'}</Button></>

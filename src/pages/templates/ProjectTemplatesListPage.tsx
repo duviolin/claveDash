@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Pagination } from '@/components/ui/Pagination'
 import { IconButton } from '@/components/ui/IconButton'
 import {
-  listProjectTemplates,
+  listProjectTemplatesPaginated,
   createProjectTemplate,
   updateProjectTemplate,
   deleteProjectTemplate,
@@ -35,6 +35,7 @@ import { useTrashableListPage } from '@/hooks/useTrashableListPage'
 import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHandler'
 
 const TRASH_PAGE_LIMIT = 20
+const ACTIVE_PAGE_LIMIT = 20
 
 const tabs = [
   { key: 'active', label: 'Ativos' },
@@ -56,25 +57,56 @@ export function ProjectTemplatesListPage() {
 
   const { data: courses = [] } = useQuery({ queryKey: ['courses'], queryFn: () => listCourses() })
 
-  const { data: templates = [], isLoading: isLoadingActive } = useQuery({
-    queryKey: ['project-templates', courseFilter],
-    queryFn: () => listProjectTemplates(courseFilter || undefined),
+  const { data: activeResponse, isLoading: isLoadingActive } = useQuery({
+    queryKey: ['project-templates', 'active', courseFilter, page],
+    queryFn: () =>
+      listProjectTemplatesPaginated({
+        courseIdOrSlug: courseFilter || undefined,
+        page,
+        limit: ACTIVE_PAGE_LIMIT,
+      }),
     enabled: !isTrash,
+    placeholderData: (previousData) => previousData,
   })
 
   const { data: deletedResponse, isLoading: isLoadingTrash } = useQuery({
     queryKey: ['project-templates', 'deleted', page],
     queryFn: () => listDeletedProjectTemplates({ page, limit: TRASH_PAGE_LIMIT }),
     enabled: isTrash,
+    placeholderData: (previousData) => previousData,
   })
 
-  const templatesList = isTrash ? (deletedResponse?.data ?? []) : templates
-  const pagination = deletedResponse?.pagination
+  const activeTemplates = activeResponse?.data ?? []
+  const templatesList = isTrash ? (deletedResponse?.data ?? []) : activeTemplates
+  const pagination = isTrash ? deletedResponse?.pagination : activeResponse?.pagination
   const isLoading = isTrash ? isLoadingTrash : isLoadingActive
+
+  useEffect(() => {
+    if (!pagination || page >= pagination.totalPages) return
+    const nextPage = page + 1
+
+    if (isTrash) {
+      queryClient.prefetchQuery({
+        queryKey: ['project-templates', 'deleted', nextPage],
+        queryFn: () => listDeletedProjectTemplates({ page: nextPage, limit: TRASH_PAGE_LIMIT }),
+      })
+      return
+    }
+
+    queryClient.prefetchQuery({
+      queryKey: ['project-templates', 'active', courseFilter, nextPage],
+      queryFn: () =>
+        listProjectTemplatesPaginated({
+          courseIdOrSlug: courseFilter || undefined,
+          page: nextPage,
+          limit: ACTIVE_PAGE_LIMIT,
+        }),
+    })
+  }, [courseFilter, isTrash, page, pagination, queryClient])
 
   const readinessResults = useQueries({
     queries: !isTrash
-      ? templates.map((template) => ({
+      ? activeTemplates.map((template) => ({
           queryKey: ['project-template-readiness', template.slug],
           queryFn: () => getProjectTemplateReadiness(template.slug),
           staleTime: 60 * 1000,
@@ -84,7 +116,7 @@ export function ProjectTemplatesListPage() {
 
   const readinessBySlug = !isTrash
     ? Object.fromEntries(
-        templates.map((template, index) => [template.slug, readinessResults[index]?.data])
+        activeTemplates.map((template, index) => [template.slug, readinessResults[index]?.data])
       )
     : {}
 
@@ -175,6 +207,7 @@ export function ProjectTemplatesListPage() {
     {
       key: 'name',
       header: 'Nome',
+      className: 'w-[52%] min-w-[420px]',
       render: (t: ProjectTemplate) => {
         const readiness = readinessBySlug[t.slug]
         const readinessVariant = readiness
@@ -186,27 +219,30 @@ export function ProjectTemplatesListPage() {
           : 'default'
 
         return (
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
               {coverBySlug[t.slug] ? (
                 <img
                   src={coverBySlug[t.slug]}
                   alt={`Capa do template ${t.name}`}
-                  className="h-9 w-9 rounded-lg border border-border object-cover"
+                  className="h-10 w-10 shrink-0 rounded-lg border border-border object-cover"
                 />
               ) : (
-                <div className="h-9 w-9 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
+                <div className="h-10 w-10 shrink-0 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
               )}
-              <span className="font-medium text-text" title={t.name}>
-                {truncateText(t.name, 42)}
-              </span>
+              <div className="min-w-0 space-y-1">
+                <p className="truncate font-semibold text-text" title={t.name}>
+                  {truncateText(t.name, 56)}
+                </p>
+                <p className="text-xs text-muted">Atualizado em {formatDate(t.updatedAt)}</p>
+              </div>
             </div>
 
             {readiness ? (
-              <div className="rounded-lg border border-border bg-surface-2 p-2.5">
-                <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="rounded-lg border border-border bg-surface-2 p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <Badge variant={readinessVariant}>{readiness.statusLabel}</Badge>
-                  <span className="text-xs font-medium text-text">{readiness.scorePercentage}%</span>
+                  <span className="text-xs font-semibold text-text">{readiness.scorePercentage}% concluído</span>
                 </div>
                 <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-surface">
                   <div
@@ -214,11 +250,11 @@ export function ProjectTemplatesListPage() {
                     style={{ width: `${Math.max(0, Math.min(readiness.scorePercentage, 100))}%` }}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-1 text-[11px] text-muted">
-                  <span>Faixas: {readiness.trackCount}</span>
-                  <span>Coletivas: {readiness.quizCount}</span>
-                  <span>Materiais: {readiness.materialCount}</span>
-                  <span>Trilhas: {readiness.studyTrackCount}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant="default" className="text-[10px]">Faixas: {readiness.trackCount}</Badge>
+                  <Badge variant="default" className="text-[10px]">Coletivas: {readiness.quizCount}</Badge>
+                  <Badge variant="default" className="text-[10px]">Materiais: {readiness.materialCount}</Badge>
+                  <Badge variant="default" className="text-[10px]">Trilhas: {readiness.studyTrackCount}</Badge>
                 </div>
                 {readiness.missingTips.length > 0 && (
                   <p className="mt-2 text-[11px] text-warning">
@@ -238,11 +274,13 @@ export function ProjectTemplatesListPage() {
     {
       key: 'type',
       header: 'Tipo',
+      className: 'w-[130px]',
       render: (t: ProjectTemplate) => <Badge variant={t.type === 'ALBUM' ? 'accent' : 'info'}>{PROJECT_TYPE_LABELS[t.type]}</Badge>,
     },
     {
       key: 'course',
       header: 'Curso',
+      className: 'w-[240px]',
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
         return (
@@ -255,13 +293,15 @@ export function ProjectTemplatesListPage() {
     {
       key: 'version',
       header: 'Versão',
+      className: 'w-[110px]',
       render: (t: ProjectTemplate) => <span className="text-muted">v{t.version}</span>,
     },
     {
       key: 'actions',
       header: 'Ações',
+      className: 'w-[120px] text-right',
       render: (t: ProjectTemplate) => (
-        <div className="flex gap-1">
+        <div className="flex justify-end gap-1">
           <IconButton
             onClick={() => {
               setEditingTarget(t)
@@ -287,6 +327,7 @@ export function ProjectTemplatesListPage() {
     {
       key: 'name',
       header: 'Nome',
+      className: 'w-[52%] min-w-[420px]',
       render: (t: ProjectTemplate) => (
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-3">
@@ -310,11 +351,13 @@ export function ProjectTemplatesListPage() {
     {
       key: 'type',
       header: 'Tipo',
+      className: 'w-[130px]',
       render: (t: ProjectTemplate) => <Badge variant={t.type === 'ALBUM' ? 'accent' : 'info'}>{PROJECT_TYPE_LABELS[t.type]}</Badge>,
     },
     {
       key: 'course',
       header: 'Curso',
+      className: 'w-[240px]',
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
         return (
@@ -327,18 +370,22 @@ export function ProjectTemplatesListPage() {
     {
       key: 'deletedAt',
       header: 'Excluído em',
+      className: 'w-[150px]',
       render: (t: ProjectTemplate) => <span className="text-muted">{formatDate(t.updatedAt)}</span>,
     },
     {
       key: 'actions',
       header: 'Ações',
+      className: 'w-[120px] text-right',
       render: (t: ProjectTemplate) => (
-        <IconButton
-          onClick={() => setRestoreTarget(t)}
-          label="Restaurar"
-          icon={<ArchiveRestore className="h-4 w-4" />}
-          variant="success"
-        />
+        <div className="flex justify-end">
+          <IconButton
+            onClick={() => setRestoreTarget(t)}
+            label="Restaurar"
+            icon={<ArchiveRestore className="h-4 w-4" />}
+            variant="success"
+          />
+        </div>
       ),
     },
   ]
@@ -347,29 +394,38 @@ export function ProjectTemplatesListPage() {
     <PageContainer
       title="Templates de projeto"
       count={pagination?.total ?? templatesList.length}
-      action={
-        !isTrash ? (
-          <Button onClick={() => { setEditingTarget(null); setForm({ courseId: courseFilter, name: '', type: 'ALBUM', description: '', coverImage: '' }); setModalOpen(true) }}>
-            <Plus className="h-4 w-4" /> Cadastrar template
-          </Button>
-        ) : undefined
-      }
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
         <Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />
 
-        {!isTrash && (
-          <Select
-            value={courseFilter}
-            onChange={(e) => {
-              setCourseFilter(e.target.value)
-              setPage(1)
-            }}
-            placeholder="Todos os cursos"
-            options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
-            className="w-full sm:max-w-xs"
-          />
-        )}
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          {!isTrash && (
+            <Select
+              value={courseFilter}
+              onChange={(e) => {
+                setCourseFilter(e.target.value)
+                setPage(1)
+              }}
+              placeholder="Todos os cursos"
+              options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
+              className="w-full sm:min-w-[280px]"
+            />
+          )}
+
+          {!isTrash && (
+            <Button
+              onClick={() => {
+                setEditingTarget(null)
+                setForm({ courseId: courseFilter, name: '', type: 'ALBUM', description: '', coverImage: '' })
+                setModalOpen(true)
+              }}
+              className="w-full sm:w-auto"
+            >
+              <Plus className="h-4 w-4" />
+              Cadastrar template
+            </Button>
+          )}
+        </div>
       </div>
 
       <Table
@@ -380,7 +436,7 @@ export function ProjectTemplatesListPage() {
         emptyMessage={isTrash ? 'A lixeira está vazia.' : 'Nenhum template encontrado.'}
       />
 
-      {isTrash && pagination && (
+      {pagination && (
         <Pagination
           page={pagination.page}
           totalPages={pagination.totalPages}

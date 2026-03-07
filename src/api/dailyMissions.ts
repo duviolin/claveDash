@@ -1,6 +1,11 @@
 import { api } from './client'
 import type { DailyMissionTemplate, DailyMissionQuiz, QuizQuestion, PaginatedResponse } from '@/types'
 
+interface ListPaginatedParams {
+  page: number
+  limit: number
+}
+
 /** Only fields that can be updated on a daily mission quiz (PATCH). */
 interface UpdateDailyMissionQuizPayload {
   questionsJson?: QuizQuestion[] | null
@@ -10,6 +15,17 @@ interface UpdateDailyMissionQuizPayload {
 
 export async function listDailyMissionTemplates(courseIdOrSlug?: string) {
   const { data } = await api.get<DailyMissionTemplate[]>('/daily-mission-templates', { params: { courseId: courseIdOrSlug } })
+  return data
+}
+
+export async function listDailyMissionTemplatesPaginated(params: ListPaginatedParams & { courseIdOrSlug?: string }) {
+  const { data } = await api.get<PaginatedResponse<DailyMissionTemplate>>('/daily-mission-templates', {
+    params: {
+      courseId: params.courseIdOrSlug,
+      page: params.page,
+      limit: params.limit,
+    },
+  })
   return data
 }
 
@@ -62,7 +78,12 @@ export async function listDailyMissionQuizzes(missionIdOrSlug: string) {
   return data
 }
 
-export async function listDeletedDailyMissionQuizzes(params: { page: number; limit: number }) {
+export async function listDailyMissionQuizzesPaginated(missionIdOrSlug: string, params: ListPaginatedParams) {
+  const { data } = await api.get<PaginatedResponse<DailyMissionQuiz>>(`/daily-mission-templates/${missionIdOrSlug}/quizzes`, { params })
+  return data
+}
+
+export async function listDeletedDailyMissionQuizzes(params: { page: number; limit: number; dailyMissionId?: string }) {
   const { data } = await api.get<PaginatedResponse<DailyMissionQuiz>>('/daily-mission-quizzes/deleted', { params })
   return data
 }

@@ -13,6 +13,11 @@ import type {
   ProjectTemplateReadinessRule,
 } from '@/types'
 
+interface ListPaginatedParams {
+  page: number
+  limit: number
+}
+
 // Payload types for template APIs (only updatable fields)
 interface CreateTrackTemplatePayload {
   title: string
@@ -66,6 +71,17 @@ export async function listProjectTemplates(courseIdOrSlug?: string) {
   return data
 }
 
+export async function listProjectTemplatesPaginated(params: ListPaginatedParams & { courseIdOrSlug?: string }) {
+  const { data } = await api.get<PaginatedResponse<ProjectTemplate>>('/project-templates', {
+    params: {
+      courseId: params.courseIdOrSlug,
+      page: params.page,
+      limit: params.limit,
+    },
+  })
+  return data
+}
+
 export async function getProjectTemplate(idOrSlug: string) {
   const { data } = await api.get<ProjectTemplate>(`/project-templates/${idOrSlug}`)
   return data
@@ -101,6 +117,11 @@ export async function restoreProjectTemplate(idOrSlug: string) {
 // --- Track Scene Templates ---
 export async function listTrackTemplates(projectTemplateIdOrSlug: string) {
   const { data } = await api.get<TrackSceneTemplate[]>(`/project-templates/${projectTemplateIdOrSlug}/tracks`)
+  return data
+}
+
+export async function listTrackTemplatesPaginated(projectTemplateIdOrSlug: string, params: ListPaginatedParams) {
+  const { data } = await api.get<PaginatedResponse<TrackSceneTemplate>>(`/project-templates/${projectTemplateIdOrSlug}/tracks`, { params })
   return data
 }
 
@@ -144,6 +165,11 @@ export async function listMaterialTemplates(trackTemplateId: string) {
   return data
 }
 
+export async function listMaterialTemplatesPaginated(trackTemplateId: string, params: ListPaginatedParams) {
+  const { data } = await api.get<PaginatedResponse<TrackMaterialTemplate>>(`/track-templates/${trackTemplateId}/materials`, { params })
+  return data
+}
+
 export async function createMaterialTemplate(trackTemplateId: string, payload: { type: TrackMaterialType; title: string; defaultContentUrl?: string; defaultTextContent?: string }) {
   const { data } = await api.post<TrackMaterialTemplate>(`/track-templates/${trackTemplateId}/materials`, payload)
   return data
@@ -174,6 +200,11 @@ export async function listStudyTrackTemplates(trackTemplateId: string) {
   return data
 }
 
+export async function listStudyTrackTemplatesPaginated(trackTemplateId: string, params: ListPaginatedParams) {
+  const { data } = await api.get<PaginatedResponse<StudyTrackTemplate>>(`/track-templates/${trackTemplateId}/study-tracks`, { params })
+  return data
+}
+
 export async function createStudyTrackTemplate(trackTemplateId: string, payload: CreateStudyTrackTemplatePayload) {
   const { data } = await api.post<StudyTrackTemplate>(`/track-templates/${trackTemplateId}/study-tracks`, payload)
   return data
@@ -201,6 +232,11 @@ export async function restoreStudyTrackTemplate(id: string) {
 // --- Press Quiz Templates ---
 export async function listPressQuizTemplates(trackTemplateId: string) {
   const { data } = await api.get<PressQuizTemplate[]>(`/track-templates/${trackTemplateId}/press-quizzes`)
+  return data
+}
+
+export async function listPressQuizTemplatesPaginated(trackTemplateId: string, params: ListPaginatedParams) {
+  const { data } = await api.get<PaginatedResponse<PressQuizTemplate>>(`/track-templates/${trackTemplateId}/press-quizzes`, { params })
   return data
 }
 
