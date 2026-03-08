@@ -7,6 +7,7 @@ import type {
   ProjectType,
   DailyMissionTemplateStatus,
   TrackMaterialType,
+  StudyTrackAttachmentType,
   ReadinessRuleCode,
 } from '@/types'
 
@@ -101,6 +102,18 @@ export const TRACK_MATERIAL_TYPE_VARIANT: Record<TrackMaterialType, 'accent' | '
   VIDEO: 'info',
   TEXT: 'success',
   LINK: 'warning',
+}
+
+export const STUDY_TRACK_ATTACHMENT_TYPE_LABELS: Record<StudyTrackAttachmentType, string> = {
+  VIDEO: 'Vídeo',
+  AUDIO: 'Áudio',
+  PDF: 'PDF',
+}
+
+export const STUDY_TRACK_ATTACHMENT_FILE_TYPE: Record<StudyTrackAttachmentType, 'videos' | 'demos' | 'documents'> = {
+  VIDEO: 'videos',
+  AUDIO: 'demos',
+  PDF: 'documents',
 }
 
 // ── Daily Mission Status ───────────────────────────────────

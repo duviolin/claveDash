@@ -5,6 +5,7 @@ import type {
   TrackSceneTemplate,
   TrackMaterialTemplate,
   TrackMaterialType,
+  StudyTrackAttachmentType,
   StudyTrackTemplate,
   PressQuizTemplate,
   ProjectType,
@@ -45,17 +46,15 @@ interface CreateStudyTrackTemplatePayload {
   title: string
   description?: string
   technicalNotes?: string
-  videoUrl?: string
-  audioUrl?: string
-  pdfUrl?: string
+  attachmentType?: StudyTrackAttachmentType
+  attachmentUrl?: string
 }
 interface UpdateStudyTrackTemplatePayload {
   title?: string
   description?: string | null
   technicalNotes?: string | null
-  videoUrl?: string | null
-  audioUrl?: string | null
-  pdfUrl?: string | null
+  attachmentType?: StudyTrackAttachmentType | null
+  attachmentUrl?: string | null
 }
 interface UpdatePressQuizTemplatePayload {
   title?: string

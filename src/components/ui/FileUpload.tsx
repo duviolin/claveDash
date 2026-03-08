@@ -15,6 +15,7 @@ interface FileUploadProps {
   entityId: string
   currentValue?: string | null
   onUploadComplete: (key: string) => void
+  onUploadingChange?: (isUploading: boolean) => void
   onRemove?: () => void
   accept?: string
   label?: string
@@ -33,6 +34,7 @@ export function FileUpload({
   entityId,
   currentValue,
   onUploadComplete,
+  onUploadingChange,
   onRemove,
   accept,
   label,
@@ -63,6 +65,10 @@ export function FileUpload({
       if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl)
     }
   }, [localPreviewUrl])
+
+  useEffect(() => {
+    onUploadingChange?.(uploading)
+  }, [onUploadingChange, uploading])
 
   const keyToPreview = currentValue ?? justUploadedKey
 

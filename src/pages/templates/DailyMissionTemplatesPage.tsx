@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, Send, ChevronDown, ChevronRight, HelpCircle, ArchiveRestore } from 'lucide-react'
+import { Plus, Pencil, Trash2, Send, RotateCcw, Eye, ChevronDown, ChevronRight, HelpCircle, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
@@ -16,7 +16,9 @@ import { IconButton } from '@/components/ui/IconButton'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { generateQuiz } from '@/api/ai'
 import { FileUpload } from '@/components/ui/FileUpload'
+import { FilePreview } from '@/components/ui/FilePreview'
 import { Pagination } from '@/components/ui/Pagination'
+import { presignDownload } from '@/api/storage'
 import type { AxiosError } from 'axios'
 import {
   listDailyMissionTemplatesPaginated,
@@ -26,6 +28,7 @@ import {
   updateDailyMissionTemplate,
   deleteDailyMissionTemplate,
   publishDailyMissionTemplate,
+  unpublishDailyMissionTemplate,
   createDailyMissionQuiz,
   updateDailyMissionQuiz,
   deleteDailyMissionQuiz,
@@ -53,11 +56,13 @@ export function DailyMissionTemplatesPage() {
   const { activeTab, isTrash, page, setPage, handleTabChange } = useTrashableListPage()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<DailyMissionTemplate | null>(null)
+  const [previewTarget, setPreviewTarget] = useState<DailyMissionTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DailyMissionTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<DailyMissionTemplate | null>(null)
   const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
   const [courseFilter, setCourseFilter] = useState('')
   const [expandedMission, setExpandedMission] = useState<string | null>(null)
+  const [isVideoUploading, setIsVideoUploading] = useState(false)
   const [form, setForm] = useState({ courseId: '', title: '', videoUrl: '' })
 
   const { data: courses = [] } = useQuery({ queryKey: ['courses'], queryFn: () => listCourses() })
@@ -84,6 +89,16 @@ export function DailyMissionTemplatesPage() {
   const deletedMissions = deletedResponse?.data ?? []
   const pagination = isTrash ? deletedResponse?.pagination : activeResponse?.pagination
   const isLoading = isTrash ? isLoadingDeleted : isLoadingActive
+  const { data: previewVideoUrl, isLoading: isLoadingPreviewVideo } = useQuery({
+    queryKey: ['daily-mission-preview-video', previewTarget?.id, previewTarget?.videoUrl],
+    queryFn: async () => {
+      if (!previewTarget?.videoUrl) return null
+      const { downloadUrl } = await presignDownload(previewTarget.videoUrl)
+      return downloadUrl
+    },
+    enabled: Boolean(previewTarget?.videoUrl),
+    staleTime: 5 * 60 * 1000,
+  })
 
   useEffect(() => {
     if (!pagination || page >= pagination.totalPages) return
@@ -110,7 +125,7 @@ export function DailyMissionTemplatesPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const payload = { title: form.title, videoUrl: form.videoUrl || undefined }
+      const payload = { title: form.title, videoKey: form.videoUrl || undefined }
       return editing
         ? updateDailyMissionTemplate(editing.id, payload)
         : createDailyMissionTemplate({ ...payload, courseId: form.courseId })
@@ -126,6 +141,14 @@ export function DailyMissionTemplatesPage() {
     mutationFn: (id: string) => publishDailyMissionTemplate(id),
     onSuccess: () => {
       toast.success('Missão publicada com sucesso.')
+      queryClient.invalidateQueries({ queryKey: ['daily-mission-templates'] })
+    },
+  })
+
+  const unpublishMutation = useMutation({
+    mutationFn: (id: string) => unpublishDailyMissionTemplate(id),
+    onSuccess: () => {
+      toast.success('Publicação removida com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['daily-mission-templates'] })
     },
   })
@@ -154,7 +177,7 @@ export function DailyMissionTemplatesPage() {
 
   const openCreate = () => { setEditing(null); setForm({ courseId: '', title: '', videoUrl: '' }); setModalOpen(true) }
   const openEdit = (m: DailyMissionTemplate) => { setEditing(m); setForm({ courseId: m.courseId, title: m.title, videoUrl: m.videoUrl || '' }); setModalOpen(true) }
-  const closeModal = () => { setModalOpen(false); setEditing(null) }
+  const closeModal = () => { setModalOpen(false); setEditing(null); setIsVideoUploading(false) }
 
   const trashColumns = [
     {
@@ -249,8 +272,16 @@ export function DailyMissionTemplatesPage() {
                 <span className="font-medium text-text flex-1">{mission.title}</span>
                 <Badge variant={DAILY_MISSION_STATUS_VARIANT[mission.status]}>{DAILY_MISSION_STATUS_LABELS[mission.status]}</Badge>
                 <div className="flex gap-1">
+                  <IconButton
+                    onClick={() => setPreviewTarget(mission)}
+                    label="Prévia da missão"
+                    icon={<Eye className="h-4 w-4" />}
+                  />
                   {mission.status === 'DRAFT' && (
                     <IconButton onClick={() => publishMutation.mutate(mission.id)} label="Publicar" icon={<Send className="h-4 w-4" />} variant="success" />
+                  )}
+                  {mission.status === 'PUBLISHED' && (
+                    <IconButton onClick={() => unpublishMutation.mutate(mission.id)} label="Remover publicação" icon={<RotateCcw className="h-4 w-4" />} />
                   )}
                   <IconButton onClick={() => openEdit(mission)} label="Editar cadastro" icon={<Pencil className="h-4 w-4" />} />
                   <IconButton onClick={() => setDeleteTarget(mission)} label="Desativar" icon={<Trash2 className="h-4 w-4" />} variant="danger" />
@@ -279,7 +310,16 @@ export function DailyMissionTemplatesPage() {
       )}
 
       <Modal isOpen={modalOpen} onClose={closeModal} title={editing ? 'Editar missão' : 'Cadastrar missão'} footer={
-        <><Button variant="secondary" onClick={closeModal}>Cancelar</Button><Button onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>{editing ? 'Salvar alterações' : 'Cadastrar'}</Button></>
+        <>
+          <Button variant="secondary" onClick={closeModal}>Cancelar</Button>
+          <Button
+            onClick={() => saveMutation.mutate()}
+            isLoading={saveMutation.isPending}
+            disabled={!form.title.trim() || (!editing && !form.courseId) || isVideoUploading}
+          >
+            {isVideoUploading ? 'Aguardando upload...' : editing ? 'Salvar alterações' : 'Cadastrar'}
+          </Button>
+        </>
       }>
         <div className="space-y-4">
           {!editing && <Select id="dmCourseId" label="Curso" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} placeholder="Selecionar curso..." options={courses.map((c: Course) => ({ value: c.id, label: c.name }))} />}
@@ -290,11 +330,43 @@ export function DailyMissionTemplatesPage() {
             entityId={editing?.id || 'draft'}
             currentValue={form.videoUrl || null}
             onUploadComplete={(key) => setForm({ ...form, videoUrl: key })}
+            onUploadingChange={setIsVideoUploading}
             onRemove={() => setForm({ ...form, videoUrl: '' })}
             label="Vídeo da missão"
             compact
           />
-          <Input id="dmVideo" label="Ou informe a URL manualmente" value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })} placeholder="https://..." />
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!previewTarget}
+        onClose={() => setPreviewTarget(null)}
+        title="Visualizar missão diária"
+        footer={<Button variant="secondary" onClick={() => setPreviewTarget(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <Select
+            id="dmPreviewCourseId"
+            label="Curso"
+            value={previewTarget?.courseId ?? ''}
+            options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
+            disabled
+          />
+          <Input id="dmPreviewTitle" label="Título" value={previewTarget?.title ?? ''} disabled />
+          <div className="space-y-1.5">
+            <p className="block text-sm font-medium text-text">Vídeo da missão</p>
+            {!previewTarget?.videoUrl ? (
+              <p className="text-sm text-muted">Nenhum vídeo enviado.</p>
+            ) : isLoadingPreviewVideo ? (
+              <p className="text-sm text-muted">Carregando prévia...</p>
+            ) : (
+              <FilePreview
+                fileName={previewTarget.videoUrl.split('/').pop() ?? 'video.mp4'}
+                sourceUrl={previewVideoUrl ?? null}
+                compact
+              />
+            )}
+          </div>
         </div>
       </Modal>
 

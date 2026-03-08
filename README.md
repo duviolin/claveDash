@@ -34,6 +34,30 @@ npm run dev
 
 O portal roda em `http://localhost:5173` e conecta ao backend em `http://localhost:3000`.
 
+## Subir Front + Back juntos
+
+Com o backend em `../claveBack`, voce pode iniciar as duas aplicacoes com um comando so:
+
+```bash
+npm run dev:all
+```
+
+Atalhos Windows na raiz do projeto:
+
+```powershell
+.\dev-all.ps1
+```
+
+```bat
+dev-all.bat
+```
+
+Para apenas validar no PowerShell sem executar:
+
+```powershell
+.\dev-all.ps1 -DryRun
+```
+
 ## Funcionalidades
 
 - **Autenticação**: Login, primeiro acesso (troca de senha), JWT

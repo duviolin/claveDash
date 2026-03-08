@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
+import { Plus, Eye, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { Pagination } from '@/components/ui/Pagination'
 import { IconButton } from '@/components/ui/IconButton'
+import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import {
   listProjectTemplatesPaginated,
   createProjectTemplate,
@@ -50,6 +51,8 @@ export function ProjectTemplatesListPage() {
   const { activeTab, isTrash, page, setPage, handleTabChange } = useTrashableListPage()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTarget, setEditingTarget] = useState<ProjectTemplate | null>(null)
+  const [isCoverUploading, setIsCoverUploading] = useState(false)
+  const [previewTarget, setPreviewTarget] = useState<ProjectTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ProjectTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<ProjectTemplate | null>(null)
   const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
@@ -150,6 +153,7 @@ export function ProjectTemplatesListPage() {
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
       setModalOpen(false)
       setEditingTarget(null)
+      setIsCoverUploading(false)
     },
   })
 
@@ -166,6 +170,7 @@ export function ProjectTemplatesListPage() {
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
       setModalOpen(false)
       setEditingTarget(null)
+      setIsCoverUploading(false)
     },
     onError: (error: unknown) => {
       const err = error as { response?: { status?: number; data?: { code?: string; details?: { tracksCount?: number; projectsCount?: number } } } }
@@ -302,6 +307,11 @@ export function ProjectTemplatesListPage() {
       className: 'w-[120px] text-right',
       render: (t: ProjectTemplate) => (
         <div className="flex justify-end gap-1">
+          <IconButton
+            onClick={() => setPreviewTarget(t)}
+            label="Visualizar projeto"
+            icon={<Eye className="h-4 w-4" />}
+          />
           <IconButton
             onClick={() => {
               setEditingTarget(t)
@@ -446,14 +456,69 @@ export function ProjectTemplatesListPage() {
       )}
 
       <Modal
+        isOpen={!!previewTarget}
+        onClose={() => setPreviewTarget(null)}
+        title="Dados do projeto"
+        footer={<Button variant="secondary" onClick={() => setPreviewTarget(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <DetailFieldList
+            items={[
+              { label: 'Nome', value: previewTarget?.name ?? '—' },
+              {
+                label: 'Curso',
+                value: previewTarget ? (courses.find((c: Course) => c.id === previewTarget.courseId)?.name || '—') : '—',
+              },
+              { label: 'Versão', value: previewTarget ? `v${previewTarget.version}` : '—' },
+              { label: 'Atualizado em', value: previewTarget ? formatDate(previewTarget.updatedAt) : '—' },
+            ]}
+          />
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Tipo</p>
+            <div className="mt-1">
+              {previewTarget ? (
+                <Badge variant={previewTarget.type === 'ALBUM' ? 'accent' : 'info'}>
+                  {PROJECT_TYPE_LABELS[previewTarget.type]}
+                </Badge>
+              ) : (
+                <span className="text-muted">—</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Status</p>
+            <div className="mt-1">
+              {previewTarget ? (
+                <Badge variant={previewTarget.isActive ? 'success' : 'error'}>
+                  {previewTarget.isActive ? 'Ativo' : 'Inativo'}
+                </Badge>
+              ) : (
+                <span className="text-muted">—</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Descrição</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-text">
+              {previewTarget?.description?.trim() || 'Sem descrição.'}
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
         isOpen={modalOpen}
         onClose={() => { setModalOpen(false); setEditingTarget(null) }}
         title={editingTarget ? 'Editar template de projeto' : 'Cadastrar template de projeto'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => { setModalOpen(false); setEditingTarget(null) }}>Cancelar</Button>
-            <Button onClick={() => (editingTarget ? updateMutation.mutate() : createMutation.mutate())} isLoading={createMutation.isPending || updateMutation.isPending}>
-              {editingTarget ? 'Salvar' : 'Criar'}
+            <Button variant="secondary" onClick={() => { setModalOpen(false); setEditingTarget(null); setIsCoverUploading(false) }}>Cancelar</Button>
+            <Button
+              onClick={() => (editingTarget ? updateMutation.mutate() : createMutation.mutate())}
+              isLoading={createMutation.isPending || updateMutation.isPending}
+              disabled={!form.name.trim() || !form.courseId || isCoverUploading}
+            >
+              {isCoverUploading ? 'Aguardando upload...' : editingTarget ? 'Salvar' : 'Criar'}
             </Button>
           </>
         }
@@ -493,6 +558,7 @@ export function ProjectTemplatesListPage() {
             entityId={editingTarget?.id || 'draft'}
             currentValue={form.coverImage || null}
             onUploadComplete={(key) => setForm((prev) => ({ ...prev, coverImage: key }))}
+            onUploadingChange={setIsCoverUploading}
             onRemove={() => setForm((prev) => ({ ...prev, coverImage: '' }))}
             label="Imagem de capa"
             compact

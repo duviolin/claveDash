@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArchiveRestore, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArchiveRestore, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Card } from '@/components/ui/Card'
@@ -11,6 +11,10 @@ import { IconButton } from '@/components/ui/IconButton'
 import { Modal, ConfirmModal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
+import { DetailFieldList } from '@/components/ui/DetailFieldList'
+import { QuizBuilder } from '@/components/ui/QuizBuilder'
+import { AIButton } from '@/components/ui/AIButton'
+import { FileUpload } from '@/components/ui/FileUpload'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Tabs } from '@/components/ui/Tabs'
@@ -37,12 +41,24 @@ import {
   restorePressQuizTemplate,
   restoreStudyTrackTemplate,
   restoreTrackTemplate,
+  updateMaterialTemplate,
+  updatePressQuizTemplate,
+  updateStudyTrackTemplate,
   updateTrackTemplate,
 } from '@/api/templates'
-import { TRACK_MATERIAL_TYPE_LABELS, TRACK_MATERIAL_TYPE_VARIANT } from '@/lib/constants'
+import { generateQuizQuestion } from '@/api/ai'
+import {
+  STUDY_TRACK_ATTACHMENT_FILE_TYPE,
+  STUDY_TRACK_ATTACHMENT_TYPE_LABELS,
+  TRACK_MATERIAL_TYPE_LABELS,
+  TRACK_MATERIAL_TYPE_VARIANT,
+} from '@/lib/constants'
+import { formatDate } from '@/lib/utils'
 import type {
   PressQuizTemplate,
   ProjectTemplate,
+  QuizQuestion,
+  StudyTrackAttachmentType,
   StudyTrackTemplate,
   TrackMaterialTemplate,
   TrackSceneTemplate,
@@ -208,12 +224,20 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   const [createStudyTrackOpen, setCreateStudyTrackOpen] = useState(false)
   const [createQuizOpen, setCreateQuizOpen] = useState(false)
   const [editingTrack, setEditingTrack] = useState<TrackRow | null>(null)
+  const [previewTrack, setPreviewTrack] = useState<TrackRow | null>(null)
+  const [previewMaterial, setPreviewMaterial] = useState<MaterialRow | null>(null)
+  const [previewStudyTrack, setPreviewStudyTrack] = useState<StudyTrackRow | null>(null)
+  const [previewQuiz, setPreviewQuiz] = useState<QuizRow | null>(null)
   const [deleteTargetTrack, setDeleteTargetTrack] = useState<TrackRow | null>(null)
   const [restoreTargetTrack, setRestoreTargetTrack] = useState<TrackTrashRow | null>(null)
+  const [editingMaterial, setEditingMaterial] = useState<MaterialRow | null>(null)
   const [deleteTargetMaterial, setDeleteTargetMaterial] = useState<MaterialRow | null>(null)
   const [restoreTargetMaterial, setRestoreTargetMaterial] = useState<MaterialTrashRow | null>(null)
+  const [editingStudyTrack, setEditingStudyTrack] = useState<StudyTrackRow | null>(null)
+  const [isStudyTrackAttachmentUploading, setIsStudyTrackAttachmentUploading] = useState(false)
   const [deleteTargetStudyTrack, setDeleteTargetStudyTrack] = useState<StudyTrackRow | null>(null)
   const [restoreTargetStudyTrack, setRestoreTargetStudyTrack] = useState<StudyTrackTrashRow | null>(null)
+  const [editingQuiz, setEditingQuiz] = useState<QuizRow | null>(null)
   const [deleteTargetQuiz, setDeleteTargetQuiz] = useState<QuizRow | null>(null)
   const [restoreTargetQuiz, setRestoreTargetQuiz] = useState<QuizTrashRow | null>(null)
   const [trackForm, setTrackForm] = useState({
@@ -239,12 +263,15 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
     title: '',
     description: '',
     technicalNotes: '',
+    attachmentType: 'VIDEO' as StudyTrackAttachmentType,
+    attachmentUrl: '',
   })
   const [quizForm, setQuizForm] = useState({
     projectTemplateId: '',
     trackSceneTemplateId: '',
     title: '',
     description: '',
+    questions: [] as QuizQuestion[],
     maxAttempts: 3,
     passingScore: 70,
   })
@@ -278,9 +305,9 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   }, [scopedProjects, tracksQueries])
 
   const filteredTrackRows = useMemo(() => {
-    if (!trackSlug) return trackRows
+    if (mode === 'tracks' || !trackSlug) return trackRows
     return trackRows.filter((row) => row.track.slug === trackSlug)
-  }, [trackRows, trackSlug])
+  }, [mode, trackRows, trackSlug])
 
   const trackGroups = useMemo<TrackGroup[]>(() => {
     const groups = new Map<string, TrackGroup>()
@@ -699,6 +726,21 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
     },
   })
 
+  const updateMaterialMutation = useMutation({
+    mutationFn: () =>
+      updateMaterialTemplate(editingMaterial!.material.id, {
+        type: materialForm.type,
+        title: materialForm.title,
+        defaultContentUrl: materialForm.defaultContentUrl.trim() ? materialForm.defaultContentUrl : null,
+        defaultTextContent: materialForm.defaultTextContent.trim() ? materialForm.defaultTextContent : null,
+      }),
+    onSuccess: () => {
+      toast.success('Material atualizado com sucesso.')
+      queryClient.invalidateQueries({ queryKey: ['resource-list-materials'] })
+      setEditingMaterial(null)
+    },
+  })
+
   const deleteMaterialMutation = useMutation({
     mutationFn: () => deleteMaterialTemplate(deleteTargetMaterial!.material.id),
     onSuccess: () => {
@@ -725,18 +767,40 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
         title: studyTrackForm.title,
         description: studyTrackForm.description.trim() ? studyTrackForm.description : undefined,
         technicalNotes: studyTrackForm.technicalNotes.trim() ? studyTrackForm.technicalNotes : undefined,
+        attachmentType: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentType : undefined,
+        attachmentUrl: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentUrl : undefined,
       }),
     onSuccess: () => {
       toast.success('Trilha cadastrada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-study-tracks'] })
       setCreateStudyTrackOpen(false)
+      setIsStudyTrackAttachmentUploading(false)
       setStudyTrackForm({
         projectTemplateId: selectedProject?.id ?? selectedTrackRow?.project.id ?? '',
         trackSceneTemplateId: selectedTrackRow?.track.id ?? '',
         title: '',
         description: '',
         technicalNotes: '',
+        attachmentType: 'VIDEO',
+        attachmentUrl: '',
       })
+    },
+  })
+
+  const updateStudyTrackMutation = useMutation({
+    mutationFn: () =>
+      updateStudyTrackTemplate(editingStudyTrack!.studyTrack.id, {
+        title: studyTrackForm.title,
+        description: studyTrackForm.description.trim() ? studyTrackForm.description : null,
+        technicalNotes: studyTrackForm.technicalNotes.trim() ? studyTrackForm.technicalNotes : null,
+        attachmentType: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentType : null,
+        attachmentUrl: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentUrl : null,
+      }),
+    onSuccess: () => {
+      toast.success('Trilha atualizada com sucesso.')
+      queryClient.invalidateQueries({ queryKey: ['resource-list-study-tracks'] })
+      setIsStudyTrackAttachmentUploading(false)
+      setEditingStudyTrack(null)
     },
   })
 
@@ -765,6 +829,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       createPressQuizTemplate(quizForm.trackSceneTemplateId, {
         title: quizForm.title,
         description: quizForm.description.trim() ? quizForm.description : undefined,
+        questionsJson: quizForm.questions.length > 0 ? quizForm.questions : undefined,
         maxAttempts: quizForm.maxAttempts,
         passingScore: quizForm.passingScore,
       }),
@@ -777,9 +842,26 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
         trackSceneTemplateId: selectedTrackRow?.track.id ?? '',
         title: '',
         description: '',
+        questions: [],
         maxAttempts: 3,
         passingScore: 70,
       })
+    },
+  })
+
+  const updateQuizMutation = useMutation({
+    mutationFn: () =>
+      updatePressQuizTemplate(editingQuiz!.quiz.id, {
+        title: quizForm.title,
+        description: quizForm.description.trim() ? quizForm.description : null,
+        questionsJson: quizForm.questions.length > 0 ? quizForm.questions : null,
+        maxAttempts: quizForm.maxAttempts,
+        passingScore: quizForm.passingScore,
+      }),
+    onSuccess: () => {
+      toast.success('Quiz atualizado com sucesso.')
+      queryClient.invalidateQueries({ queryKey: ['resource-list-press-quizzes'] })
+      setEditingQuiz(null)
     },
   })
 
@@ -878,6 +960,16 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       label: `${row.project.name} - ${row.track.order}. ${row.track.title}`,
     }))
   }, [trackRows, quizForm.projectTemplateId])
+
+  const selectedQuizProject = useMemo(
+    () => projects.find((project) => project.id === quizForm.projectTemplateId) ?? null,
+    [projects, quizForm.projectTemplateId]
+  )
+
+  const selectedQuizTrack = useMemo(
+    () => trackRows.find((row) => row.track.id === quizForm.trackSceneTemplateId)?.track ?? null,
+    [trackRows, quizForm.trackSceneTemplateId]
+  )
 
   useEffect(() => {
     setStoredFilters({ projectSlug, trackSlug })
@@ -1092,6 +1184,8 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                   title: '',
                   description: '',
                   technicalNotes: '',
+                  attachmentType: 'VIDEO',
+                  attachmentUrl: '',
                 })
                 setCreateStudyTrackOpen(true)
               }}
@@ -1108,6 +1202,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                   trackSceneTemplateId: selectedTrackRow?.track.id ?? '',
                   title: '',
                   description: '',
+                  questions: [],
                   maxAttempts: 3,
                   passingScore: 70,
                 })
@@ -1153,7 +1248,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                     <p className="text-sm font-semibold text-text">{group.project.name}</p>
                     <p className="text-xs text-muted">{group.tracks.length} faixa(s)</p>
                   </div>
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,260px)_90px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,260px)_120px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
                     <span>Faixa</span>
                     <span>Artista</span>
                     <span className="text-center">Ações</span>
@@ -1162,7 +1257,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                     {group.tracks.map((track) => (
                       <div
                         key={track.id}
-                        className="grid grid-cols-[minmax(0,1fr)_minmax(0,260px)_90px] items-center gap-3 px-4 py-3"
+                        className="grid grid-cols-[minmax(0,1fr)_minmax(0,260px)_120px] items-center gap-3 px-4 py-3"
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-text">
@@ -1171,6 +1266,11 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                         </div>
                         <p className="truncate text-sm text-muted">{track.artist || '—'}</p>
                         <div className="flex items-center justify-center gap-1">
+                          <IconButton
+                            label="Visualizar faixa"
+                            icon={<Eye className="h-4 w-4" />}
+                            onClick={() => setPreviewTrack({ project: group.project, track })}
+                          />
                           <IconButton
                             label="Editar faixa"
                             icon={<Pencil className="h-4 w-4" />}
@@ -1264,7 +1364,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             Faixa {trackGroup.track.order}: {trackGroup.track.title}
                           </div>
 
-                          <div className="grid grid-cols-[minmax(0,1fr)_120px_90px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                          <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
                             <span>Material</span>
                             <span>Tipo</span>
                             <span className="text-center">Ações</span>
@@ -1274,13 +1374,43 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             {trackGroup.materials.map((material) => (
                               <div
                                 key={material.id}
-                                className="grid grid-cols-[minmax(0,1fr)_120px_90px] items-center gap-3 px-4 py-3"
+                                className="grid grid-cols-[minmax(0,1fr)_120px_160px] items-center gap-3 px-4 py-3"
                               >
                                 <p className="truncate text-sm text-text">{material.title}</p>
                                 <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[material.type]} className="w-fit text-[10px]">
                                   {TRACK_MATERIAL_TYPE_LABELS[material.type]}
                                 </Badge>
-                                <div className="flex items-center justify-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <IconButton
+                                    label="Visualizar material"
+                                    icon={<Eye className="h-4 w-4" />}
+                                    onClick={() =>
+                                      setPreviewMaterial({
+                                        project: projectGroup.project,
+                                        track: trackGroup.track,
+                                        material,
+                                      })
+                                    }
+                                  />
+                                  <IconButton
+                                    label="Editar material"
+                                    icon={<Pencil className="h-4 w-4" />}
+                                    onClick={() => {
+                                      setEditingMaterial({
+                                        project: projectGroup.project,
+                                        track: trackGroup.track,
+                                        material,
+                                      })
+                                      setMaterialForm({
+                                        projectTemplateId: projectGroup.project.id,
+                                        trackSceneTemplateId: trackGroup.track.id,
+                                        type: material.type,
+                                        title: material.title,
+                                        defaultContentUrl: material.defaultContentUrl || '',
+                                        defaultTextContent: material.defaultTextContent || '',
+                                      })
+                                    }}
+                                  />
                                   <IconButton
                                     label="Desativar material"
                                     icon={<Trash2 className="h-4 w-4" />}
@@ -1368,7 +1498,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             Faixa {trackGroup.track.order}: {trackGroup.track.title}
                           </div>
 
-                          <div className="grid grid-cols-[minmax(0,1fr)_90px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                          <div className="grid grid-cols-[minmax(0,1fr)_160px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
                             <span>Trilha</span>
                             <span className="text-center">Ações</span>
                           </div>
@@ -1377,10 +1507,41 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             {trackGroup.studyTracks.map((studyTrack) => (
                               <div
                                 key={studyTrack.id}
-                                className="grid grid-cols-[minmax(0,1fr)_90px] items-center gap-3 px-4 py-3"
+                                className="grid grid-cols-[minmax(0,1fr)_160px] items-center gap-3 px-4 py-3"
                               >
                                 <p className="truncate text-sm text-text">{studyTrack.title}</p>
-                                <div className="flex items-center justify-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <IconButton
+                                    label="Visualizar trilha"
+                                    icon={<Eye className="h-4 w-4" />}
+                                    onClick={() =>
+                                      setPreviewStudyTrack({
+                                        project: projectGroup.project,
+                                        track: trackGroup.track,
+                                        studyTrack,
+                                      })
+                                    }
+                                  />
+                                  <IconButton
+                                    label="Editar trilha"
+                                    icon={<Pencil className="h-4 w-4" />}
+                                    onClick={() => {
+                                      setEditingStudyTrack({
+                                        project: projectGroup.project,
+                                        track: trackGroup.track,
+                                        studyTrack,
+                                      })
+                                      setStudyTrackForm({
+                                        projectTemplateId: projectGroup.project.id,
+                                        trackSceneTemplateId: trackGroup.track.id,
+                                        title: studyTrack.title,
+                                        description: studyTrack.description || '',
+                                        technicalNotes: studyTrack.technicalNotes || '',
+                                        attachmentType: studyTrack.attachmentType || 'VIDEO',
+                                        attachmentUrl: studyTrack.attachmentUrl || '',
+                                      })
+                                    }}
+                                  />
                                   <IconButton
                                     label="Desativar trilha"
                                     icon={<Trash2 className="h-4 w-4" />}
@@ -1468,7 +1629,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             Faixa {trackGroup.track.order}: {trackGroup.track.title}
                           </div>
 
-                          <div className="grid grid-cols-[minmax(0,1fr)_120px_90px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                          <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
                             <span>Quiz</span>
                             <span>Questões</span>
                             <span className="text-center">Ações</span>
@@ -1478,11 +1639,42 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             {trackGroup.quizzes.map((quiz) => (
                               <div
                                 key={quiz.id}
-                                className="grid grid-cols-[minmax(0,1fr)_120px_90px] items-center gap-3 px-4 py-3"
+                                className="grid grid-cols-[minmax(0,1fr)_120px_160px] items-center gap-3 px-4 py-3"
                               >
                                 <p className="truncate text-sm text-text">{quiz.title}</p>
                                 <p className="text-sm text-muted">{quiz.questionsJson?.length ?? 0}</p>
-                                <div className="flex items-center justify-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <IconButton
+                                    label="Visualizar quiz"
+                                    icon={<Eye className="h-4 w-4" />}
+                                    onClick={() =>
+                                      setPreviewQuiz({
+                                        project: projectGroup.project,
+                                        track: trackGroup.track,
+                                        quiz,
+                                      })
+                                    }
+                                  />
+                                  <IconButton
+                                    label="Editar quiz"
+                                    icon={<Pencil className="h-4 w-4" />}
+                                    onClick={() => {
+                                      setEditingQuiz({
+                                        project: projectGroup.project,
+                                        track: trackGroup.track,
+                                        quiz,
+                                      })
+                                      setQuizForm({
+                                        projectTemplateId: projectGroup.project.id,
+                                        trackSceneTemplateId: trackGroup.track.id,
+                                        title: quiz.title,
+                                        description: quiz.description || '',
+                                        questions: quiz.questionsJson || [],
+                                        maxAttempts: quiz.maxAttempts,
+                                        passingScore: quiz.passingScore,
+                                      })
+                                    }}
+                                  />
                                   <IconButton
                                     label="Desativar quiz"
                                     icon={<Trash2 className="h-4 w-4" />}
@@ -1528,20 +1720,173 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       )}
 
       <Modal
-        isOpen={mode === 'materials' && createMaterialOpen}
-        onClose={() => setCreateMaterialOpen(false)}
-        title="Adicionar material"
+        isOpen={mode === 'tracks' && !!previewTrack}
+        onClose={() => setPreviewTrack(null)}
+        title="Dados da faixa"
+        footer={<Button variant="secondary" onClick={() => setPreviewTrack(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <DetailFieldList
+            items={[
+              { label: 'Projeto', value: previewTrack?.project.name ?? '—' },
+              { label: 'Faixa', value: previewTrack?.track.title ?? '—' },
+              { label: 'Artista', value: previewTrack?.track.artist || '—' },
+              { label: 'Versão', value: previewTrack ? `v${previewTrack.track.version}` : '—' },
+              { label: 'Atualizado em', value: previewTrack ? formatDate(previewTrack.track.updatedAt) : '—' },
+            ]}
+          />
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Descrição</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-text">
+              {previewTrack?.track.description?.trim() || 'Sem descrição.'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Instrução técnica</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-text">
+              {previewTrack?.track.technicalInstruction?.trim() || 'Sem instrução técnica.'}
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={mode === 'materials' && !!previewMaterial}
+        onClose={() => setPreviewMaterial(null)}
+        title="Dados do material"
+        footer={<Button variant="secondary" onClick={() => setPreviewMaterial(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <DetailFieldList
+            items={[
+              { label: 'Projeto', value: previewMaterial?.project.name ?? '—' },
+              { label: 'Faixa', value: previewMaterial?.track.title ?? '—' },
+              { label: 'Título', value: previewMaterial?.material.title ?? '—' },
+              { label: 'Ordem', value: previewMaterial ? String(previewMaterial.material.order) : '—' },
+              { label: 'Atualizado em', value: previewMaterial ? formatDate(previewMaterial.material.updatedAt) : '—' },
+            ]}
+          />
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Tipo</p>
+            <div className="mt-1">
+              {previewMaterial ? (
+                <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[previewMaterial.material.type]}>
+                  {TRACK_MATERIAL_TYPE_LABELS[previewMaterial.material.type]}
+                </Badge>
+              ) : (
+                <span className="text-muted">—</span>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Conteúdo (URL/chave)</p>
+            <p className="mt-1 break-all text-sm text-text">
+              {previewMaterial?.material.defaultContentUrl?.trim() || 'Não informado.'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Conteúdo em texto</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-text">
+              {previewMaterial?.material.defaultTextContent?.trim() || 'Não informado.'}
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={mode === 'study-tracks' && !!previewStudyTrack}
+        onClose={() => setPreviewStudyTrack(null)}
+        title="Dados da trilha"
+        footer={<Button variant="secondary" onClick={() => setPreviewStudyTrack(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <DetailFieldList
+            items={[
+              { label: 'Projeto', value: previewStudyTrack?.project.name ?? '—' },
+              { label: 'Faixa', value: previewStudyTrack?.track.title ?? '—' },
+              { label: 'Trilha', value: previewStudyTrack?.studyTrack.title ?? '—' },
+              { label: 'Ordem', value: previewStudyTrack ? String(previewStudyTrack.studyTrack.order) : '—' },
+              { label: 'Atualizado em', value: previewStudyTrack ? formatDate(previewStudyTrack.studyTrack.updatedAt) : '—' },
+            ]}
+          />
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Descrição</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-text">
+              {previewStudyTrack?.studyTrack.description?.trim() || 'Sem descrição.'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Notas técnicas</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-text">
+              {previewStudyTrack?.studyTrack.technicalNotes?.trim() || 'Sem notas técnicas.'}
+            </p>
+          </div>
+          <DetailFieldList
+            items={[
+              {
+                label: 'Tipo de arquivo',
+                value: previewStudyTrack?.studyTrack.attachmentType
+                  ? STUDY_TRACK_ATTACHMENT_TYPE_LABELS[previewStudyTrack.studyTrack.attachmentType]
+                  : 'Não enviado.',
+              },
+              { label: 'Arquivo', value: previewStudyTrack?.studyTrack.attachmentUrl?.trim() || 'Não enviado.' },
+            ]}
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={mode === 'press-quizzes' && !!previewQuiz}
+        onClose={() => setPreviewQuiz(null)}
+        title="Dados do quiz"
+        footer={<Button variant="secondary" onClick={() => setPreviewQuiz(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <DetailFieldList
+            items={[
+              { label: 'Projeto', value: previewQuiz?.project.name ?? '—' },
+              { label: 'Faixa', value: previewQuiz?.track.title ?? '—' },
+              { label: 'Quiz', value: previewQuiz?.quiz.title ?? '—' },
+              { label: 'Questões', value: previewQuiz ? String(previewQuiz.quiz.questionsJson?.length ?? 0) : '—' },
+              { label: 'Tentativas máximas', value: previewQuiz ? String(previewQuiz.quiz.maxAttempts) : '—' },
+              { label: 'Nota mínima', value: previewQuiz ? `${previewQuiz.quiz.passingScore}%` : '—' },
+              { label: 'Versão', value: previewQuiz ? `v${previewQuiz.quiz.version}` : '—' },
+              { label: 'Atualizado em', value: previewQuiz ? formatDate(previewQuiz.quiz.updatedAt) : '—' },
+            ]}
+          />
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Descrição</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-text">
+              {previewQuiz?.quiz.description?.trim() || 'Sem descrição.'}
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={mode === 'materials' && (createMaterialOpen || !!editingMaterial)}
+        onClose={() => {
+          setCreateMaterialOpen(false)
+          setEditingMaterial(null)
+        }}
+        title={editingMaterial ? 'Editar material' : 'Adicionar material'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setCreateMaterialOpen(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setCreateMaterialOpen(false)
+                setEditingMaterial(null)
+              }}
+            >
               Cancelar
             </Button>
             <Button
-              onClick={() => createMaterialMutation.mutate()}
-              isLoading={createMaterialMutation.isPending}
+              onClick={() => (editingMaterial ? updateMaterialMutation.mutate() : createMaterialMutation.mutate())}
+              isLoading={createMaterialMutation.isPending || updateMaterialMutation.isPending}
               disabled={!materialForm.trackSceneTemplateId || !materialForm.title.trim()}
             >
-              Cadastrar
+              {editingMaterial ? 'Salvar alterações' : 'Cadastrar'}
             </Button>
           </>
         }
@@ -1598,20 +1943,31 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       </Modal>
 
       <Modal
-        isOpen={mode === 'study-tracks' && createStudyTrackOpen}
-        onClose={() => setCreateStudyTrackOpen(false)}
-        title="Adicionar trilha"
+        isOpen={mode === 'study-tracks' && (createStudyTrackOpen || !!editingStudyTrack)}
+        onClose={() => {
+          setCreateStudyTrackOpen(false)
+          setEditingStudyTrack(null)
+          setIsStudyTrackAttachmentUploading(false)
+        }}
+        title={editingStudyTrack ? 'Editar trilha' : 'Adicionar trilha'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setCreateStudyTrackOpen(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setCreateStudyTrackOpen(false)
+                setEditingStudyTrack(null)
+                setIsStudyTrackAttachmentUploading(false)
+              }}
+            >
               Cancelar
             </Button>
             <Button
-              onClick={() => createStudyTrackMutation.mutate()}
-              isLoading={createStudyTrackMutation.isPending}
-              disabled={!studyTrackForm.trackSceneTemplateId || !studyTrackForm.title.trim()}
+              onClick={() => (editingStudyTrack ? updateStudyTrackMutation.mutate() : createStudyTrackMutation.mutate())}
+              isLoading={createStudyTrackMutation.isPending || updateStudyTrackMutation.isPending}
+              disabled={!studyTrackForm.trackSceneTemplateId || !studyTrackForm.title.trim() || isStudyTrackAttachmentUploading}
             >
-              Cadastrar
+              {isStudyTrackAttachmentUploading ? 'Aguardando upload...' : editingStudyTrack ? 'Salvar alterações' : 'Cadastrar'}
             </Button>
           </>
         }
@@ -1653,24 +2009,57 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
             value={studyTrackForm.technicalNotes}
             onChange={(event) => setStudyTrackForm((prev) => ({ ...prev, technicalNotes: event.target.value }))}
           />
+          <Select
+            id="studyTrackAttachmentType"
+            label="Tipo de arquivo"
+            value={studyTrackForm.attachmentType}
+            onChange={(event) =>
+              setStudyTrackForm((prev) => ({
+                ...prev,
+                attachmentType: event.target.value as StudyTrackAttachmentType,
+                attachmentUrl: '',
+              }))
+            }
+            options={Object.entries(STUDY_TRACK_ATTACHMENT_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
+          />
+          <FileUpload
+            fileType={STUDY_TRACK_ATTACHMENT_FILE_TYPE[studyTrackForm.attachmentType]}
+            entityType="study-track-template"
+            entityId={editingStudyTrack?.studyTrack.id || 'draft'}
+            currentValue={studyTrackForm.attachmentUrl || null}
+            onUploadComplete={(key) => setStudyTrackForm((prev) => ({ ...prev, attachmentUrl: key }))}
+            onUploadingChange={setIsStudyTrackAttachmentUploading}
+            onRemove={() => setStudyTrackForm((prev) => ({ ...prev, attachmentUrl: '' }))}
+            label={`Arquivo da trilha (${STUDY_TRACK_ATTACHMENT_TYPE_LABELS[studyTrackForm.attachmentType]})`}
+            compact
+          />
         </div>
       </Modal>
 
       <Modal
-        isOpen={mode === 'press-quizzes' && createQuizOpen}
-        onClose={() => setCreateQuizOpen(false)}
-        title="Adicionar quiz"
+        isOpen={mode === 'press-quizzes' && (createQuizOpen || !!editingQuiz)}
+        onClose={() => {
+          setCreateQuizOpen(false)
+          setEditingQuiz(null)
+        }}
+        title={editingQuiz ? 'Editar quiz' : 'Adicionar quiz'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setCreateQuizOpen(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setCreateQuizOpen(false)
+                setEditingQuiz(null)
+              }}
+            >
               Cancelar
             </Button>
             <Button
-              onClick={() => createQuizMutation.mutate()}
-              isLoading={createQuizMutation.isPending}
+              onClick={() => (editingQuiz ? updateQuizMutation.mutate() : createQuizMutation.mutate())}
+              isLoading={createQuizMutation.isPending || updateQuizMutation.isPending}
               disabled={!quizForm.trackSceneTemplateId || !quizForm.title.trim()}
             >
-              Cadastrar
+              {editingQuiz ? 'Salvar alterações' : 'Cadastrar'}
             </Button>
           </>
         }
@@ -1706,6 +2095,66 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
             value={quizForm.description}
             onChange={(event) => setQuizForm((prev) => ({ ...prev, description: event.target.value }))}
           />
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-text">Questões</label>
+            <QuizBuilder
+              value={quizForm.questions}
+              onChange={(questions) => setQuizForm((prev) => ({ ...prev, questions }))}
+              footerActions={
+                <AIButton
+                  label="Adicionar pergunta com IA"
+                  extraInputLabel="Instruções extras (opcional)"
+                  extraInputPlaceholder="Ex.: dificuldade intermediária, foco em interpretação..."
+                  onGenerate={(userExtra) =>
+                    generateQuizQuestion({
+                      title: quizForm.title || selectedQuizTrack?.title || 'Quiz da faixa',
+                      description: quizForm.description || undefined,
+                      project: selectedQuizProject
+                        ? {
+                            name: selectedQuizProject.name,
+                            type: selectedQuizProject.type,
+                            description: selectedQuizProject.description,
+                          }
+                        : undefined,
+                      track: selectedQuizTrack
+                        ? {
+                            title: selectedQuizTrack.title,
+                            artist: selectedQuizTrack.artist,
+                            description: selectedQuizTrack.description,
+                            technicalInstruction: selectedQuizTrack.technicalInstruction,
+                            lyrics: selectedQuizTrack.lyrics,
+                          }
+                        : undefined,
+                      existingQuestions: quizForm.questions,
+                      userExtra,
+                    })
+                  }
+                  onAccept={(raw) => {
+                    try {
+                      const parsed = JSON.parse(raw)
+                      const candidate = Array.isArray(parsed) ? parsed[0] : parsed
+                      const question = String(candidate?.question ?? '').trim()
+                      const optionsRaw = Array.isArray(candidate?.options) ? candidate.options : []
+                      const options = optionsRaw.slice(0, 4).map((opt: unknown) => String(opt ?? '').trim())
+                      const correctIndex = Number(candidate?.correctIndex)
+
+                      if (!question || options.length !== 4 || options.some((opt: string) => !opt) || Number.isNaN(correctIndex) || correctIndex < 0 || correctIndex > 3) {
+                        throw new Error('Formato inválido')
+                      }
+
+                      setQuizForm((prev) => ({
+                        ...prev,
+                        questions: [...prev.questions, { question, options, correctIndex }],
+                      }))
+                      toast.success('Pergunta adicionada com IA.')
+                    } catch {
+                      toast.error('A IA retornou um formato inválido para pergunta.')
+                    }
+                  }}
+                />
+              }
+            />
+          </div>
           <Input
             id="quizMaxAttempts"
             label="Máximo de tentativas"

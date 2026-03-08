@@ -39,12 +39,12 @@ export async function restoreDailyMissionTemplate(idOrSlug: string) {
   return data
 }
 
-export async function createDailyMissionTemplate(payload: { courseId: string; title: string; videoUrl?: string }) {
+export async function createDailyMissionTemplate(payload: { courseId: string; title: string; videoKey?: string }) {
   const { data } = await api.post<DailyMissionTemplate>('/daily-mission-templates', payload)
   return data
 }
 
-export async function updateDailyMissionTemplate(idOrSlug: string, payload: { title?: string; videoUrl?: string }) {
+export async function updateDailyMissionTemplate(idOrSlug: string, payload: { title?: string; videoKey?: string }) {
   const { data } = await api.patch<DailyMissionTemplate>(`/daily-mission-templates/${idOrSlug}`, payload)
   return data
 }
@@ -55,6 +55,11 @@ export async function deleteDailyMissionTemplate(idOrSlug: string) {
 
 export async function publishDailyMissionTemplate(idOrSlug: string) {
   const { data } = await api.patch(`/daily-mission-templates/${idOrSlug}/publish`)
+  return data
+}
+
+export async function unpublishDailyMissionTemplate(idOrSlug: string) {
+  const { data } = await api.patch(`/daily-mission-templates/${idOrSlug}/unpublish`)
   return data
 }
 

@@ -6,6 +6,7 @@ export type ProjectType = 'ALBUM' | 'PLAY'
 export type ProjectStatus = 'DRAFT' | 'ACTIVE' | 'COMPLETED'
 export type TrackSceneStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 export type TrackMaterialType = 'PDF' | 'AUDIO' | 'VIDEO' | 'TEXT' | 'LINK'
+export type StudyTrackAttachmentType = 'VIDEO' | 'AUDIO' | 'PDF'
 export type DailyMissionTemplateStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 export type SubmissionStatus = 'PENDING' | 'PENDING_REVIEW' | 'APPROVED' | 'NEEDS_REVISION' | 'REJECTED'
 
@@ -173,9 +174,8 @@ export interface StudyTrackTemplate {
   title: string
   description: string | null
   technicalNotes: string | null
-  videoUrl: string | null
-  audioUrl: string | null
-  pdfUrl: string | null
+  attachmentType: StudyTrackAttachmentType | null
+  attachmentUrl: string | null
   order: number
   isActive: boolean
   createdAt: string
