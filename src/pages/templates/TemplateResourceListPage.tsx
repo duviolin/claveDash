@@ -14,11 +14,13 @@ import { Textarea } from '@/components/ui/Textarea'
 import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import { QuizBuilder } from '@/components/ui/QuizBuilder'
 import { AIButton } from '@/components/ui/AIButton'
-import { FileUpload } from '@/components/ui/FileUpload'
+import { FileUpload, type FileUploadFileType } from '@/components/ui/FileUpload'
+import { FilePreview } from '@/components/ui/FilePreview'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Tabs } from '@/components/ui/Tabs'
 import { Pagination } from '@/components/ui/Pagination'
+import { presignDownload } from '@/api/storage'
 import {
   createMaterialTemplate,
   createPressQuizTemplate,
@@ -154,6 +156,11 @@ const MATERIAL_TRASH_PAGE_LIMIT = 20
 const STUDY_TRACK_TRASH_PAGE_LIMIT = 20
 const QUIZ_TRASH_PAGE_LIMIT = 20
 const TEMPLATE_FILTERS_STORAGE_KEY = 'template-resource-filters'
+const MATERIAL_FILE_TYPE_BY_CONTENT_TYPE: Partial<Record<TrackMaterialTemplate['type'], FileUploadFileType>> = {
+  PDF: 'materials',
+  AUDIO: 'materials',
+  VIDEO: 'materials',
+}
 
 interface StoredTemplateFilters {
   projectSlug: string
@@ -233,6 +240,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   const [editingMaterial, setEditingMaterial] = useState<MaterialRow | null>(null)
   const [deleteTargetMaterial, setDeleteTargetMaterial] = useState<MaterialRow | null>(null)
   const [restoreTargetMaterial, setRestoreTargetMaterial] = useState<MaterialTrashRow | null>(null)
+  const [isMaterialContentUploading, setIsMaterialContentUploading] = useState(false)
   const [editingStudyTrack, setEditingStudyTrack] = useState<StudyTrackRow | null>(null)
   const [isStudyTrackAttachmentUploading, setIsStudyTrackAttachmentUploading] = useState(false)
   const [deleteTargetStudyTrack, setDeleteTargetStudyTrack] = useState<StudyTrackRow | null>(null)
@@ -274,6 +282,32 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
     questions: [] as QuizQuestion[],
     maxAttempts: 3,
     passingScore: 70,
+  })
+  const previewMaterialContentKey = previewMaterial?.material.defaultContentUrl?.trim() ?? ''
+  const isDirectMaterialContentUrl = /^https?:\/\//i.test(previewMaterialContentKey)
+  const { data: previewMaterialContentUrl, isLoading: isLoadingPreviewMaterialContent } = useQuery({
+    queryKey: ['track-material-template-preview-content', previewMaterial?.material.id, previewMaterialContentKey],
+    queryFn: async () => {
+      if (!previewMaterialContentKey) return null
+      if (isDirectMaterialContentUrl) return previewMaterialContentKey
+      const { downloadUrl } = await presignDownload(previewMaterialContentKey)
+      return downloadUrl
+    },
+    enabled: Boolean(previewMaterial?.material.defaultContentUrl?.trim()),
+    staleTime: 5 * 60 * 1000,
+  })
+  const studyTrackAttachmentKey = previewStudyTrack?.studyTrack.attachmentUrl?.trim() ?? ''
+  const isDirectAttachmentUrl = /^https?:\/\//i.test(studyTrackAttachmentKey)
+  const { data: previewStudyTrackAttachmentUrl, isLoading: isLoadingPreviewStudyTrackAttachment } = useQuery({
+    queryKey: ['study-track-template-preview-attachment', previewStudyTrack?.studyTrack.id, studyTrackAttachmentKey],
+    queryFn: async () => {
+      if (!studyTrackAttachmentKey) return null
+      if (isDirectAttachmentUrl) return studyTrackAttachmentKey
+      const { downloadUrl } = await presignDownload(studyTrackAttachmentKey)
+      return downloadUrl
+    },
+    enabled: Boolean(previewStudyTrack?.studyTrack.attachmentUrl?.trim()),
+    staleTime: 5 * 60 * 1000,
   })
   const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
 
@@ -708,13 +742,24 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       createMaterialTemplate(materialForm.trackSceneTemplateId, {
         type: materialForm.type,
         title: materialForm.title,
-        defaultContentUrl: materialForm.defaultContentUrl.trim() ? materialForm.defaultContentUrl : undefined,
-        defaultTextContent: materialForm.defaultTextContent.trim() ? materialForm.defaultTextContent : undefined,
+        defaultContentUrl:
+          materialForm.type === 'TEXT'
+            ? undefined
+            : materialForm.defaultContentUrl.trim()
+              ? materialForm.defaultContentUrl
+              : undefined,
+        defaultTextContent:
+          materialForm.type === 'TEXT'
+            ? materialForm.defaultTextContent.trim()
+              ? materialForm.defaultTextContent
+              : undefined
+            : undefined,
       }),
     onSuccess: () => {
       toast.success('Material cadastrado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-materials'] })
       setCreateMaterialOpen(false)
+      setIsMaterialContentUploading(false)
       setMaterialForm({
         projectTemplateId: selectedProject?.id ?? '',
         trackSceneTemplateId: '',
@@ -731,12 +776,23 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       updateMaterialTemplate(editingMaterial!.material.id, {
         type: materialForm.type,
         title: materialForm.title,
-        defaultContentUrl: materialForm.defaultContentUrl.trim() ? materialForm.defaultContentUrl : null,
-        defaultTextContent: materialForm.defaultTextContent.trim() ? materialForm.defaultTextContent : null,
+        defaultContentUrl:
+          materialForm.type === 'TEXT'
+            ? null
+            : materialForm.defaultContentUrl.trim()
+              ? materialForm.defaultContentUrl
+              : null,
+        defaultTextContent:
+          materialForm.type === 'TEXT'
+            ? materialForm.defaultTextContent.trim()
+              ? materialForm.defaultTextContent
+              : null
+            : null,
       }),
     onSuccess: () => {
       toast.success('Material atualizado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-materials'] })
+      setIsMaterialContentUploading(false)
       setEditingMaterial(null)
     },
   })
@@ -1160,6 +1216,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
           {mode === 'materials' && !isMaterialsTrash && (
             <Button
               onClick={() => {
+                setIsMaterialContentUploading(false)
                 setMaterialForm({
                   projectTemplateId: selectedProject?.id ?? selectedTrackRow?.project.id ?? '',
                   trackSceneTemplateId: selectedTrackRow?.track.id ?? '',
@@ -1396,6 +1453,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                                     label="Editar material"
                                     icon={<Pencil className="h-4 w-4" />}
                                     onClick={() => {
+                                      setIsMaterialContentUploading(false)
                                       setEditingMaterial({
                                         project: projectGroup.project,
                                         track: trackGroup.track,
@@ -1778,18 +1836,31 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
               )}
             </div>
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Conteúdo (URL/chave)</p>
-            <p className="mt-1 break-all text-sm text-text">
-              {previewMaterial?.material.defaultContentUrl?.trim() || 'Não informado.'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-wide text-muted">Conteúdo em texto</p>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-text">
-              {previewMaterial?.material.defaultTextContent?.trim() || 'Não informado.'}
-            </p>
-          </div>
+          {previewMaterial?.material.type === 'TEXT' ? (
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted">Conteúdo em texto</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-text">
+                {previewMaterial?.material.defaultTextContent?.trim() || 'Não informado.'}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted">Conteúdo</p>
+              {!previewMaterialContentKey ? (
+                <p className="mt-1 text-sm text-text">Não informado.</p>
+              ) : isLoadingPreviewMaterialContent ? (
+                <p className="mt-1 text-sm text-muted">Carregando prévia...</p>
+              ) : (
+                <div className="mt-2">
+                  <FilePreview
+                    fileName={previewMaterialContentKey.split('/').pop() ?? 'arquivo'}
+                    sourceUrl={previewMaterialContentUrl ?? null}
+                    compact
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Modal>
 
@@ -1829,9 +1900,24 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                   ? STUDY_TRACK_ATTACHMENT_TYPE_LABELS[previewStudyTrack.studyTrack.attachmentType]
                   : 'Não enviado.',
               },
-              { label: 'Arquivo', value: previewStudyTrack?.studyTrack.attachmentUrl?.trim() || 'Não enviado.' },
             ]}
           />
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted">Arquivo</p>
+            {!studyTrackAttachmentKey ? (
+              <p className="mt-1 text-sm text-text">Não enviado.</p>
+            ) : isLoadingPreviewStudyTrackAttachment ? (
+              <p className="mt-1 text-sm text-muted">Carregando prévia...</p>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <FilePreview
+                  fileName={studyTrackAttachmentKey.split('/').pop() ?? 'arquivo'}
+                  sourceUrl={previewStudyTrackAttachmentUrl ?? null}
+                  compact
+                />
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
 
@@ -1868,6 +1954,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
         onClose={() => {
           setCreateMaterialOpen(false)
           setEditingMaterial(null)
+          setIsMaterialContentUploading(false)
         }}
         title={editingMaterial ? 'Editar material' : 'Adicionar material'}
         footer={
@@ -1877,6 +1964,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
               onClick={() => {
                 setCreateMaterialOpen(false)
                 setEditingMaterial(null)
+                setIsMaterialContentUploading(false)
               }}
             >
               Cancelar
@@ -1884,9 +1972,9 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
             <Button
               onClick={() => (editingMaterial ? updateMaterialMutation.mutate() : createMaterialMutation.mutate())}
               isLoading={createMaterialMutation.isPending || updateMaterialMutation.isPending}
-              disabled={!materialForm.trackSceneTemplateId || !materialForm.title.trim()}
+              disabled={!materialForm.trackSceneTemplateId || !materialForm.title.trim() || isMaterialContentUploading}
             >
-              {editingMaterial ? 'Salvar alterações' : 'Cadastrar'}
+              {isMaterialContentUploading ? 'Aguardando upload...' : editingMaterial ? 'Salvar alterações' : 'Cadastrar'}
             </Button>
           </>
         }
@@ -1913,7 +2001,15 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
             id="materialType"
             label="Tipo"
             value={materialForm.type}
-            onChange={(event) => setMaterialForm((prev) => ({ ...prev, type: event.target.value as TrackMaterialTemplate['type'] }))}
+            onChange={(event) => {
+              const nextType = event.target.value as TrackMaterialTemplate['type']
+              setMaterialForm((prev) => ({
+                ...prev,
+                type: nextType,
+                defaultContentUrl: nextType === 'TEXT' ? '' : prev.defaultContentUrl,
+                defaultTextContent: nextType === 'TEXT' ? prev.defaultTextContent : '',
+              }))
+            }}
             options={Object.entries(TRACK_MATERIAL_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
           />
           <Input
@@ -1930,13 +2026,25 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
               value={materialForm.defaultTextContent}
               onChange={(event) => setMaterialForm((prev) => ({ ...prev, defaultTextContent: event.target.value }))}
             />
-          ) : (
+          ) : materialForm.type === 'LINK' ? (
             <Input
               id="materialContentUrl"
-              label="Conteúdo (URL ou key)"
+              label="Conteúdo (URL)"
               value={materialForm.defaultContentUrl}
               onChange={(event) => setMaterialForm((prev) => ({ ...prev, defaultContentUrl: event.target.value }))}
-              placeholder={materialForm.type === 'LINK' ? 'https://...' : 'chave do arquivo'}
+              placeholder="https://..."
+            />
+          ) : (
+            <FileUpload
+              fileType={MATERIAL_FILE_TYPE_BY_CONTENT_TYPE[materialForm.type] ?? 'materials'}
+              entityType="track-material-template"
+              entityId={editingMaterial?.material.id || 'draft'}
+              currentValue={materialForm.defaultContentUrl || null}
+              onUploadComplete={(key) => setMaterialForm((prev) => ({ ...prev, defaultContentUrl: key }))}
+              onUploadingChange={setIsMaterialContentUploading}
+              onRemove={() => setMaterialForm((prev) => ({ ...prev, defaultContentUrl: '' }))}
+              label={`Arquivo do material (${TRACK_MATERIAL_TYPE_LABELS[materialForm.type]})`}
+              compact
             />
           )}
         </div>

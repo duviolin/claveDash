@@ -97,6 +97,19 @@ src/
 
 Esse guia define os tokens, componentes base reutilizáveis e padrões obrigatórios de list pages (Ativos/Lixeira, delete/restore e tratamento de 409).
 
+## Documentação de planejamento (atual)
+
+- Índice de documentação: `docs/README.md`
+- Visão de produto: `docs/PRODUCT_VISION.md`
+- Mapa de capacidade atual: `docs/CAPABILITY_MAP_FRONT_BACK.md`
+- Gaps prioritários: `docs/GAPS_PRIORITARIOS_FRONT_BACK.md`
+- Origem do dado e integração: `docs/DASHBOARD_DATA_ORIGEM_E_INTEGRACAO.md`
+- Gaps de instanciação: `docs/INSTANCIACAO_GAPS_DASHBOARD.md`
+- Baby steps para execução: `docs/DASHBOARD_BABY_STEPS.md`
+- Roadmap integrado (90 dias): `docs/ROADMAP.md`
+- Plano de execução (Agora/Proximo/Depois): `docs/EXECUTION_PLAN.md`
+- Histórico de mudanças de planejamento: `docs/CHANGELOG.md`
+
 ## Aptidão de Publicação (Project Template Readiness)
 
 Na tela de detalhe de template (`/templates/projects/:slug`) existe um card de aptidão que mostra:
