@@ -6,7 +6,7 @@ Objetivo: permitir decisao rapida e execucao do dashboard sem ruido.
 ## Onde estamos
 
 - **Pronto**: autenticacao, CRUD administrativo, templates, storage e readiness.
-- **Parcial**: instanciacao (consistencia de regra e UX operacional) e qualidade de release.
+- **Parcial**: instanciacao (consistencia de regra e UX operacional) e operacao diaria.
 - **Risco atual**: excesso de material historico atrasa decisao do que fazer agora.
 
 ## Capacidade consolidada (front + back)
@@ -19,7 +19,7 @@ Objetivo: permitir decisao rapida e execucao do dashboard sem ruido.
 | Instanciacao de projetos | Parcial |
 | Storage e midia | Pronto |
 | Readiness de publicacao | Pronto |
-| Qualidade tecnica (testes e CI/CD) | Parcial |
+| Operacao diaria sem retrabalho | Parcial |
 | Governanca documental para dashboard | Parcial |
 
 ## Gaps prioritarios

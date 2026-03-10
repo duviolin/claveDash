@@ -48,13 +48,11 @@ Use este modelo para qualquer epico do roadmap antes de iniciar implementacao.
 
 - [ ] Sem `any`; handlers com `error: unknown`.
 - [ ] Contratos de API documentados e atualizados.
-- [ ] Testes minimos executados (listar suite).
 - [ ] Sem regressao nas rotas/fluxos criticos.
 
 ## Evidencias obrigatorias
 
 - PR(s):
-- Testes executados:
 - Prints/gravacoes:
 - Docs atualizadas:
 

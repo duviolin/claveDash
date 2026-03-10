@@ -10,7 +10,7 @@ Objetivo: acompanhar execucao por fase em um quadro unico com dono, dependencia,
 | FASE 1 - Fundacao admin e contrato base | Concluida | 100% | Back Lead + Front Lead | ambos |
 | FASE 2 - Fluxo de instanciacao consistente | Em Progresso | 70% | Back Lead + Front Lead | ambos |
 | FASE 3 - Operacao diaria de instancias | Em Progresso | 30% | Back Lead + Front Lead | ambos |
-| FASE 4 - Qualidade de release e otimizacoes | Planejado | 0% | Tech Lead | ambos |
+| FASE 4 - Expansao funcional | Planejado | 0% | Tech Lead | ambos |
 
 ## Quadro de Execucao por Fase
 
@@ -18,8 +18,8 @@ Objetivo: acompanhar execucao por fase em um quadro unico com dono, dependencia,
 
 | ID | Entrega | Repo | Dono | Dependencia | Criterio de pronto | Evidencias |
 |---|---|---|---|---|---|---|
-| F2-01 (E1-01) | Validar coerencia `templateId` x `seasonId` x `classId` na instanciacao | back | Back Lead | Regras de dominio de curso/semestre/turma | Combinacao inconsistente retorna 409 com `code` e `details` | PR, teste de integracao, log de erro |
-| F2-02 (E1-02) | Copiar flags da faixa-template para faixa-instanciada (`demoRequired`, `pressQuizRequired`) | back | Back Lead | F2-01 | Instancia replica configuracao do template sem hardcode | PR, teste de integracao |
+| F2-01 (E1-01) | Validar coerencia `templateId` x `seasonId` x `classId` na instanciacao | back | Back Lead | Regras de dominio de curso/semestre/turma | Combinacao inconsistente retorna 409 com `code` e `details` | PR, log de erro |
+| F2-02 (E1-02) | Copiar flags da faixa-template para faixa-instanciada (`demoRequired`, `pressQuizRequired`) | back | Back Lead | F2-01 | Instancia replica configuracao do template sem hardcode | PR, demonstracao funcional |
 | F2-03 (E1-03) | Guiar formulario de instanciacao por contexto e bloquear submit invalido | front | Front Lead | F2-01 | Usuario nao consegue selecionar combinacao invalida nem enviar formulario incompleto | PR, gravacao do fluxo |
 | F2-04 (E1-04) | Validar fluxo ponta a ponta `instanciar -> editar -> publicar` | ambos | Front + Back | F2-01 a F2-03 | Fluxo opera sem ajuste manual | checklist de homologacao |
 
@@ -31,14 +31,14 @@ Objetivo: acompanhar execucao por fase em um quadro unico com dono, dependencia,
 | F3-02 (E2-02) | Melhorar payload de listagem de projetos instanciados para tela admin | back | Back Lead | F2-04 | Lista retorna contexto minimo (`template`, `season`, `class`) | PR, contrato atualizado |
 | F3-03 (E2-03) | Exibir contexto operacional na tela de instancias | front | Front Lead | F3-02 | Tabela mostra contexto sem consulta manual | PR, print |
 
-### FASE 4 - Qualidade de release e otimizacoes
+### FASE 4 - Expansao funcional
 
 | ID | Entrega | Repo | Dono | Dependencia | Criterio de pronto | Evidencias |
 |---|---|---|---|---|---|---|
-| F4-01 (E3-01) | Adicionar script de `typecheck` no front | front | Front Lead | nenhum | `npm run typecheck` operacional | PR, log |
-| F4-02 (E3-02) | Criar baseline de testes criticos no front para fluxo de instancias | front | Front Lead | F2-04 | Teste cobre selecao guiada e bloqueio de submit | PR, execucao local |
-| F4-03 (E3-03) | Pipeline minima do front (`lint`, `typecheck`, testes criticos) | front | Tech Lead | F4-01 e F4-02 | PR bloqueia merge quando fluxo critico quebra | workflow + status checks |
-| F4-04 (E3-04) | Pipeline minima do back (`build`, testes criticos) | back | Tech Lead | F2 e F3 estaveis | Regressao critica bloqueia merge | workflow + status checks |
+| F4-01 (E4-01) | Refinar UX da tela de instancias (filtros, estados e mensagens) | front | Front Lead | F3-03 | Operacao diaria mais direta e sem ambiguidade visual | PR, gravacao curta |
+| F4-02 (E4-02) | Melhorar performance de listagens e filtros mais usados | front | Front Lead | F3-03 | Tempo de resposta percebido reduzido em telas criticas | PR, comparativo antes/depois |
+| F4-03 (E4-03) | Evoluir payload de contexto para reduzir chamadas redundantes | back | Back Lead | F3-02 | Front exibe contexto com menos roundtrips | PR, contrato atualizado |
+| F4-04 (E4-04) | Consolidar backlog funcional complementar do dashboard | ambos | Produto + Leads | F4-01 a F4-03 | Lista priorizada pronta para proxima janela | registro no board |
 
 ## Regra Obrigatoria por Tarefa
 

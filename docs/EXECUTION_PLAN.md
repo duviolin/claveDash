@@ -10,7 +10,7 @@ Progresso Total: ~75% concluido
 - FASE 1 - Fundacao admin e contrato base: 100% (concluida)
 - FASE 2 - Fluxo de instanciacao consistente: 70% (em progresso)
 - FASE 3 - Operacao diaria de instancias: 30% (em progresso)
-- FASE 4 - Qualidade de release e otimizacoes: 0% (planejada)
+- FASE 4 - Expansao funcional: 0% (planejada)
 
 ## Execucao Tatica por Fase
 
@@ -56,16 +56,15 @@ Preparacao em andamento:
 Dependencias:
 - Fechamento de E1-04 para estabilizar fluxo base.
 
-### FASE 4 - Qualidade de release e otimizacoes (0%)
+### FASE 4 - Expansao funcional (0%)
 
 Objetivo:
-Criar baseline de qualidade para proteger fluxo critico.
+Expandir funcionalidades apos estabilizar o fluxo operacional principal.
 
 Planejado:
-- E3-01: script de `typecheck` no front.
-- E3-02: baseline de testes criticos no front.
-- E3-03: pipeline minima front.
-- E3-04: pipeline minima back.
+- E4-01: melhorias de UX em fluxos administrativos de alta frequencia.
+- E4-02: otimizar performance em listagens e filtros mais usados.
+- E4-03: evoluir funcionalidades complementares fora do fluxo critico.
 
 Dependencias:
 - Fases 2 e 3 com fluxo operacional validado.
@@ -86,9 +85,9 @@ Dependencias:
 
 ### Onda 3 - Inicio da Fase 4
 
-- ativar `typecheck` e baseline de testes criticos;
-- publicar pipeline minima front e back;
-- bloquear merge quando fluxo critico quebrar.
+- iniciar melhorias de UX com maior impacto operacional;
+- otimizar performance de listagens mais usadas;
+- planejar backlog funcional complementar.
 
 ## Prioridades de Curto Prazo
 
@@ -98,10 +97,9 @@ Prioridade alta (esta semana):
 
 Prioridade media (proximas 2 semanas):
 - Fechar padronizacao operacional da Fase 3.
-- Iniciar baseline tecnica da Fase 4.
+- Iniciar primeiros itens funcionais da Fase 4.
 
 Prioridade baixa (futuro):
-- Expandir cobertura de testes para fluxos adjacentes.
 - Melhorias de observabilidade e performance.
 
 ## Regra de Governanca

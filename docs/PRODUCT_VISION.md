@@ -53,23 +53,23 @@ O Clave transforma estudo artistico em jornada viva de carreira, com linguagem d
 
 - Publicar e gerenciar conteudo pedagogico com velocidade.
 - Avaliar envios e orientar alunos com contexto.
-- Ajustar criterios de qualidade/publicacao com visibilidade.
+- Ajustar criterios de publicacao com visibilidade.
 
 ### Diretor/Admin
 
-- Garantir governanca da operacao e qualidade de dados.
+- Garantir governanca da operacao e consistencia de dados.
 - Priorizar roadmap por impacto real de negocio e aprendizagem.
-- Monitorar risco tecnico (contratos, testes, integridade e deploy).
+- Monitorar risco tecnico (contratos, integridade e deploy).
 
 ## Fronteira de escopo atual (MVP em operacao)
 
 - Base administrativa e academica (usuarios, escolas, cursos, semestres, turmas).
 - Base de templates e instancia (conteudo reutilizavel e execucao por turma).
-- Base de readiness e qualidade de publicacao.
+- Base de readiness de publicacao.
 - Base de gamificacao parcialmente operacional, com foco atual em fechamento da fase funcional.
 
 ## Guardrails para novas iniciativas
 
 - Nao iniciar feature sem contrato de API e criterio de aceite.
 - Nao quebrar narrativa da trilha por termos genericos de EdTech.
-- Nao abrir frente nova sem fechar backlog critico de gamificacao e qualidade.
+- Nao abrir frente nova sem fechar backlog critico de gamificacao e operacao.

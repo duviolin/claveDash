@@ -1,7 +1,7 @@
 # Roadmap - ClaveDash (Padrao por Fases)
 
 Ultima Atualizacao: 2026-03-09
-Escopo: concluir dashboard front + back com consistencia de instanciacao, operacao diaria estavel e qualidade minima de release.
+Escopo: concluir dashboard front + back com consistencia de instanciacao e operacao diaria estavel.
 
 ## Status Geral
 
@@ -10,7 +10,7 @@ Progresso Total: ~75% concluido
 - FASE 1 - Fundacao admin e contrato base: 100%
 - FASE 2 - Fluxo de instanciacao consistente: 70%
 - FASE 3 - Operacao diaria de instancias: 30%
-- FASE 4 - Qualidade de release e otimizacoes: 0%
+- FASE 4 - Expansao funcional: 0%
 
 ## FASE 1 - Fundacao admin e contrato base (100% Concluido)
 
@@ -59,20 +59,19 @@ Proximos Passos:
 - Fechar E2-01, E2-02 e E2-03 com criterio de aceite e evidencias.
 - Validar fluxo de operacao com time administrativo.
 
-## FASE 4 - Qualidade de release e otimizacoes (0% Planejado)
+## FASE 4 - Expansao funcional (0% Planejado)
 
 Objetivo:
-Elevar confiabilidade de entrega com testes e pipeline minima de protecao.
+Expandir funcionalidades apos estabilizacao da operacao diaria.
 
 Planejado:
-- Script de `typecheck` no front.
-- Baseline de testes criticos do fluxo de instancias.
-- Pipeline minima front (`lint`, `typecheck`, testes criticos).
-- Pipeline minima back (`build`, testes criticos).
+- Melhorias de performance nas telas administrativas.
+- Refinos de UX em fluxos de alta frequencia.
+- Funcionalidades complementares fora do fluxo critico atual.
 
 Proximos Passos:
-- Iniciar E3-01 e E3-02 em paralelo com fechamento final da Fase 2.
-- Subir E3-03 e E3-04 apos baseline de testes pronta.
+- Iniciar refinamentos de UX apos fechamento final da Fase 3.
+- Priorizar backlog de ganhos operacionais de maior impacto.
 
 ## Proximos Passos Imediatos
 
@@ -86,7 +85,6 @@ Prioridade Media (proximas 2 semanas):
 - Consolidar feedback visual e contexto operacional no dashboard.
 
 Prioridade Baixa (futuro):
-- Expandir testes fora do fluxo critico.
 - Evoluir observabilidade e melhorias de performance.
 
 ## Notas Importantes
@@ -98,7 +96,6 @@ O que esta funcionando:
 O que precisa atencao:
 - Fluxo de instanciacao ainda depende de fechamento de validacoes.
 - Operacao diaria precisa de padronizacao final de erros e contexto.
-- Qualidade de release ainda sem baseline completa de pipeline.
 
 Foco atual:
 - Concluir Fase 2 e acelerar Fase 3 sem perder rastreabilidade de evidencias.
@@ -110,7 +107,7 @@ Foco atual:
 | FASE 1 - Fundacao admin e contrato base | Concluido | 100% |
 | FASE 2 - Fluxo de instanciacao consistente | Em Progresso | 70% |
 | FASE 3 - Operacao diaria de instancias | Em Progresso | 30% |
-| FASE 4 - Qualidade de release e otimizacoes | Planejado | 0% |
+| FASE 4 - Expansao funcional | Planejado | 0% |
 
 Progresso Total: ~75%
 
