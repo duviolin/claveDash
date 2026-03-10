@@ -13,6 +13,8 @@ Este indice foi consolidado para decisao rapida e execucao sem ruido.
 - `RESUMO_EXECUTIVO.md` - sintese unica de capacidade e foco.
 - `EXECUTION_PLAN.md` - plano Agora/Proximo/Depois.
 - `ROADMAP.md` - direcao de 90 dias.
+- `FRONT_BACK_EXECUTION_BOARD.md` - board unico E1/E2/E3 com dono, dependencias e evidencias.
+- `QUINZENAL_REVIEW_LOG.md` - registro de revisao quinzenal com decisao do proximo bloco.
 - `DASHBOARD_DATA_ORIGEM_E_INTEGRACAO.md` - origem de dados e pontos de integracao.
 - `AUDITORIA_FRONT_BACK_ISSUES_ONLY.md` - achados tecnicos priorizados.
 - `STYLE_GUIDE.md` - padrao de Design System.

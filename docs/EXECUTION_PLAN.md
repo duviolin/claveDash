@@ -65,3 +65,5 @@ Owner sugerido: Produto + Tech Lead Front + Tech Lead Back
 - Toda sexta-feira: atualizar status deste arquivo.
 - Todo fechamento de sprint: registrar mudancas em `CHANGELOG.md`.
 - Todo epico novo deve usar `TEMPLATE_CRITERIO_ACEITE_EPICO.md`.
+- Board operacional unico: `FRONT_BACK_EXECUTION_BOARD.md`.
+- Revisao quinzenal com decisao explicita do proximo bloco: `QUINZENAL_REVIEW_LOG.md`.

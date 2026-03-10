@@ -230,9 +230,15 @@ export interface QuizQuestion {
 
 export interface Project {
   id: string
-  templateId: string
-  classId: string
-  seasonId: string
+  templateId?: string
+  classId?: string
+  seasonId?: string
+  templateName?: string
+  templateSlug?: string
+  className?: string
+  classSlug?: string
+  seasonName?: string
+  seasonSlug?: string
   name: string
   description: string | null
   coverImage: string | null
@@ -316,6 +322,8 @@ export interface DeactivationErrorDetails {
 
 export interface ApiError {
   error: string
+  code?: string
+  details?: Record<string, unknown>
 }
 
 export type ActorType = 'USER' | 'SYSTEM' | 'RULE_ENGINE'

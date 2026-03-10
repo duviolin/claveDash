@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Eye, EyeOff, Pencil } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
@@ -14,6 +14,7 @@ import { getProjectTemplateReadiness, listProjectTemplates } from '@/api/templat
 import { listClasses } from '@/api/classes'
 import { listSeasons } from '@/api/seasons'
 import { PROJECT_STATUS_LABELS, PROJECT_STATUS_VARIANT } from '@/lib/constants'
+import { getReadyTemplatesForSeason, isInstantiationSelectionComplete } from '@/lib/instanceValidation'
 import type { Project, ProjectTemplate, Season } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -33,8 +34,23 @@ export function ProjectInstancesPage() {
     enabled: !!selectedSeasonId,
   })
 
-  const { data: templates = [] } = useQuery({ queryKey: ['project-templates'], queryFn: () => listProjectTemplates() })
-  const { data: classes = [] } = useQuery({ queryKey: ['classes'], queryFn: () => listClasses() })
+  const selectedInstSeason = useMemo(
+    () => seasons.find((season) => season.id === instForm.seasonId),
+    [seasons, instForm.seasonId]
+  )
+
+  const { data: templates = [] } = useQuery({
+    queryKey: ['project-templates', selectedInstSeason?.courseId ?? ''],
+    enabled: instantiateOpen && !!selectedInstSeason,
+    queryFn: () => listProjectTemplates(selectedInstSeason?.courseId),
+  })
+
+  const { data: classes = [] } = useQuery({
+    queryKey: ['classes', instForm.seasonId],
+    enabled: instantiateOpen && !!instForm.seasonId,
+    queryFn: () => listClasses(instForm.seasonId),
+  })
+
   const { data: templateReadinessById = {} } = useQuery<Record<string, boolean>>({
     queryKey: ['project-template-readiness-for-instantiate', templates.map((t) => t.id).join('|')],
     enabled: instantiateOpen && templates.length > 0,
@@ -54,14 +70,22 @@ export function ProjectInstancesPage() {
     },
   })
 
-  const readyTemplates = templates.filter((template) => templateReadinessById[template.id])
+  const readyTemplates = useMemo(() => templates.filter((template) => templateReadinessById[template.id]), [templates, templateReadinessById])
+  const contextualReadyTemplates = useMemo(
+    () => getReadyTemplatesForSeason(templates, templateReadinessById, selectedInstSeason),
+    [templates, templateReadinessById, selectedInstSeason]
+  )
   const blockedTemplateCount = templates.length - readyTemplates.length
+  const canSubmitInstantiation = isInstantiationSelectionComplete(instForm)
 
   const instantiateMut = useMutation({
     mutationFn: () => {
       const canInstantiate = !!templateReadinessById[instForm.templateId]
       if (!canInstantiate) {
         throw new Error('O template ainda não está apto para publicação. Conclua os critérios antes de instanciar.')
+      }
+      if (!canSubmitInstantiation) {
+        throw new Error('Selecione semestre, turma e template para instanciar o projeto.')
       }
       return instantiateProject(instForm)
     },
@@ -96,6 +120,15 @@ export function ProjectInstancesPage() {
   const columns = [
     { key: 'name', header: 'Nome', render: (p: Project) => <span className="font-medium text-text">{p.name}</span> },
     { key: 'status', header: 'Status', render: (p: Project) => <Badge variant={PROJECT_STATUS_VARIANT[p.status]}>{PROJECT_STATUS_LABELS[p.status]}</Badge> },
+    {
+      key: 'context',
+      header: 'Contexto',
+      render: (p: Project) => (
+        <span className="text-xs text-muted">
+          {p.templateName ?? 'Template não informado'} | {p.className ?? 'Turma não informada'} | {p.seasonName ?? 'Semestre não informado'}
+        </span>
+      ),
+    },
     {
       key: 'visible',
       header: 'Visível',
@@ -139,17 +172,40 @@ export function ProjectInstancesPage() {
       )}
 
       <Modal isOpen={instantiateOpen} onClose={() => setInstantiateOpen(false)} title="Instanciar projeto" footer={
-        <><Button variant="secondary" onClick={() => setInstantiateOpen(false)}>Cancelar</Button><Button onClick={() => instantiateMut.mutate()} isLoading={instantiateMut.isPending}>Instanciar</Button></>
+        <><Button variant="secondary" onClick={() => setInstantiateOpen(false)}>Cancelar</Button><Button onClick={() => instantiateMut.mutate()} isLoading={instantiateMut.isPending} disabled={!canSubmitInstantiation}>Instanciar</Button></>
       }>
         <div className="space-y-4">
-          <Select id="instTemplate" label="Template" value={instForm.templateId} onChange={(e) => setInstForm({ ...instForm, templateId: e.target.value })} placeholder="Selecionar template apto..." options={readyTemplates.map((t: ProjectTemplate) => ({ value: t.id, label: t.name }))} />
+          <Select
+            id="instSeason"
+            label="Semestre"
+            value={instForm.seasonId}
+            onChange={(e) => setInstForm({ seasonId: e.target.value, classId: '', templateId: '' })}
+            placeholder="Selecionar semestre..."
+            options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))}
+          />
+          <Select
+            id="instClass"
+            label="Turma"
+            value={instForm.classId}
+            onChange={(e) => setInstForm({ ...instForm, classId: e.target.value })}
+            placeholder={instForm.seasonId ? 'Selecionar turma...' : 'Selecione um semestre antes'}
+            disabled={!instForm.seasonId}
+            options={classes.map((c: { id: string; name: string }) => ({ value: c.id, label: c.name }))}
+          />
+          <Select
+            id="instTemplate"
+            label="Template"
+            value={instForm.templateId}
+            onChange={(e) => setInstForm({ ...instForm, templateId: e.target.value })}
+            placeholder={selectedInstSeason ? 'Selecionar template apto...' : 'Selecione um semestre antes'}
+            disabled={!selectedInstSeason}
+            options={contextualReadyTemplates.map((t: ProjectTemplate) => ({ value: t.id, label: t.name }))}
+          />
           {blockedTemplateCount > 0 && (
             <p className="text-xs text-warning">
               {blockedTemplateCount} template(s) não exibido(s) por ainda não estarem aptos para publicação.
             </p>
           )}
-          <Select id="instSeason" label="Semestre" value={instForm.seasonId} onChange={(e) => setInstForm({ ...instForm, seasonId: e.target.value })} placeholder="Selecionar semestre..." options={seasons.map((s: Season) => ({ value: s.id, label: s.name }))} />
-          <Select id="instClass" label="Turma" value={instForm.classId} onChange={(e) => setInstForm({ ...instForm, classId: e.target.value })} placeholder="Selecionar turma..." options={classes.map((c: { id: string; name: string }) => ({ value: c.id, label: c.name }))} />
         </div>
       </Modal>
 

@@ -9,7 +9,9 @@
     "build": "tsc -b && vite build --mode homol",
     "build:dev": "tsc -b && vite build --mode development",
     "build:homol": "tsc -b && vite build --mode homol",
+    "typecheck": "tsc -b",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -41,6 +43,7 @@
     "tailwindcss": "^4.2.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
   }
 }

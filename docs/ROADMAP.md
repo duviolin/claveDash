@@ -1,72 +1,121 @@
-# Roadmap Integrado Clave (90 dias)
+# Roadmap - ClaveDash (Padrao por Fases)
 
-Atualizado em: 2026-03-09
-Escopo: concluir Dashboard (front + back), com foco em consistencia de dados e operacao admin.
+Ultima Atualizacao: 2026-03-09
+Escopo: concluir dashboard front + back com consistencia de instanciacao, operacao diaria estavel e qualidade minima de release.
 
-## Norte do trimestre
+## Status Geral
 
-1. Fechar instancia e operacao de projetos no Dashboard.
-2. Reduzir risco operacional com contratos claros e validacoes.
-3. Manter documentacao enxuta e orientada a execucao.
+Progresso Total: ~75% concluido
 
-## Epicos e ordem de execucao
+- FASE 1 - Fundacao admin e contrato base: 100%
+- FASE 2 - Fluxo de instanciacao consistente: 70%
+- FASE 3 - Operacao diaria de instancias: 30%
+- FASE 4 - Qualidade de release e otimizacoes: 0%
 
-## E1 - Instanciacao madura e consistente (Agora)
+## FASE 1 - Fundacao admin e contrato base (100% Concluido)
 
-Objetivo: concluir fluxo de instancia com consistencia entre template, turma e semestre.
+Objetivo:
+Ter base administrativa estavel no dashboard e contrato principal front/back funcional.
 
-Entregas:
-- Back: validacoes de coerencia de instancia.
-- Back: copia fiel de flags/configuracoes de template para instancias.
-- Front: formulario de instancia guiado por contexto (semestre/turma/template).
-- Front + Back: mensagens de erro claras para operacao admin.
+Concluido:
+- Autenticacao JWT e contexto de usuario funcionando.
+- CRUDs administrativos principais (usuarios, escolas, cursos, semestres e turmas).
+- Estrutura inicial de templates e operacao admin pronta.
+- Tratamento global de erros e padrao de integracao ativo.
 
-Criterio de pronto:
-- Fluxo instanciar -> listar -> editar -> publicar validado ponta-a-ponta.
-- Nenhuma instancia inconsistente criada por combinacao invalida.
+## FASE 2 - Fluxo de instanciacao consistente (70% Em Progresso)
 
-## E2 - Operacao de conteudo instanciado (Agora/Proximo)
+Objetivo:
+Fechar consistencia de instancia entre template, semestre e turma, reduzindo erro operacional.
 
-Objetivo: tornar manutencao de instancias previsivel e segura no dia a dia.
+Concluido:
+- Diagnostico tecnico consolidado do fluxo `instanciar -> listar -> editar -> publicar`.
+- Contratos principais mapeados para ajuste de validacao no back e UX no front.
+- Direcao de board unico E1/E2/E3 definida para execucao integrada.
 
-Entregas:
-- Back: consolidar comportamento de quiz de press na instancia.
-- Back: padronizar retorno de erro para conflitos de estado.
-- Front: melhorar feedback visual de acao e status nas telas de instancia.
+Em Progresso:
+- Validacao de coerencia `templateId` x `seasonId` x `classId`.
+- Copia fiel de flags do template para instancia.
+- Formulario guiado com bloqueio de submit invalido.
 
-Criterio de pronto:
-- Admin executa operacoes de instancia sem ambiguidade e sem retrabalho.
+Proximos Passos:
+- Fechar E1-01, E1-02 e E1-03 no board integrado.
+- Rodar validacao ponta a ponta com evidencias.
 
-## E3 - Qualidade e estabilidade do Dashboard (Proximo)
+## FASE 3 - Operacao diaria de instancias (30% Em Progresso)
 
-Objetivo: reduzir regressao nos fluxos criticos do Dashboard.
+Objetivo:
+Tornar manutencao de instancias previsivel, com mensagens claras e menos retrabalho.
 
-Entregas:
-- Back: testes de integracao para instancia e projetos.
-- Front: testes de fluxo da tela de instancias.
-- Repos: pipeline minima (lint, typecheck, testes criticos de dashboard).
+Concluido:
+- Necessidades operacionais de conflito de estado e contexto de listagem mapeadas.
 
-Criterio de pronto:
-- PR bloqueia merge quando fluxo critico de dashboard quebra.
+Em Progresso:
+- Padronizacao de erro operacional com `CONFLICT_INVALID_STATE`.
+- Evolucao do payload de listagem para trazer contexto minimo.
+- Exibicao de contexto operacional na tela de instancias.
 
-## E4 - Governanca documental enxuta (Proximo/Depois)
+Proximos Passos:
+- Fechar E2-01, E2-02 e E2-03 com criterio de aceite e evidencias.
+- Validar fluxo de operacao com time administrativo.
 
-Objetivo: manter so o essencial para execucao rapida e assertiva.
+## FASE 4 - Qualidade de release e otimizacoes (0% Planejado)
 
-Entregas:
-- Front e back com indice de docs ativos e foco de dashboard.
-- Plano de execucao semanal sincronizado.
-- Limpeza de docs historicos/depreciados.
+Objetivo:
+Elevar confiabilidade de entrega com testes e pipeline minima de protecao.
 
-Criterio de pronto:
-- Qualquer pessoa do time entende origem do dado, gaps e proximo passo em menos de 10 minutos.
+Planejado:
+- Script de `typecheck` no front.
+- Baseline de testes criticos do fluxo de instancias.
+- Pipeline minima front (`lint`, `typecheck`, testes criticos).
+- Pipeline minima back (`build`, testes criticos).
 
-## Cadencia de revisao
+Proximos Passos:
+- Iniciar E3-01 e E3-02 em paralelo com fechamento final da Fase 2.
+- Subir E3-03 e E3-04 apos baseline de testes pronta.
 
-- Semanal: revisar `EXECUTION_PLAN.md` (status, bloqueios e repriorizacao).
-- Quinzenal: revisar roadmap de epicos.
-- Mensal: revisar aderencia a narrativa de produto por trilha.
+## Proximos Passos Imediatos
 
-## Padrao obrigatorio para epicos
+Prioridade Alta (esta semana):
+- Fechar validacao de coerencia da instanciacao no back.
+- Concluir UX guiada da tela de instancias no front.
+- Validar fluxo ponta a ponta e registrar evidencias no board.
 
-Antes de iniciar qualquer epico, preencher `TEMPLATE_CRITERIO_ACEITE_EPICO.md` e anexar a evidência no card/tarefa correspondente.
+Prioridade Media (proximas 2 semanas):
+- Padronizar conflitos de estado e melhorar payload de listagem.
+- Consolidar feedback visual e contexto operacional no dashboard.
+
+Prioridade Baixa (futuro):
+- Expandir testes fora do fluxo critico.
+- Evoluir observabilidade e melhorias de performance.
+
+## Notas Importantes
+
+O que esta funcionando:
+- Base admin e autenticacao estao estaveis.
+- Estrutura de integracao front/back esta definida.
+
+O que precisa atencao:
+- Fluxo de instanciacao ainda depende de fechamento de validacoes.
+- Operacao diaria precisa de padronizacao final de erros e contexto.
+- Qualidade de release ainda sem baseline completa de pipeline.
+
+Foco atual:
+- Concluir Fase 2 e acelerar Fase 3 sem perder rastreabilidade de evidencias.
+
+## Metricas de Progresso
+
+| Fase | Status | Progresso |
+|---|---|---|
+| FASE 1 - Fundacao admin e contrato base | Concluido | 100% |
+| FASE 2 - Fluxo de instanciacao consistente | Em Progresso | 70% |
+| FASE 3 - Operacao diaria de instancias | Em Progresso | 30% |
+| FASE 4 - Qualidade de release e otimizacoes | Planejado | 0% |
+
+Progresso Total: ~75%
+
+## Links Uteis
+
+- `docs/EXECUTION_PLAN.md` - execucao tatico-operacional por fase.
+- `docs/FRONT_BACK_EXECUTION_BOARD.md` - tarefas integradas com dono, dependencia, criterio e evidencias.
+- `docs/TEMPLATE_CRITERIO_ACEITE_EPICO.md` - template obrigatorio por entrega.
