@@ -1,40 +1,53 @@
-# Board Integrado Front + Back (Dashboard)
+# Board Integrado Front + Back (Padrao por Fases)
 
 Atualizado em: 2026-03-09
-Objetivo: acompanhar E1, E2 e E3 em um único quadro com dono, dependência, critério de pronto e evidências.
+Objetivo: acompanhar execucao por fase em um quadro unico com dono, dependencia, criterio de pronto e evidencias.
 
-## Status dos épicos
+## Status Geral por Fase
 
-| Épico | Janela | Status | Dono principal | Repos |
+| Fase | Status | Progresso | Dono principal | Repos |
 |---|---|---|---|---|
-| E1 - Instanciação consistente | Agora | Em andamento | Back Lead + Front Lead | ambos |
-| E2 - Operação diária de instâncias | Agora/Próximo | Pendente | Back Lead + Front Lead | ambos |
-| E3 - Qualidade de release | Próximo | Pendente | Tech Lead | ambos |
+| FASE 1 - Fundacao admin e contrato base | Concluida | 100% | Back Lead + Front Lead | ambos |
+| FASE 2 - Fluxo de instanciacao consistente | Em Progresso | 70% | Back Lead + Front Lead | ambos |
+| FASE 3 - Operacao diaria de instancias | Em Progresso | 30% | Back Lead + Front Lead | ambos |
+| FASE 4 - Qualidade de release e otimizacoes | Planejado | 0% | Tech Lead | ambos |
 
-## Quadro único de execução
+## Quadro de Execucao por Fase
 
-| ID | Entrega | Repo | Dono | Dependência | Critério de pronto | Evidências |
+### FASE 2 - Fluxo de instanciacao consistente
+
+| ID | Entrega | Repo | Dono | Dependencia | Criterio de pronto | Evidencias |
 |---|---|---|---|---|---|---|
-| E1-01 | Validar coerência `templateId` x `seasonId` x `classId` na instanciação | back | Back Lead | Regras de domínio de curso/semestre/turma | Combinação inconsistente retorna 409 com `code` e `details` | PR, teste de integração, log de erro |
-| E1-02 | Copiar flags da faixa-template para faixa-instanciada (`demoRequired`, `pressQuizRequired`) | back | Back Lead | E1-01 | Instância replica configuração do template sem hardcode | PR, teste de integração |
-| E1-03 | Guiar formulário de instanciação por contexto e bloquear submit inválido | front | Front Lead | E1-01 | Usuário não consegue selecionar combinação inválida nem enviar formulário incompleto | PR, gravação do fluxo |
-| E1-04 | Validar fluxo ponta a ponta `instanciar -> editar -> publicar` | ambos | Front + Back | E1-01 a E1-03 | Fluxo opera sem ajuste manual | checklist homologação |
-| E2-01 | Padronizar resposta de conflito/estado no módulo de instâncias | back | Back Lead | E1-04 | Respostas de conflito usam `code: CONFLICT_INVALID_STATE` e `details` | PR, coleção de respostas |
-| E2-02 | Melhorar payload de listagem de projetos instanciados para tela admin | back | Back Lead | E1-04 | Lista retorna contexto mínimo (`template`, `season`, `class`) | PR, contrato atualizado |
-| E2-03 | Exibir contexto operacional na tela de instâncias | front | Front Lead | E2-02 | Tabela mostra contexto sem consulta manual | PR, print |
-| E3-01 | Adicionar script de `typecheck` no front | front | Front Lead | nenhum | `npm run typecheck` operacional | PR, log |
-| E3-02 | Criar baseline de testes críticos no front para fluxo de instâncias | front | Front Lead | E1-04 | Teste cobre seleção guiada e bloqueio de submit | PR, execução local |
-| E3-03 | Pipeline mínima do front (`lint`, `typecheck`, testes críticos) | front | Tech Lead | E3-01 e E3-02 | PR bloqueia merge quando fluxo crítico quebra | workflow + status checks |
-| E3-04 | Pipeline mínima do back (`build`, testes críticos) | back | Tech Lead | E1 e E2 estáveis | Regressão crítica bloqueia merge | workflow + status checks |
+| F2-01 (E1-01) | Validar coerencia `templateId` x `seasonId` x `classId` na instanciacao | back | Back Lead | Regras de dominio de curso/semestre/turma | Combinacao inconsistente retorna 409 com `code` e `details` | PR, teste de integracao, log de erro |
+| F2-02 (E1-02) | Copiar flags da faixa-template para faixa-instanciada (`demoRequired`, `pressQuizRequired`) | back | Back Lead | F2-01 | Instancia replica configuracao do template sem hardcode | PR, teste de integracao |
+| F2-03 (E1-03) | Guiar formulario de instanciacao por contexto e bloquear submit invalido | front | Front Lead | F2-01 | Usuario nao consegue selecionar combinacao invalida nem enviar formulario incompleto | PR, gravacao do fluxo |
+| F2-04 (E1-04) | Validar fluxo ponta a ponta `instanciar -> editar -> publicar` | ambos | Front + Back | F2-01 a F2-03 | Fluxo opera sem ajuste manual | checklist de homologacao |
 
-## Critério obrigatório por tarefa
+### FASE 3 - Operacao diaria de instancias
+
+| ID | Entrega | Repo | Dono | Dependencia | Criterio de pronto | Evidencias |
+|---|---|---|---|---|---|---|
+| F3-01 (E2-01) | Padronizar resposta de conflito/estado no modulo de instancias | back | Back Lead | F2-04 | Respostas de conflito usam `code: CONFLICT_INVALID_STATE` e `details` | PR, colecao de respostas |
+| F3-02 (E2-02) | Melhorar payload de listagem de projetos instanciados para tela admin | back | Back Lead | F2-04 | Lista retorna contexto minimo (`template`, `season`, `class`) | PR, contrato atualizado |
+| F3-03 (E2-03) | Exibir contexto operacional na tela de instancias | front | Front Lead | F3-02 | Tabela mostra contexto sem consulta manual | PR, print |
+
+### FASE 4 - Qualidade de release e otimizacoes
+
+| ID | Entrega | Repo | Dono | Dependencia | Criterio de pronto | Evidencias |
+|---|---|---|---|---|---|---|
+| F4-01 (E3-01) | Adicionar script de `typecheck` no front | front | Front Lead | nenhum | `npm run typecheck` operacional | PR, log |
+| F4-02 (E3-02) | Criar baseline de testes criticos no front para fluxo de instancias | front | Front Lead | F2-04 | Teste cobre selecao guiada e bloqueio de submit | PR, execucao local |
+| F4-03 (E3-03) | Pipeline minima do front (`lint`, `typecheck`, testes criticos) | front | Tech Lead | F4-01 e F4-02 | PR bloqueia merge quando fluxo critico quebra | workflow + status checks |
+| F4-04 (E3-04) | Pipeline minima do back (`build`, testes criticos) | back | Tech Lead | F2 e F3 estaveis | Regressao critica bloqueia merge | workflow + status checks |
+
+## Regra Obrigatoria por Tarefa
 
 - Toda tarefa deve ter card preenchido com base em `TEMPLATE_CRITERIO_ACEITE_EPICO.md`.
-- Sem critério de aceite e evidência, a tarefa não pode ser marcada como concluída.
-- Toda alteração de status deve refletir este board e `CHANGELOG.md`.
+- Sem criterio de aceite e evidencia, a tarefa nao pode ser marcada como concluida.
+- Toda alteracao de status deve refletir este board, `ROADMAP.md`, `EXECUTION_PLAN.md` e `CHANGELOG.md`.
 
-## Rito de acompanhamento
+## Rito de Acompanhamento
 
-- Segunda-feira: priorização e ajustes de escopo da semana.
-- Quarta-feira: checkpoint técnico com bloqueios e dependências.
-- Sexta-feira: atualização oficial de status e evidências.
+- Segunda-feira: priorizacao e ajuste de escopo da semana.
+- Quarta-feira: checkpoint tecnico com bloqueios e dependencias.
+- Sexta-feira: atualizacao oficial de status, percentual e evidencias.

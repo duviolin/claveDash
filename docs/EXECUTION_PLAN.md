@@ -1,69 +1,113 @@
-# Plano de Execucao Integrado (Agora / Proximo / Depois)
+# Plano de Execucao por Fases (Padrao Backend)
 
 Atualizado em: 2026-03-09
-Owner sugerido: Produto + Tech Lead Front + Tech Lead Back
+Owners sugeridos: Produto + Tech Lead Front + Tech Lead Back
 
-## Agora (0-30 dias)
+## Status Geral de Execucao
 
-1. Validar consistencia de instancia (`template`, `turma`, `semestre`) no back.
-2. Corrigir copia fiel de flags do template para instancia.
-3. Ajustar UX da tela de instancias (filtros guiados e bloqueio de submit invalido).
-4. Validar fluxo ponta-a-ponta: instanciar -> listar -> editar -> publicar.
+Progresso Total: ~75% concluido
 
-## Proximo (31-60 dias)
+- FASE 1 - Fundacao admin e contrato base: 100% (concluida)
+- FASE 2 - Fluxo de instanciacao consistente: 70% (em progresso)
+- FASE 3 - Operacao diaria de instancias: 30% (em progresso)
+- FASE 4 - Qualidade de release e otimizacoes: 0% (planejada)
 
-1. Consolidar regra unica de quiz de press na instancia.
-2. Criar suite minima de testes de integracao para fluxos criticos.
-3. Definir pipeline baseline (lint, typecheck e testes criticos).
-4. Revisar e padronizar erros operacionais da area administrativa.
+## Execucao Tatica por Fase
 
-## Depois (61-90 dias)
+### FASE 1 - Fundacao admin e contrato base (100%)
 
-1. Expandir cobertura de testes para fluxos adjacentes.
-2. Evoluir observabilidade operacional basica para suporte de release.
-3. Revisar backlog fora do dashboard (somente apos fechamento desta fase).
+Objetivo:
+Garantir base administrativa estavel para suportar evolucao de instancias.
 
-## Ondas de implementacao (execucao curta)
+Status:
+- Concluida.
 
-### Onda 1 - Contrato e consistencia
+Checklist de encerramento:
+- CRUDs centrais operacionais.
+- Auth e contexto de usuario estaveis.
+- Contrato principal de integracao definido.
 
-- padronizar shape de resposta e erro para endpoints criticos do dashboard;
-- corrigir tipos do front para refletir DTO real;
-- validar paginação com regra unica.
+### FASE 2 - Fluxo de instanciacao consistente (70%)
 
-### Onda 2 - Instanciacao madura
+Objetivo:
+Eliminar inconsistencias no fluxo de instancia.
 
-- fechar validacoes de coerencia de dominio;
-- remover hardcode de flags na instancia;
-- fechar regra de quiz de press (automatica ou checklist obrigatorio).
+Em execucao agora:
+- E1-01: validacao de coerencia `templateId` x `seasonId` x `classId`.
+- E1-02: copia fiel de flags do template para instancia.
+- E1-03: UX guiada e bloqueio de submit invalido.
 
-### Onda 3 - Padronizacao e reuso
+Proxima validacao:
+- E1-04: validacao ponta a ponta com evidencia.
 
-- reduzir n+1 de consultas no front em listas de templates;
-- padronizar listagem paginada nas telas administrativas;
-- centralizar tratamento de 409.
+Bloqueios esperados:
+- Alinhamento final de regras de dominio entre front e back.
 
-### Onda 4 - Limpeza final
+### FASE 3 - Operacao diaria de instancias (30%)
 
-- reduzir paginas monoliticas com extracao de hooks/componentes;
-- remover codigo morto e caminhos legados de erro.
+Objetivo:
+Padronizar operacao diaria para reduzir retrabalho.
 
-## Quadro de acompanhamento
+Preparacao em andamento:
+- E2-01: padrao de conflito com `CONFLICT_INVALID_STATE`.
+- E2-02: payload de listagem com contexto minimo.
+- E2-03: exibicao de contexto operacional no front.
 
-| Item | Repo | Owner | Status | Dependencia |
-|---|---|---|---|---|
-| Validacao template/turma/semestre | back | Backend Lead | Pendente | Regras de dominio |
-| Copia fiel de flags na instancia | back | Backend Lead | Pendente | Repositorio de instancia |
-| Ajuste de UX da tela de instancias | front | Front Lead | Pendente | Contrato de API |
-| Fluxo quiz de press na instancia | back/front | Backend + Front Lead | Pendente | Definicao de regra unica |
-| Testes de fluxo de instancia | back/front | Backend + Front Lead | Pendente | Casos de uso fechados |
-| CI baseline | ambos | Tech Lead | Pendente | Suite minima de testes |
+Dependencias:
+- Fechamento de E1-04 para estabilizar fluxo base.
 
-## Regra de governanca
+### FASE 4 - Qualidade de release e otimizacoes (0%)
 
-- Toda tarefa entra com dono, dependencia e criterio de aceite.
-- Toda sexta-feira: atualizar status deste arquivo.
-- Todo fechamento de sprint: registrar mudancas em `CHANGELOG.md`.
-- Todo epico novo deve usar `TEMPLATE_CRITERIO_ACEITE_EPICO.md`.
-- Board operacional unico: `FRONT_BACK_EXECUTION_BOARD.md`.
+Objetivo:
+Criar baseline de qualidade para proteger fluxo critico.
+
+Planejado:
+- E3-01: script de `typecheck` no front.
+- E3-02: baseline de testes criticos no front.
+- E3-03: pipeline minima front.
+- E3-04: pipeline minima back.
+
+Dependencias:
+- Fases 2 e 3 com fluxo operacional validado.
+
+## Ondas de Implementacao (execucao curta)
+
+### Onda 1 - Fechamento da Fase 2
+
+- concluir E1-01 a E1-03;
+- rodar E1-04 com checklist e evidencias;
+- confirmar estabilidade do fluxo de instancia.
+
+### Onda 2 - Aceleracao da Fase 3
+
+- concluir E2-01 e E2-02 no back;
+- concluir E2-03 no front;
+- validar operacao admin sem ambiguidade.
+
+### Onda 3 - Inicio da Fase 4
+
+- ativar `typecheck` e baseline de testes criticos;
+- publicar pipeline minima front e back;
+- bloquear merge quando fluxo critico quebrar.
+
+## Prioridades de Curto Prazo
+
+Prioridade alta (esta semana):
+- Finalizar Fase 2 com validacao ponta a ponta.
+- Avancar itens de maior risco da Fase 3.
+
+Prioridade media (proximas 2 semanas):
+- Fechar padronizacao operacional da Fase 3.
+- Iniciar baseline tecnica da Fase 4.
+
+Prioridade baixa (futuro):
+- Expandir cobertura de testes para fluxos adjacentes.
+- Melhorias de observabilidade e performance.
+
+## Regra de Governanca
+
+- Toda entrega deve ter dono, dependencia, criterio de pronto e evidencia.
+- Atualizacao oficial semanal deste plano (sexta-feira).
+- Mudanca de status deve refletir tambem em `ROADMAP.md` e `FRONT_BACK_EXECUTION_BOARD.md`.
+- Fechamento de sprint deve atualizar `CHANGELOG.md`.
 - Revisao quinzenal com decisao explicita do proximo bloco: `QUINZENAL_REVIEW_LOG.md`.
