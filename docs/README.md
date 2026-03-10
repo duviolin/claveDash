@@ -17,6 +17,8 @@ Indice oficial dos documentos ativos do frontend e integracao front/back.
 - `GAPS_PRIORITARIOS_FRONT_BACK.md` — gaps criticos com impacto e dependencias.
 - `DASHBOARD_DATA_ORIGEM_E_INTEGRACAO.md` — origem de dados e integracao do dashboard.
 - `INSTANCIACAO_GAPS_DASHBOARD.md` — gaps objetivos da instancia para fechamento.
+- `AUDITORIA_FRONT_BACK_ISSUES_ONLY.md` — findings priorizados da auditoria 2-pass.
+- `PLANO_CORRECAO_EM_ONDAS_DASHBOARD.md` — sequência de correções em ondas curtas.
 
 ## Guias tecnicos ativos
 
