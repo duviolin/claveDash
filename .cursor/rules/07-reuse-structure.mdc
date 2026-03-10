@@ -1,0 +1,28 @@
+---
+description: Padronizacao de estrutura e reuso no frontend
+alwaysApply: true
+---
+
+# Reuso de Estrutura (Frontend)
+
+## Objetivo
+Reduzir duplicacao em pages, componentes e API modules mantendo padrao unico.
+
+## Regras obrigatorias
+- Nao duplicar blocos de listagem, filtros, paginacao e modais em pages.
+- Extrair para hook quando mesma logica aparecer em 2+ arquivos.
+- Extrair para componente quando mesmo bloco visual aparecer em 2+ paginas.
+- Extrair para helper quando mesma transformacao aparecer em 2+ pontos.
+
+## Estrutura alvo
+- `src/components/ui`: componentes base reutilizaveis e sem regra de negocio.
+- `src/hooks`: logica compartilhada de pagina/fluxo.
+- `src/lib`: helpers puros, formatadores e mapeamentos.
+- `src/api`: funcoes HTTP por recurso, sem try/catch local.
+- `src/types/index.ts`: tipos compartilhados unicos.
+
+## Checklist antes de criar arquivo novo
+- Ja existe componente equivalente em `components/ui`?
+- Ja existe hook/helper que cobre o caso?
+- O nome segue padrao (`XListPage`, `CreateXPayload`, `STATUS_LABELS`)?
+- A mudanca manteve tabs Ativas/Lixeira, 409 e restore quando aplicavel?

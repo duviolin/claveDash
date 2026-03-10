@@ -43,6 +43,7 @@ Fluxo: Route -> Page -> useQuery/mutation (API) -> Componentes UI
 - **Identificadores públicos**: URLs e navegação usam `slug` humano. UUID (`id`) é interno e não deve aparecer na UI
 - **Rotas de detalhe**: usar `:slug` nas rotas React Router e `navigate()` com `entity.slug`
 - **APIs por recurso**: módulos podem aceitar `idOrSlug`, mas links e breadcrumbs devem priorizar `slug`
+- **Reuso de estrutura**: duplicacao em 2+ arquivos deve virar componente/hook/helper compartilhado
 
 ## Backend (`c:\Users\eduar\Documents\claveBack`)
 
@@ -59,6 +60,7 @@ Fluxo: Route -> Controller -> Service -> UseCase -> Repository -> DB
 | `02-application.md` | Services, DTOs, ApplicationRunner | Formato dos DTOs retornados pela API |
 | `03-infrastructure.md` | Controllers, routes, repositories, middleware | Endpoints, rotas, validação, paginação |
 | `04-prisma.md` | Schema, queries, migrations | Entidades com/sem soft delete, campos disponíveis |
+| `05-padronizacao-reuso.md` | Reuso de validacoes, DTOs e queries | Evitar duplicacao e divergencia de contrato |
 | `06-workflow.md` | Workflow de atualização de docs/rules | Processo de mudanças no backend |
 
 ### Convencoes do Backend que afetam o Frontend

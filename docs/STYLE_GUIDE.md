@@ -39,6 +39,16 @@ Evitar recriar versoes locais desses componentes dentro de pages.
 - Usar `error: unknown` em handlers.
 - Nao usar `any`.
 
+## Ordem de reuso (decisao rapida)
+1. Existe em `components/ui`? Reusar.
+2. Nao existe e vai repetir em 2+ telas? Criar em `components/ui`.
+3. Logica repetida em 2+ telas? Extrair hook em `src/hooks`.
+4. Transformacao repetida? Extrair helper em `src/lib`.
+
+## Regras Cursor relacionadas
+- `06-style-guide.mdc` - Design System, tokens e padrao visual.
+- `07-reuse-structure.mdc` - reuso e padronizacao de estrutura.
+
 ## Checklist rapido (antes de finalizar)
 - [ ] Existe componente base para isso em `src/components/ui`?
 - [ ] Estou usando tokens do `index.css`?

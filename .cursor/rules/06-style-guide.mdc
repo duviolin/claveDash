@@ -1,36 +1,35 @@
 ---
-description: Style guide e Design System do frontend (tokens, componentes e padroes de UI)
+description: Style guide do frontend com foco em Design System e reuso
 alwaysApply: true
 ---
 
 # Style Guide (Design System)
 
-## Regra principal
-Sempre priorizar o Design System em `src/components/ui` e os tokens de `src/index.css`.
+## Regra principal (obrigatoria)
+Sempre priorizar componentes de `src/components/ui`, hooks de `src/hooks` e tokens de `src/index.css`.
 
 ## Tokens e tema
 - Usar somente tokens (`--color-*`, `--radius-*`, `--space-*`, `--shadow-*`).
-- Evitar cores hardcoded em componentes/paginas.
+- Proibido hardcode de cor, radius e shadow em paginas/componentes.
+- Classes Tailwind devem ser compostas com `cn()` quando houver condicional.
 
-## Componentes padrao
+## Ordem de decisao para UI (reuso primeiro)
+1. Existe em `components/ui`? Reusar.
+2. Nao existe, mas sera usado em 2+ paginas? Criar em `components/ui`.
+3. Logica repetida em 2+ paginas? Extrair hook em `src/hooks`.
+4. Transformacao repetida? Extrair helper em `src/lib`.
+
+## Componentes base obrigatorios
 - Reusar: `Button`, `IconButton`, `Card`, `Table`, `Modal`, `Tabs`, `Pagination`, `Badge`.
 - Reusar: `LoadingState`, `DetailFieldList`, `DeactivationBlockedModal`.
-- Nao criar botoes/inputs/tabelas "inline" se ja existe componente UI equivalente.
+- Nao criar botoes/inputs/tabelas inline se ja houver equivalente em `ui`.
 
 ## Padrao de list pages
-- Sempre incluir tabs Ativos/Lixeira.
+- Sempre incluir tabs Ativas/Lixeira.
 - Sempre incluir `deleteMutation` + `restoreMutation`.
 - Sempre tratar 409 com `DeactivationBlockedModal`.
 - Sempre usar `error: unknown` (nunca `any`).
-- Preferir hooks compartilhados:
-  - `useTrashableListPage`
-  - `useDeactivationBlockedHandler`
-
-## Repeticao de codigo
-- Antes de copiar blocos, extrair para:
-  - componente em `src/components/ui`
-  - hook em `src/hooks`
-  - helper em `src/lib`
+- Preferir `useTrashableListPage` e `useDeactivationBlockedHandler`.
 
 ## Linguagem de UI
 - Sempre portugues claro e simples.

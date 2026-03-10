@@ -12,10 +12,12 @@ alwaysApply: true
 3. **Error codes**: se backend tem novo error code, adicionar em `src/lib/errorCodes.ts`
 4. **Rules**: se o padrão mudou, atualizar a rule correspondente em `.cursor/rules/`
 5. **DeactivationBlockedModal**: se backend adicionou nova verificação de filhos, adicionar `childResource` no `CHILD_NAV`
+6. **Reuso**: se repetiu logica/markup em 2+ lugares, extrair para `src/hooks`, `src/components/ui` ou `src/lib`
 
 ## Ao criar código novo:
 
 - Seguir EXATAMENTE os padrões da rule da camada sendo editada (01 a 04)
+- Seguir tambem a rule `07-reuse-structure.mdc` para evitar duplicacao
 - Verificar se o endpoint já existe no backend antes de criar chamada API
 - Ao escrever prompts, mensagens e labels, usar linguagem simples e popular, com português claro e correto
 
@@ -38,6 +40,7 @@ O backend vive em `c:\Users\eduar\Documents\claveBack` e tem suas próprias curs
 | `02-application.md` | Services, DTOs, ApplicationRunner | Entender formato de DTOs que a API retorna |
 | `03-infrastructure.md` | Controllers, routes, repositories, middleware | Verificar endpoints, validações, status codes |
 | `04-prisma.md` | Schema, queries, migrations | Ver entidades com/sem soft delete, campos disponíveis |
+| `05-padronizacao-reuso.md` | Padronizacao e reuso no backend | Evitar duplicacao de validacao/DTO/query |
 | `06-workflow.md` | Workflow de atualização de docs/rules | Entender processo de mudanças no backend |
 
 ### Ordem de criação full-stack

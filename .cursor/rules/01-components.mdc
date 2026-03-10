@@ -6,53 +6,29 @@ alwaysApply: false
 
 # Components - Padrões CORRETOS
 
-## UI Components (`components/ui/`)
+## Checklist operacional
 
-- Props: `interface XProps` no mesmo arquivo; estender HTML attrs quando fizer sentido (`ButtonHTMLAttributes`, etc.)
-- Form controls (`Input`, `Select`, `Textarea`, `PasswordInput`): usar `forwardRef` + `displayName`
-- Variantes: `Record<Variant, string>` + `cn(base, variantStyles[variant], className)`
-- SEMPRE aceitar `className?` para composição
-- NUNCA usar estado interno para lógica de negócio (componentes UI são burros)
+- [ ] Componente reutilizavel fica em `src/components/ui` e recebe `className?`.
+- [ ] Props com `interface XProps`; quando aplicavel, estender attrs HTML.
+- [ ] Inputs/controls usam `forwardRef` + `displayName`.
+- [ ] Variantes usam `Record<Variant, string>` + `cn(...)`.
+- [ ] Sem logica de negocio em `ui` (somente apresentacao).
+- [ ] Labels/variants de status vem de `@/lib/constants.ts` (nunca inline).
+- [ ] `DeactivationBlockedModal`: novo `childResource` no backend => atualizar `CHILD_NAV`.
 
-### Catálogo de componentes UI
-- **Layout**: Button, Badge, Tabs, Pagination, EmptyState, Skeleton
-- **Form**: Input, Select, Textarea, PasswordInput
-- **Overlay**: Modal (inclui `ConfirmModal` exportado do mesmo arquivo), DeactivationBlockedModal
-- **Data**: Table
-- **AI**: AIButton (botão com loading para chamadas de IA)
-  - Props: `onGenerate: (userExtra?: string) => Promise<string>`, `onAccept`, `label?`, `extraInputLabel?`, `extraInputPlaceholder?`
-  - Quando `extraInputLabel` estiver definido, exibe textarea para instruções extras do usuário
+## Componentes base obrigatorios para reuso
 
-## Layout Components (`components/layout/`)
+- Layout/Data: `Button`, `IconButton`, `Card`, `Table`, `Tabs`, `Pagination`, `Badge`.
+- Form/Overlay: `Input`, `Select`, `Textarea`, `Modal`, `ConfirmModal`, `DeactivationBlockedModal`.
+- Suporte: `LoadingState`, `DetailFieldList`, `AIButton`, `EmptyState`, `Skeleton`.
 
-- `PageContainer`: wrapper padrão de páginas (title, count?, action?)
-- `AppLayout`: guard de auth + Sidebar + Header + Outlet
-- NUNCA acessar API direto no layout (exceto AuthContext e NotificationBell)
+## Layout
 
-## Padrão de Badge com status
+- `AppLayout` nao chama API diretamente (exceto `AuthContext` e `NotificationBell`).
+- `PageContainer` e wrapper padrao para paginas.
 
-```tsx
-<Badge variant={STATUS_VARIANT[item.status]}>{STATUS_LABELS[item.status]}</Badge>
-```
+## Anti-patterns
 
-Labels e variants centralizados em `@/lib/constants.ts`, NUNCA inline.
-
-## DeactivationBlockedModal
-
-Componente reutilizável para exibir mensagem quando soft delete é bloqueado por filhos ativos.
-- Props: `isOpen`, `onClose`, `entityName`, `parentId`, `details: DeactivationErrorDetails`
-- Mapa `CHILD_NAV` converte `childResource` em label + URL para navegação
-- SEMPRE adicionar novos `childResource` ao `CHILD_NAV` quando criar nova verificação no backend
-
-### CHILD_NAV entries (15 resources mapeados)
-- `schools`, `courses`, `seasons`, `classes`, `students`, `teachers`, `members`
-- `projectTemplates`, `trackSceneTemplates`, `trackMaterialTemplates`
-- `studyTrackTemplates`
-- `pressQuizTemplates`, `dailyMissionTemplates`, `dailyMissionQuizzes`
-- `projects` (instâncias)
-
-## ANTI-PATTERNS
-
-- NÃO criar componentes com lógica de negócio em `ui/`
-- NAO usar `style={{}}` inline (usar Tailwind)
-- NAO duplicar classes Tailwind entre componentes (extrair para `cn()` ou variante)
+- Criar componente duplicado ja existente em `ui`.
+- Usar `style={{}}` inline para visual.
+- Copiar/colar classes Tailwind repetidas sem extrair variante/helper.

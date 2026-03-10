@@ -6,106 +6,38 @@ alwaysApply: false
 
 # Pages - Padrões CORRETOS
 
-## Estrutura de List Page
+## Checklist operacional de List Page
 
-```tsx
-export function XListPage() {
-  // 1. Hooks: navigate, queryClient, state (filters, pagination, modals, tabs)
-  // 2. useQuery para dados ativos + useQuery para lixeira (com paginação)
-  // 3. Mutations: save, delete (com onError 409), restore
-  // 4. Handlers (openCreate, openEdit, closeModal)
-  // 5. Definição de columns (active + trash)
-  // 6. Return: PageContainer > Tabs > Filters > Table > Pagination > Modals
-}
-```
+- [ ] Estrutura: `PageContainer > Tabs > Filtros > Table > Pagination > Modais`.
+- [ ] Tabs obrigatorias: `Ativas` e `Lixeira`.
+- [ ] Queries separadas para ativos e deleted (`enabled` por tab).
+- [ ] `deleteMutation` + `restoreMutation` obrigatorios.
+- [ ] Delete trata 409 e abre `DeactivationBlockedModal`.
+- [ ] `onError` usa `error: unknown` (nunca `any`).
+- [ ] Apos mutacao: `queryClient.invalidateQueries(...)`.
+- [ ] `Table` recebe estado de loading.
 
-## Padrão de Tabs (Ativas + Lixeira)
+## Modais obrigatorios
 
-```tsx
-const tabs = [
-  { key: 'active', label: 'Ativas' },
-  { key: 'TRASH', label: 'Lixeira' },
-]
-const [activeTab, setActiveTab] = useState('active')
-const isTrash = activeTab === 'TRASH'
-```
+- `Modal` para create/edit.
+- `ConfirmModal` para delete/restore.
+- `DeactivationBlockedModal` para conflito 409.
 
-## Padrão de Queries
+## Nome e estrutura
 
-```tsx
-// Lista ativa (sem paginação ou com filtro)
-const { data, isLoading } = useQuery({
-  queryKey: ['resource', filter],
-  queryFn: () => listResource(filter || undefined),
-  enabled: !isTrash,
-})
+- Nome de arquivo = nome do componente (`UsersListPage.tsx`).
+- Prefixos: `XListPage`, `XDetailPage`, `XCreatePage`.
+- Extrair para hook/helper quando a mesma logica repetir em 2+ paginas.
 
-// Lixeira (com paginação)
-const { data: deletedResponse } = useQuery({
-  queryKey: ['resource', 'deleted', page],
-  queryFn: () => listDeletedResource({ page, limit: PAGE_LIMIT }),
-  enabled: isTrash,
-})
-const deletedItems = deletedResponse?.data ?? []
-const pagination = deletedResponse?.pagination
-```
+## Data fetching
 
-## Padrão de Mutations
+- Leitura com `useQuery`.
+- Escrita com `useMutation`.
+- Nao usar `useEffect` para buscar dados de API.
+- Nao acessar DB/prisma no frontend.
 
-```tsx
-// Delete com tratamento de 409
-const deleteMutation = useMutation({
-  mutationFn: () => deleteResource(target!.id),
-  onSuccess: () => {
-    toast.success('Recurso desativado!')
-    queryClient.invalidateQueries({ queryKey: ['resource'] })
-    setTarget(null)
-  },
-  onError: (error: unknown) => {
-    const axiosError = error as { response?: { status?: number; data?: { details?: DeactivationErrorDetails } } }
-    if (axiosError.response?.status === 409 && axiosError.response.data?.details) {
-      setBlockedInfo({ name: target!.name, id: target!.id, details: axiosError.response.data.details })
-    }
-    setTarget(null)
-  },
-})
+## Anti-patterns
 
-// Restore
-const restoreMutation = useMutation({
-  mutationFn: () => restoreResource(restoreTarget!.id),
-  onSuccess: () => {
-    toast.success('Recurso restaurado!')
-    queryClient.invalidateQueries({ queryKey: ['resource'] })
-    setRestoreTarget(null)
-  },
-})
-```
-
-## Modals obrigatórios
-
-- `Modal` (de `@/components/ui/Modal`) para create/edit
-- `ConfirmModal` (exportado do mesmo `Modal.tsx`) para delete e restore
-- `DeactivationBlockedModal` para quando o delete retorna 409
-
-## Tipos de páginas
-
-- `XListPage` (lista com tabs Ativas/Lixeira): users, schools, courses, seasons, classes, projectTemplates, dailyMissionTemplates
-- `XDetailPage` (detalhe/sub-entidades): ClassDetailPage, ProjectTemplateDetailPage
-- `XCreatePage` (criação): UserCreatePage
-- **Outras**: DashboardPage, SettingsPage, StoragePage, ProjectInstancesPage
-- Arquivo = nome do componente: `UsersListPage.tsx`
-
-## Data Fetching
-
-- `useQuery({ queryKey, queryFn })` para leitura
-- `useMutation({ mutationFn, onSuccess, onError? })` para escrita
-- SEMPRE `queryClient.invalidateQueries()` após mutação
-- NUNCA importar `prisma` ou acessar DB (isso é backend)
-
-## ANTI-PATTERNS
-
-- NAO usar `useEffect` para fetch (usar useQuery)
-- NAO usar `error: any` em handlers (usar `error: unknown` com type assertion)
-- NAO omitir restoreMutation quando a page tem tab de lixeira
-- NAO esquecer tratamento de 409 no deleteMutation
-- NAO omitir estado de loading na Table (passar `isLoading`)
+- Omitir `restoreMutation` em pagina com lixeira.
+- Tratar erro com `any`.
+- Duplicar fluxo de delete/restore/409 em varias paginas sem hook compartilhado.
