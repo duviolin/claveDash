@@ -1,137 +1,54 @@
-# Clave Admin Portal
+# ClaveDash (Frontend Admin)
 
-Portal administrativo da plataforma **Clave** — educação musical gamificada.
+Painel administrativo da Clave para operacao academica e de conteudo.
 
-## Stack
+## Objetivo desta fase
 
-- **React 19** + **Vite 7** (SPA com TypeScript)
-- **Tailwind CSS 4** (tema escuro customizado)
-- **React Router 7** (roteamento client-side)
-- **@tanstack/react-query** (data fetching + cache)
-- **useState** (estado local de formulários)
-- **Lucide React** (ícones)
-- **react-hot-toast** (notificações)
-- **Axios** (HTTP client com interceptors JWT)
-- **OpenAI API** (assistente IA para gerar conteúdo)
+Fechar o dashboard com foco em **consistencia de instanciacao**, **operacao diaria sem retrabalho** e **entrega com qualidade minima de release**.
 
-## Setup
+## Escopo deste repositorio (Dash)
+
+- SPA React para operacao administrativa (usuarios, escolas, cursos, semestres, turmas).
+- Gestao de templates pedagogicos e fluxo de instanciacao.
+- Integracao com API backend (`claveBack`) via JWT.
+- Readiness de publicacao e suporte de UX para tratamento de conflitos.
+
+## Status rapido (visao executiva)
+
+- **Pronto**: autenticacao, estrutura academica, CRUDs principais, templates, storage e readiness.
+- **Parcial**: fluxo de instanciacao (validacoes/UX) e maturidade de release (teste/pipeline).
+- **Risco atual**: dispersao por excesso de documentacao historica e backlog sem recorte de execucao.
+
+Base: `docs/RESUMO_EXECUTIVO.md` e `docs/EXECUTION_PLAN.md`.
+
+## Proximos passos (Dash)
+
+1. Fechar UX e regras de validacao do fluxo de instanciacao.
+2. Garantir consistencia de estados (ativo/lixeira, bloqueio 409, restore).
+3. Consolidar telas do dashboard para operacao sem ajustes manuais.
+4. Subir cobertura minima de testes de fluxo critico e checklist de release.
+
+## Setup rapido
 
 ```bash
-# Instalar dependências
 npm install
-
-# Copiar variáveis de ambiente
 cp .env.example .env
-
-# Editar .env com sua API URL e OpenAI key
-# VITE_API_URL=http://localhost:3000
-# VITE_OPENAI_API_KEY=sk-your-key
-# VITE_OPENAI_MODEL=gpt-4o-mini
-
-# Iniciar dev server
 npm run dev
 ```
 
-O portal roda em `http://localhost:5173` e conecta ao backend em `http://localhost:3000`.
+Frontend em `http://localhost:5173`.
 
-## Subir Front + Back juntos
+## Documentacao essencial (Dash)
 
-Com o backend em `../claveBack`, voce pode iniciar as duas aplicacoes com um comando so:
+- `docs/README.md` - rota de leitura minima.
+- `docs/RESUMO_EXECUTIVO.md` - visao unica para decisao rapida.
+- `docs/EXECUTION_PLAN.md` - plano Agora/Proximo/Depois.
+- `docs/ROADMAP.md` - roadmap de 90 dias.
+- `docs/DASHBOARD_DATA_ORIGEM_E_INTEGRACAO.md` - origem de dados e contrato de integracao.
+- `docs/AUDITORIA_FRONT_BACK_ISSUES_ONLY.md` - gaps tecnicos priorizados.
 
-```bash
-npm run dev:all
-```
+## Dependencia com o Backend
 
-Atalhos Windows na raiz do projeto:
-
-```powershell
-.\dev-all.ps1
-```
-
-```bat
-dev-all.bat
-```
-
-Para apenas validar no PowerShell sem executar:
-
-```powershell
-.\dev-all.ps1 -DryRun
-```
-
-## Funcionalidades
-
-- **Autenticação**: Login, primeiro acesso (troca de senha), JWT
-- **Gestão de Usuários**: CRUD completo com filtro por role e busca
-- **Escolas**: CRUD com vínculo de diretor
-- **Cursos**: CRUD filtrado por escola (MUSIC/THEATER)
-- **Semestres**: CRUD filtrado por curso com datas e status
-- **Turmas**: CRUD com vínculo de professores e matrícula de alunos
-- **Templates de Projeto**: CRUD hierárquico (Projeto > Faixas > Materiais > Trilhas > Quizzes)
-- **Aptidão de Publicação**: Progress bar por template com score, status e dicas do que falta
-- **Análise Qualitativa de Publicação**: diagnóstico curto com IA, salvo por template/versão
-- **Missões Diárias**: Templates com quizzes embutidos
-- **Instanciação**: Criar projetos a partir de templates para turmas/semestres
-- **Storage**: Upload com presigned URLs (R2), gestão de órfãos
-- **IA**: Assistente OpenAI para gerar quizzes, descrições e conteúdo
-- **Dashboard**: Métricas resumidas da plataforma
-
-## Estrutura
-
-```
-src/
-├── api/            # Camada de requisições HTTP por domínio
-├── components/
-│   ├── ui/         # Componentes genéricos (Button, Input, Modal, Table, etc.)
-│   └── layout/     # Sidebar, Header, PageContainer, AppLayout
-├── contexts/       # AuthContext
-├── lib/            # Utilitários (cn, formatDate, etc.)
-├── pages/          # Páginas organizadas por domínio
-├── types/          # TypeScript types espelhando o backend
-└── routes.tsx      # Definição de rotas
-```
-
-## Padrões de UI e Style Guide
-
-- Guia de estilo do Design System: `docs/STYLE_GUIDE.md`
-- Rule global da Cursor: `.cursor/rules/06-style-guide.mdc`
-
-Esse guia define os tokens, componentes base reutilizáveis e padrões obrigatórios de list pages (Ativos/Lixeira, delete/restore e tratamento de 409).
-
-## Documentação de planejamento (atual)
-
-- Índice de documentação: `docs/README.md`
-- Visão de produto: `docs/PRODUCT_VISION.md`
-- Mapa de capacidade atual: `docs/CAPABILITY_MAP_FRONT_BACK.md`
-- Gaps prioritários: `docs/GAPS_PRIORITARIOS_FRONT_BACK.md`
-- Origem do dado e integração: `docs/DASHBOARD_DATA_ORIGEM_E_INTEGRACAO.md`
-- Gaps de instanciação: `docs/INSTANCIACAO_GAPS_DASHBOARD.md`
-- Baby steps para execução: `docs/DASHBOARD_BABY_STEPS.md`
-- Roadmap integrado (90 dias): `docs/ROADMAP.md`
-- Plano de execução (Agora/Proximo/Depois): `docs/EXECUTION_PLAN.md`
-- Histórico de mudanças de planejamento: `docs/CHANGELOG.md`
-
-## Aptidão de Publicação (Project Template Readiness)
-
-Na tela de detalhe de template (`/templates/projects/:slug`) existe um card de aptidão que mostra:
-
-- **Score (%):** progresso calculado no backend com base nas regras ativas
-- **Status:** `Nao pronto`, `Quase pronto` ou `Apto para publicacao`
-- **Checklist visual:** quantidades atuais de faixas, quizzes, materiais e trilhas
-- **Dicas automáticas:** frases objetivas do que falta para publicar
-
-### Critérios configuráveis (somente ADMIN)
-
-No detalhe do template, admins podem abrir **"Critérios de Publicação"** e editar:
-
-- título da regra
-- meta mínima (`targetValue`)
-- peso no score (`weight`)
-- ativo/inativo (`isActive`)
-
-As regras são persistidas no backend e o card de aptidão é recalculado após salvar.
-
-### Endpoints usados pelo frontend
-
-- `GET /project-template-readiness/:idOrSlug`
-- `GET /project-template-readiness/rules`
-- `PATCH /project-template-readiness/rules/:ruleId` (**somente ADMIN**)
+- Repositorio backend: `../claveBack`.
+- Contrato de API e alinhamento de entrega devem seguir o que esta em `claveBack/README.md` e `claveBack/docs/ROADMAP.md`.
+- Todas as decisoes de front para dashboard devem manter sincronia com o plano do backend.

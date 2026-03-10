@@ -1,34 +1,30 @@
-# Documentacao do ClaveDash
+# Docs do ClaveDash (enxuto e executavel)
 
-Indice oficial dos documentos ativos do frontend e integracao front/back.
+Este indice foi consolidado para decisao rapida e execucao sem ruido.
 
-## Base de direcao
+## Leitura minima (10 minutos)
 
-- `PRODUCT_VISION.md` — visao de produto com trilhas Musica, Teatro e Musicalizacao.
-- `ROADMAP.md` — roadmap integrado de 90 dias.
-- `EXECUTION_PLAN.md` — plano operacional (Agora/Proximo/Depois).
-- `CHANGELOG.md` — historico de mudancas relevantes.
-- `TEMPLATE_CRITERIO_ACEITE_EPICO.md` — template unico de criterio de aceite por epico.
-- `DASHBOARD_BABY_STEPS.md` — passo a passo pratico para fechar o dashboard.
+1. `RESUMO_EXECUTIVO.md` - onde estamos, gaps e prioridade.
+2. `EXECUTION_PLAN.md` - plano operacional com ondas de entrega.
+3. `ROADMAP.md` - epicos e ordem de execucao do trimestre.
 
-## Estado atual e diagnostico
+## Documentos ativos
 
-- `CAPABILITY_MAP_FRONT_BACK.md` — mapa do que ja existe (pronto/parcial/faltando).
-- `GAPS_PRIORITARIOS_FRONT_BACK.md` — gaps criticos com impacto e dependencias.
-- `DASHBOARD_DATA_ORIGEM_E_INTEGRACAO.md` — origem de dados e integracao do dashboard.
-- `INSTANCIACAO_GAPS_DASHBOARD.md` — gaps objetivos da instancia para fechamento.
-- `AUDITORIA_FRONT_BACK_ISSUES_ONLY.md` — findings priorizados da auditoria 2-pass.
-- `PLANO_CORRECAO_EM_ONDAS_DASHBOARD.md` — sequência de correções em ondas curtas.
+- `RESUMO_EXECUTIVO.md` - sintese unica de capacidade e foco.
+- `EXECUTION_PLAN.md` - plano Agora/Proximo/Depois.
+- `ROADMAP.md` - direcao de 90 dias.
+- `DASHBOARD_DATA_ORIGEM_E_INTEGRACAO.md` - origem de dados e pontos de integracao.
+- `AUDITORIA_FRONT_BACK_ISSUES_ONLY.md` - achados tecnicos priorizados.
+- `STYLE_GUIDE.md` - padrao de Design System.
+- `MAPA_NOMENCLATURA_UI.md` - padrao de termos de interface.
+- `PROJECT_TEMPLATE_READINESS.md` - guia funcional/técnico do readiness.
+- `PRODUCT_VISION.md` - visao de produto por trilha.
+- `TEMPLATE_CRITERIO_ACEITE_EPICO.md` - template obrigatorio por epico.
+- `CHANGELOG.md` - historico de mudancas.
 
-## Guias tecnicos ativos
+## Regra de governanca
 
-- `STYLE_GUIDE.md` — padroes de Design System e UI.
-- `PROJECT_TEMPLATE_READINESS.md` — uso e evolucao do readiness no frontend.
-
-## Governanca de atualizacao
-
-- Padrao de nomenclatura: titulo e secoes em portugues claro; nomes de arquivos em `UPPER_SNAKE_CASE.md`.
 - Semanal: atualizar `EXECUTION_PLAN.md`.
 - Quinzenal: revisar `ROADMAP.md`.
 - A cada release: atualizar `CHANGELOG.md`.
-- Dono sugerido: Produto (conteudo) + Tech Lead Front (execucao) + Tech Lead Back (dependencias API).
+- Sempre manter alinhamento com `../README.md` e `../../claveBack/README.md`.
