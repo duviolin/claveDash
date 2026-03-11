@@ -114,8 +114,10 @@ export async function restoreProjectTemplate(idOrSlug: string) {
 }
 
 // --- Track Scene Templates ---
-export async function listTrackTemplates(projectTemplateIdOrSlug: string) {
-  const { data } = await api.get<TrackSceneTemplate[]>(`/project-templates/${projectTemplateIdOrSlug}/tracks`)
+export async function listTrackTemplates(projectTemplateIdOrSlug: string, search?: string) {
+  const { data } = await api.get<TrackSceneTemplate[]>(`/project-templates/${projectTemplateIdOrSlug}/tracks`, {
+    params: { search },
+  })
   return data
 }
 
@@ -143,7 +145,7 @@ export async function deleteTrackTemplate(id: string) {
   await api.delete(`/track-templates/${id}`)
 }
 
-export async function listDeletedTrackTemplates(params: { page: number; limit: number }) {
+export async function listDeletedTrackTemplates(params: { page: number; limit: number; projectTemplateId?: string; search?: string }) {
   const { data } = await api.get<PaginatedResponse<TrackSceneTemplate>>('/track-templates/deleted', { params })
   return data
 }
@@ -159,8 +161,10 @@ export async function reorderTrackTemplates(items: { id: string; order: number }
 }
 
 // --- Track Material Templates ---
-export async function listMaterialTemplates(trackTemplateId: string) {
-  const { data } = await api.get<TrackMaterialTemplate[]>(`/track-templates/${trackTemplateId}/materials`)
+export async function listMaterialTemplates(trackTemplateId: string, search?: string) {
+  const { data } = await api.get<TrackMaterialTemplate[]>(`/track-templates/${trackTemplateId}/materials`, {
+    params: { search },
+  })
   return data
 }
 
@@ -183,7 +187,7 @@ export async function deleteMaterialTemplate(id: string) {
   await api.delete(`/material-templates/${id}`)
 }
 
-export async function listDeletedMaterialTemplates(params: { page: number; limit: number }) {
+export async function listDeletedMaterialTemplates(params: { page: number; limit: number; trackSceneTemplateId?: string; projectTemplateId?: string; search?: string }) {
   const { data } = await api.get<PaginatedResponse<TrackMaterialTemplate>>('/material-templates/deleted', { params })
   return data
 }
@@ -194,8 +198,10 @@ export async function restoreMaterialTemplate(id: string) {
 }
 
 // --- Study Track Templates ---
-export async function listStudyTrackTemplates(trackTemplateId: string) {
-  const { data } = await api.get<StudyTrackTemplate[]>(`/track-templates/${trackTemplateId}/study-tracks`)
+export async function listStudyTrackTemplates(trackTemplateId: string, search?: string) {
+  const { data } = await api.get<StudyTrackTemplate[]>(`/track-templates/${trackTemplateId}/study-tracks`, {
+    params: { search },
+  })
   return data
 }
 
@@ -218,7 +224,7 @@ export async function deleteStudyTrackTemplate(id: string) {
   await api.delete(`/study-track-templates/${id}`)
 }
 
-export async function listDeletedStudyTrackTemplates(params: { page: number; limit: number; trackSceneTemplateId?: string }) {
+export async function listDeletedStudyTrackTemplates(params: { page: number; limit: number; trackSceneTemplateId?: string; projectTemplateId?: string; search?: string }) {
   const { data } = await api.get<PaginatedResponse<StudyTrackTemplate>>('/study-track-templates/deleted', { params })
   return data
 }
@@ -229,8 +235,10 @@ export async function restoreStudyTrackTemplate(id: string) {
 }
 
 // --- Press Quiz Templates ---
-export async function listPressQuizTemplates(trackTemplateId: string) {
-  const { data } = await api.get<PressQuizTemplate[]>(`/track-templates/${trackTemplateId}/press-quizzes`)
+export async function listPressQuizTemplates(trackTemplateId: string, search?: string) {
+  const { data } = await api.get<PressQuizTemplate[]>(`/track-templates/${trackTemplateId}/press-quizzes`, {
+    params: { search },
+  })
   return data
 }
 
@@ -253,7 +261,7 @@ export async function deletePressQuizTemplate(id: string) {
   await api.delete(`/press-quiz-templates/${id}`)
 }
 
-export async function listDeletedPressQuizTemplates(params: { page: number; limit: number; trackSceneTemplateId?: string }) {
+export async function listDeletedPressQuizTemplates(params: { page: number; limit: number; trackSceneTemplateId?: string; projectTemplateId?: string; search?: string }) {
   const { data } = await api.get<PaginatedResponse<PressQuizTemplate>>('/press-quiz-templates/deleted', { params })
   return data
 }

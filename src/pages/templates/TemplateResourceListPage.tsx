@@ -20,6 +20,8 @@ import { LoadingState } from '@/components/ui/LoadingState'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Tabs } from '@/components/ui/Tabs'
 import { Pagination } from '@/components/ui/Pagination'
+import { ListHeaderFilters } from '@/components/ui/ListHeaderFilters'
+import { usePersistedState } from '@/hooks/usePersistedState'
 import { presignDownload } from '@/api/storage'
 import {
   createMaterialTemplate,
@@ -162,29 +164,6 @@ const MATERIAL_FILE_TYPE_BY_CONTENT_TYPE: Partial<Record<TrackMaterialTemplate['
   VIDEO: 'materials',
 }
 
-interface StoredTemplateFilters {
-  projectSlug: string
-  trackSlug: string
-}
-
-function getStoredTemplateFilters(): StoredTemplateFilters {
-  if (typeof window === 'undefined') {
-    return { projectSlug: '', trackSlug: '' }
-  }
-
-  try {
-    const raw = window.sessionStorage.getItem(TEMPLATE_FILTERS_STORAGE_KEY)
-    if (!raw) return { projectSlug: '', trackSlug: '' }
-    const parsed = JSON.parse(raw) as Partial<StoredTemplateFilters>
-    return {
-      projectSlug: parsed.projectSlug ?? '',
-      trackSlug: parsed.trackSlug ?? '',
-    }
-  } catch {
-    return { projectSlug: '', trackSlug: '' }
-  }
-}
-
 function pageTitle(mode: ResourceMode) {
   if (mode === 'tracks') return 'Faixas'
   if (mode === 'materials') return 'Materiais'
@@ -211,9 +190,15 @@ function emptyMessage(mode: ResourceMode, hasContext: boolean) {
 
 function ResourceListPage({ mode }: { mode: ResourceMode }) {
   const queryClient = useQueryClient()
-  const [storedFilters, setStoredFilters] = useState<StoredTemplateFilters>(getStoredTemplateFilters)
-  const [projectSlug, setProjectSlug] = useState(storedFilters.projectSlug)
-  const [trackSlug, setTrackSlug] = useState(storedFilters.trackSlug)
+  const [persistedFilters, setPersistedFilters] = usePersistedState({
+    storage: 'session',
+    key: TEMPLATE_FILTERS_STORAGE_KEY,
+    initialValue: { projectSlug: '', trackSlug: '', search: '' },
+  })
+  const [projectSlug, setProjectSlug] = useState(persistedFilters.projectSlug)
+  const [trackSlug, setTrackSlug] = useState(persistedFilters.trackSlug)
+  const [searchFilter, setSearchFilter] = useState(persistedFilters.search ?? '')
+  const [debouncedSearchFilter, setDebouncedSearchFilter] = useState((persistedFilters.search ?? '').trim())
   const [tracksTab, setTracksTab] = useState<'active' | 'TRASH'>('active')
   const [materialsTab, setMaterialsTab] = useState<'active' | 'TRASH'>('active')
   const [studyTracksTab, setStudyTracksTab] = useState<'active' | 'TRASH'>('active')
@@ -316,13 +301,16 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
     queryFn: () => listProjectTemplates(),
   })
 
-  const selectedProject = projectSlug ? projects.find((project) => project.slug === projectSlug) ?? null : null
-  const scopedProjects = selectedProject ? [selectedProject] : []
+  const selectedProject = useMemo(
+    () => (projectSlug ? projects.find((project) => project.slug === projectSlug) ?? null : null),
+    [projectSlug, projects]
+  )
+  const scopedProjects = useMemo(() => (selectedProject ? [selectedProject] : []), [selectedProject])
 
   const tracksQueries = useQueries({
     queries: scopedProjects.map((project) => ({
-      queryKey: ['resource-list-tracks', project.slug],
-      queryFn: () => listTrackTemplates(project.id),
+      queryKey: ['resource-list-tracks', project.slug, mode === 'tracks' ? debouncedSearchFilter : ''],
+      queryFn: () => listTrackTemplates(project.id, mode === 'tracks' ? (debouncedSearchFilter || undefined) : undefined),
       enabled: mode !== 'tracks' || !isTracksTrash,
     })),
   })
@@ -362,8 +350,14 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   }, [filteredTrackRows])
 
   const { data: deletedTracksResponse } = useQuery({
-    queryKey: ['resource-list-tracks', 'deleted', trashPage],
-    queryFn: () => listDeletedTrackTemplates({ page: trashPage, limit: TRACK_TRASH_PAGE_LIMIT }),
+    queryKey: ['resource-list-tracks', 'deleted', trashPage, selectedProject?.id, debouncedSearchFilter],
+    queryFn: () =>
+      listDeletedTrackTemplates({
+        page: trashPage,
+        limit: TRACK_TRASH_PAGE_LIMIT,
+        projectTemplateId: selectedProject?.id,
+        search: debouncedSearchFilter || undefined,
+      }),
     enabled: isTracksTrash,
   })
 
@@ -380,9 +374,21 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       })
   }, [deletedTracksResponse?.data, projects, projectSlug])
 
+  const selectedTrackRow = useMemo(() => {
+    if (!trackSlug) return null
+    return trackRows.find((row) => row.track.slug === trackSlug) ?? null
+  }, [trackRows, trackSlug])
+
   const { data: deletedMaterialsResponse } = useQuery({
-    queryKey: ['resource-list-materials', 'deleted', materialsTrashPage],
-    queryFn: () => listDeletedMaterialTemplates({ page: materialsTrashPage, limit: MATERIAL_TRASH_PAGE_LIMIT }),
+    queryKey: ['resource-list-materials', 'deleted', materialsTrashPage, selectedProject?.id, selectedTrackRow?.track.id, debouncedSearchFilter],
+    queryFn: () =>
+      listDeletedMaterialTemplates({
+        page: materialsTrashPage,
+        limit: MATERIAL_TRASH_PAGE_LIMIT,
+        projectTemplateId: selectedProject?.id,
+        trackSceneTemplateId: selectedTrackRow?.track.id,
+        search: debouncedSearchFilter || undefined,
+      }),
     enabled: isMaterialsTrash,
   })
 
@@ -396,11 +402,6 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       .map((track) => ({ value: track.slug, label: `${track.order}. ${track.title}` }))
   }, [projectSlug, trackRows])
 
-  const selectedTrackRow = useMemo(() => {
-    if (!trackSlug) return null
-    return trackRows.find((row) => row.track.slug === trackSlug) ?? null
-  }, [trackRows, trackSlug])
-
   const trackRowsForChildren = useMemo(() => {
     if (!trackSlug) return []
     return trackRows.filter((row) => row.track.slug === trackSlug)
@@ -410,8 +411,8 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
     queries:
       mode === 'materials' && !isMaterialsTrash
         ? trackRowsForChildren.map(({ track }) => ({
-            queryKey: ['resource-list-materials', track.id],
-            queryFn: () => listMaterialTemplates(track.id),
+            queryKey: ['resource-list-materials', track.id, debouncedSearchFilter],
+            queryFn: () => listMaterialTemplates(track.id, debouncedSearchFilter || undefined),
           }))
         : [],
   })
@@ -420,8 +421,8 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
     queries:
       mode === 'study-tracks' && !isStudyTracksTrash
         ? trackRowsForChildren.map(({ track }) => ({
-            queryKey: ['resource-list-study-tracks', track.id],
-            queryFn: () => listStudyTrackTemplates(track.id),
+            queryKey: ['resource-list-study-tracks', track.id, debouncedSearchFilter],
+            queryFn: () => listStudyTrackTemplates(track.id, debouncedSearchFilter || undefined),
           }))
         : [],
   })
@@ -430,8 +431,8 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
     queries:
       mode === 'press-quizzes' && !isQuizzesTrash
         ? trackRowsForChildren.map(({ track }) => ({
-            queryKey: ['resource-list-press-quizzes', track.id],
-            queryFn: () => listPressQuizTemplates(track.id),
+            queryKey: ['resource-list-press-quizzes', track.id, debouncedSearchFilter],
+            queryFn: () => listPressQuizTemplates(track.id, debouncedSearchFilter || undefined),
           }))
         : [],
   })
@@ -509,8 +510,15 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   }, [deletedMaterialsResponse?.data, trackRows, projectSlug, trackSlug])
 
   const { data: deletedStudyTracksResponse } = useQuery({
-    queryKey: ['resource-list-study-tracks', 'deleted', studyTracksTrashPage],
-    queryFn: () => listDeletedStudyTrackTemplates({ page: studyTracksTrashPage, limit: STUDY_TRACK_TRASH_PAGE_LIMIT }),
+    queryKey: ['resource-list-study-tracks', 'deleted', studyTracksTrashPage, selectedProject?.id, selectedTrackRow?.track.id, debouncedSearchFilter],
+    queryFn: () =>
+      listDeletedStudyTrackTemplates({
+        page: studyTracksTrashPage,
+        limit: STUDY_TRACK_TRASH_PAGE_LIMIT,
+        projectTemplateId: selectedProject?.id,
+        trackSceneTemplateId: selectedTrackRow?.track.id,
+        search: debouncedSearchFilter || undefined,
+      }),
     enabled: isStudyTracksTrash,
   })
 
@@ -536,8 +544,15 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   }, [deletedStudyTracksResponse?.data, trackRows, projectSlug, trackSlug])
 
   const { data: deletedQuizzesResponse } = useQuery({
-    queryKey: ['resource-list-press-quizzes', 'deleted', quizzesTrashPage],
-    queryFn: () => listDeletedPressQuizTemplates({ page: quizzesTrashPage, limit: QUIZ_TRASH_PAGE_LIMIT }),
+    queryKey: ['resource-list-press-quizzes', 'deleted', quizzesTrashPage, selectedProject?.id, selectedTrackRow?.track.id, debouncedSearchFilter],
+    queryFn: () =>
+      listDeletedPressQuizTemplates({
+        page: quizzesTrashPage,
+        limit: QUIZ_TRASH_PAGE_LIMIT,
+        projectTemplateId: selectedProject?.id,
+        trackSceneTemplateId: selectedTrackRow?.track.id,
+        search: debouncedSearchFilter || undefined,
+      }),
     enabled: isQuizzesTrash,
   })
 
@@ -1028,13 +1043,21 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   )
 
   useEffect(() => {
-    setStoredFilters({ projectSlug, trackSlug })
-  }, [projectSlug, trackSlug])
+    setPersistedFilters({ projectSlug, trackSlug, search: searchFilter })
+  }, [projectSlug, searchFilter, setPersistedFilters, trackSlug])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.sessionStorage.setItem(TEMPLATE_FILTERS_STORAGE_KEY, JSON.stringify(storedFilters))
-  }, [storedFilters])
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchFilter(searchFilter.trim())
+      setTrashPage(1)
+      setMaterialsTrashPage(1)
+      setStudyTracksTrashPage(1)
+      setQuizzesTrashPage(1)
+    }, 350)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [searchFilter])
 
   useEffect(() => {
     if (!trackSlug) return
@@ -1163,37 +1186,33 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
           ? (isTracksTrash ? (deletedTracksResponse?.pagination.total ?? deletedTrackRows.length) : trackRows.length)
           : mode === 'materials'
             ? (isMaterialsTrash
-                ? (projectSlug ? deletedMaterialRows.length : (deletedMaterialsResponse?.pagination.total ?? deletedMaterialRows.length))
+                ? (deletedMaterialsResponse?.pagination.total ?? deletedMaterialRows.length)
                 : filteredMaterialRows.length)
             : mode === 'study-tracks'
               ? (isStudyTracksTrash
-                  ? (projectSlug ? deletedStudyTrackRows.length : (deletedStudyTracksResponse?.pagination.total ?? deletedStudyTrackRows.length))
+                  ? (deletedStudyTracksResponse?.pagination.total ?? deletedStudyTrackRows.length)
                   : filteredStudyTrackRows.length)
               : (isQuizzesTrash
-                  ? (projectSlug ? deletedQuizRows.length : (deletedQuizzesResponse?.pagination.total ?? deletedQuizRows.length))
+                  ? (deletedQuizzesResponse?.pagination.total ?? deletedQuizRows.length)
                   : filteredQuizRows.length)
       }
       action={
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
-          <Select
-            value={projectSlug}
-            onChange={(event) => {
-              setProjectSlug(event.target.value)
-              setTrackSlug('')
-            }}
-            placeholder="Todos os projetos"
-            options={projects.map((project) => ({ value: project.slug, label: project.name }))}
-            className="w-full sm:min-w-[260px]"
-          />
-          {(mode === 'materials' || mode === 'study-tracks' || mode === 'press-quizzes') && (
-            <Select
-              value={trackSlug}
-              onChange={(event) => setTrackSlug(event.target.value)}
-              placeholder="Todas as faixas"
-              options={availableTrackOptions}
-              className="w-full sm:min-w-[260px]"
-            />
-          )}
+        <ListHeaderFilters
+          projectValue={projectSlug}
+          onProjectChange={(value) => {
+            setProjectSlug(value)
+            setTrackSlug('')
+          }}
+          projectOptions={projects.map((project) => ({ value: project.slug, label: project.name }))}
+          showTrackFilter={mode === 'materials' || mode === 'study-tracks' || mode === 'press-quizzes'}
+          trackValue={trackSlug}
+          onTrackChange={setTrackSlug}
+          trackOptions={availableTrackOptions}
+          searchValue={searchFilter}
+          onSearchChange={setSearchFilter}
+          searchPlaceholder={mode === 'tracks' ? 'Buscar faixa por título' : mode === 'materials' ? 'Buscar material por título' : mode === 'study-tracks' ? 'Buscar trilha por título' : 'Buscar quiz por título'}
+          searchDisabled={mode !== 'tracks' && !trackSlug}
+        >
           {mode === 'tracks' && !isTracksTrash && (
             <Button
               onClick={() => {
@@ -1270,7 +1289,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
               Adicionar quiz
             </Button>
           )}
-        </div>
+        </ListHeaderFilters>
       }
     >
       {mode === 'tracks' && (
@@ -1946,6 +1965,37 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
               {previewQuiz?.quiz.description?.trim() || 'Sem descrição.'}
             </p>
           </div>
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wide text-muted">Perguntas</p>
+            {!previewQuiz?.quiz.questionsJson?.length ? (
+              <p className="text-sm text-muted">Nenhuma pergunta cadastrada.</p>
+            ) : (
+              <div className="space-y-3">
+                {previewQuiz.quiz.questionsJson.map((question, index) => (
+                  <div
+                    key={`${previewQuiz.quiz.id}-${index}`}
+                    className="rounded-lg border border-border bg-surface px-3 py-3"
+                  >
+                    <p className="text-sm font-medium text-text">
+                      {index + 1}. {question.question || 'Sem enunciado'}
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {question.options.map((option, optionIndex) => (
+                        <li
+                          key={`${previewQuiz.quiz.id}-${index}-${optionIndex}`}
+                          className="text-sm"
+                        >
+                          <span className={question.correctIndex === optionIndex ? 'font-medium text-success' : 'text-muted'}>
+                            {String.fromCharCode(65 + optionIndex)}. {option || 'Sem texto'}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
 
@@ -2204,7 +2254,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
             onChange={(event) => setQuizForm((prev) => ({ ...prev, description: event.target.value }))}
           />
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-text">Questões</label>
+            <p className="block text-sm font-medium text-text">Questões</p>
             <QuizBuilder
               value={quizForm.questions}
               onChange={(questions) => setQuizForm((prev) => ({ ...prev, questions }))}

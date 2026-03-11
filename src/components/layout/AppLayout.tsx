@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { useTheme } from '@/hooks/useTheme'
 
 export function AppLayout() {
   const { user, isLoading } = useAuth()
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
     if (!isMobileSidebarOpen) return
@@ -46,7 +48,11 @@ export function AppLayout() {
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
       <div className="flex-1 lg:ml-[260px]">
-        <Header onOpenSidebar={() => setIsMobileSidebarOpen(true)} />
+        <Header
+          onOpenSidebar={() => setIsMobileSidebarOpen(true)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
         <main className="p-4 sm:p-6">
           <Outlet />
         </main>

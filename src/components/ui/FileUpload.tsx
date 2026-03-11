@@ -83,16 +83,6 @@ export function FileUpload({
     staleTime: 5 * 60 * 1000,
   })
 
-  useEffect(() => {
-    if (!previewUrl) return
-    setLocalPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev)
-      return null
-    })
-    setLocalPreviewName(null)
-    setLocalPreviewMime(null)
-  }, [previewUrl])
-
   const validateFile = useCallback(
     (file: File): boolean => {
       if (!config) return false

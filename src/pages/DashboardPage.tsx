@@ -15,15 +15,27 @@ import {
 } from 'lucide-react'
 import { getDashboardStats, getRecentEvents } from '@/api/dashboard'
 import { EVENT_TYPE_LABELS, EVENT_ACTION_COLORS, ACTOR_TYPE_LABELS, getEventAction } from '@/lib/constants'
-import { timeAgo } from '@/lib/utils'
+import { cn, timeAgo } from '@/lib/utils'
 import type { DomainEvent } from '@/types'
 
-function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number | string; color: string }) {
+type StatTone = 'accent' | 'info' | 'success' | 'warning' | 'error'
+
+const STAT_TONE_STYLES: Record<StatTone, { bg: string; text: string }> = {
+  accent: { bg: 'bg-accent', text: 'text-on-accent' },
+  info: { bg: 'bg-info', text: 'text-on-info' },
+  success: { bg: 'bg-success', text: 'text-on-success' },
+  warning: { bg: 'bg-warning', text: 'text-on-warning' },
+  error: { bg: 'bg-error', text: 'text-on-error' },
+}
+
+function StatCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: number | string; tone: StatTone }) {
+  const styles = STAT_TONE_STYLES[tone]
+
   return (
     <div className="rounded-xl border border-border bg-surface p-5 hover:border-accent/30 transition-colors">
       <div className="flex items-center gap-4">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${color}`}>
-          {icon}
+        <div className={cn('flex h-12 w-12 items-center justify-center rounded-xl', styles.bg)}>
+          <span className={styles.text}>{icon}</span>
         </div>
         <div>
           <p className="text-2xl font-bold text-text">{value}</p>
@@ -128,17 +140,17 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6 mt-2">
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={<Users className="h-5 w-5 text-white" />} label="Total de usuários" value={stats?.users.total ?? '—'} color="bg-accent" />
-            <StatCard icon={<School className="h-5 w-5 text-white" />} label="Escolas" value={stats?.schools.total ?? '—'} color="bg-info" />
-            <StatCard icon={<BookOpen className="h-5 w-5 text-white" />} label="Cursos" value={stats?.courses.total ?? '—'} color="bg-success" />
-            <StatCard icon={<Calendar className="h-5 w-5 text-white" />} label="Semestres" value={stats?.seasons.total ?? '—'} color="bg-warning" />
+            <StatCard icon={<Users className="h-5 w-5" />} label="Total de usuários" value={stats?.users.total ?? '—'} tone="accent" />
+            <StatCard icon={<School className="h-5 w-5" />} label="Escolas" value={stats?.schools.total ?? '—'} tone="info" />
+            <StatCard icon={<BookOpen className="h-5 w-5" />} label="Cursos" value={stats?.courses.total ?? '—'} tone="success" />
+            <StatCard icon={<Calendar className="h-5 w-5" />} label="Semestres" value={stats?.seasons.total ?? '—'} tone="warning" />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={<GraduationCap className="h-5 w-5 text-white" />} label="Turmas" value={stats?.classes.total ?? '—'} color="bg-error" />
-            <StatCard icon={<Music className="h-5 w-5 text-white" />} label="Templates de projeto" value={stats?.projectTemplates.total ?? '—'} color="bg-accent" />
-            <StatCard icon={<Target className="h-5 w-5 text-white" />} label="Missões diárias" value={stats?.dailyMissionTemplates.total ?? '—'} color="bg-info" />
-            <StatCard icon={<FolderKanban className="h-5 w-5 text-white" />} label="Projetos ativos" value={stats?.projects.active ?? '—'} color="bg-success" />
+            <StatCard icon={<GraduationCap className="h-5 w-5" />} label="Turmas" value={stats?.classes.total ?? '—'} tone="error" />
+            <StatCard icon={<Music className="h-5 w-5" />} label="Templates de projeto" value={stats?.projectTemplates.total ?? '—'} tone="accent" />
+            <StatCard icon={<Target className="h-5 w-5" />} label="Missões diárias" value={stats?.dailyMissionTemplates.total ?? '—'} tone="info" />
+            <StatCard icon={<FolderKanban className="h-5 w-5" />} label="Projetos ativos" value={stats?.projects.active ?? '—'} tone="success" />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

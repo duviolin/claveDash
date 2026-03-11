@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/Button'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
+import { Tabs } from '@/components/ui/Tabs'
 import { changePassword } from '@/api/auth'
 import {
   listProjectTemplateReadinessRules,
@@ -96,6 +97,13 @@ export function SettingsPage() {
 
   const isPasswordPage = location.pathname === '/settings/password'
   const isPublicationPage = location.pathname === '/settings/publication'
+  const settingsTabs = user?.role === 'ADMIN'
+    ? [
+      { key: 'password', label: 'Senha' },
+      { key: 'publication', label: 'Critérios de publicação' },
+    ]
+    : [{ key: 'password', label: 'Senha' }]
+  const activeTabKey = isPublicationPage ? 'publication' : 'password'
 
   useEffect(() => {
     if (location.pathname !== '/settings') return
@@ -116,30 +124,11 @@ export function SettingsPage() {
     <PageContainer title="Configurações">
       <div className="mx-auto w-full max-w-4xl space-y-6">
         <div className="rounded-xl border border-border bg-surface p-3">
-          <nav className="flex flex-wrap gap-2">
-            <NavLink
-              to="/settings/password"
-              className={({ isActive }) =>
-                isActive
-                  ? 'rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white'
-                  : 'rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-surface-2 hover:text-text'
-              }
-            >
-              Senha
-            </NavLink>
-            {user?.role === 'ADMIN' && (
-              <NavLink
-                to="/settings/publication"
-                className={({ isActive }) =>
-                  isActive
-                    ? 'rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white'
-                    : 'rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-surface-2 hover:text-text'
-                }
-              >
-                Critérios de publicação
-              </NavLink>
-            )}
-          </nav>
+          <Tabs
+            tabs={settingsTabs}
+            activeKey={activeTabKey}
+            onChange={(key) => navigate(`/settings/${key}`)}
+          />
         </div>
 
         {isPasswordPage && (

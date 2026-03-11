@@ -146,7 +146,7 @@ export function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
     <>
       <div
         className={cn(
-          'fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 lg:hidden',
+          'fixed inset-0 z-40 bg-overlay transition-opacity duration-200 lg:hidden',
           isMobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
         )}
         onClick={onCloseMobile}
@@ -161,7 +161,7 @@ export function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
       >
         <div className="flex items-center gap-3 border-b border-border px-6 py-5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
-            <Music className="h-4 w-4 text-white" />
+            <Music className="h-4 w-4 text-on-accent" />
           </div>
           <span className="text-lg font-bold text-text">Clave Admin</span>
         </div>

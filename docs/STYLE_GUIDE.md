@@ -6,7 +6,7 @@ Manter a interface consistente, simples e escalavel em todo o `src/`.
 ## Fundacao visual
 - **Tokens**: usar variaveis de `src/index.css` (`--color-*`, `--radius-*`, `--space-*`, `--shadow-*`).
 - **Sem hardcode**: evitar hex direto em componentes/paginas.
-- **Tema**: sempre respeitar surface/border/text/accent do tema dark.
+- **Tema**: sempre respeitar surface/border/text/accent em ambos os temas (light e dark).
 
 ## Componentes base (fonte unica)
 Priorizar os componentes em `src/components/ui`:

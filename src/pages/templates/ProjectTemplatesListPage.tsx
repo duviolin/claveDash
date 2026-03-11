@@ -220,8 +220,15 @@ export function ProjectTemplatesListPage() {
             ? 'success'
             : readiness.scorePercentage >= 70
               ? 'warning'
-              : 'error'
+              : 'default'
           : 'default'
+        const readinessLabel = readiness
+          ? readiness.statusLabel === 'Não pronto'
+            ? 'Em construção'
+            : readiness.statusLabel === 'Quase pronto'
+              ? 'Em validação'
+              : readiness.statusLabel
+          : undefined
 
         return (
           <div className="space-y-3">
@@ -246,7 +253,12 @@ export function ProjectTemplatesListPage() {
             {readiness ? (
               <div className="rounded-lg border border-border bg-surface-2 p-3">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <Badge variant={readinessVariant}>{readiness.statusLabel}</Badge>
+                  <Badge
+                    variant={readinessVariant}
+                    className={readiness?.statusLabel === 'Não pronto' ? 'bg-surface text-muted border-border-strong' : undefined}
+                  >
+                    {readinessLabel}
+                  </Badge>
                   <span className="text-xs font-semibold text-text">{readiness.scorePercentage}% concluído</span>
                 </div>
                 <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-surface">
@@ -255,16 +267,24 @@ export function ProjectTemplatesListPage() {
                     style={{ width: `${Math.max(0, Math.min(readiness.scorePercentage, 100))}%` }}
                   />
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge variant="default" className="text-[10px]">Faixas: {readiness.trackCount}</Badge>
-                  <Badge variant="default" className="text-[10px]">Coletivas: {readiness.quizCount}</Badge>
-                  <Badge variant="default" className="text-[10px]">Materiais: {readiness.materialCount}</Badge>
-                  <Badge variant="default" className="text-[10px]">Trilhas: {readiness.studyTrackCount}</Badge>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted sm:grid-cols-4">
+                  <p>
+                    <span className="font-medium text-text">{readiness.trackCount}</span> faixas
+                  </p>
+                  <p>
+                    <span className="font-medium text-text">{readiness.quizCount}</span> coletivas
+                  </p>
+                  <p>
+                    <span className="font-medium text-text">{readiness.materialCount}</span> materiais
+                  </p>
+                  <p>
+                    <span className="font-medium text-text">{readiness.studyTrackCount}</span> trilhas
+                  </p>
                 </div>
                 {readiness.missingTips.length > 0 && (
-                  <p className="mt-2 text-[11px] text-warning">
-                    Falta: {readiness.missingTips[0]}
-                  </p>
+                  <div className="mt-2 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5">
+                    <p className="text-[11px] font-medium text-warning">Próximo passo: {readiness.missingTips[0]}</p>
+                  </div>
                 )}
               </div>
             ) : (

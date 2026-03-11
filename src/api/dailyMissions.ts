@@ -4,6 +4,7 @@ import type { DailyMissionTemplate, DailyMissionQuiz, QuizQuestion, PaginatedRes
 interface ListPaginatedParams {
   page: number
   limit: number
+  search?: string
 }
 
 /** Only fields that can be updated on a daily mission quiz (PATCH). */
@@ -11,6 +12,19 @@ interface UpdateDailyMissionQuizPayload {
   questionsJson?: QuizQuestion[] | null
   maxAttemptsPerDay?: number
   allowRecoveryAttempt?: boolean
+}
+
+interface BatchDailyMissionQuizResponse {
+  data: Array<{
+    dailyMissionId: string
+    data: DailyMissionQuiz[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+    }
+  }>
 }
 
 export async function listDailyMissionTemplates(courseIdOrSlug?: string) {
@@ -22,6 +36,7 @@ export async function listDailyMissionTemplatesPaginated(params: ListPaginatedPa
   const { data } = await api.get<PaginatedResponse<DailyMissionTemplate>>('/daily-mission-templates', {
     params: {
       courseId: params.courseIdOrSlug,
+      search: params.search,
       page: params.page,
       limit: params.limit,
     },
@@ -29,8 +44,15 @@ export async function listDailyMissionTemplatesPaginated(params: ListPaginatedPa
   return data
 }
 
-export async function listDeletedDailyMissionTemplates(params: { page: number; limit: number }) {
-  const { data } = await api.get<PaginatedResponse<DailyMissionTemplate>>('/daily-mission-templates/deleted', { params })
+export async function listDeletedDailyMissionTemplates(params: { page: number; limit: number; courseIdOrSlug?: string; search?: string }) {
+  const { data } = await api.get<PaginatedResponse<DailyMissionTemplate>>('/daily-mission-templates/deleted', {
+    params: {
+      page: params.page,
+      limit: params.limit,
+      courseId: params.courseIdOrSlug,
+      search: params.search,
+    },
+  })
   return data
 }
 
@@ -86,6 +108,17 @@ export async function listDailyMissionQuizzes(missionIdOrSlug: string) {
 export async function listDailyMissionQuizzesPaginated(missionIdOrSlug: string, params: ListPaginatedParams) {
   const { data } = await api.get<PaginatedResponse<DailyMissionQuiz>>(`/daily-mission-templates/${missionIdOrSlug}/quizzes`, { params })
   return data
+}
+
+export async function listDailyMissionQuizzesBatch(params: { dailyMissionIds: string[]; page: number; limit: number }) {
+  const { data } = await api.get<BatchDailyMissionQuizResponse>('/daily-mission-templates/quizzes/batch', {
+    params: {
+      dailyMissionIds: params.dailyMissionIds.join(','),
+      page: params.page,
+      limit: params.limit,
+    },
+  })
+  return data.data
 }
 
 export async function listDeletedDailyMissionQuizzes(params: { page: number; limit: number; dailyMissionId?: string }) {

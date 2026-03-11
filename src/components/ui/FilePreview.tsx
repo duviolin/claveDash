@@ -90,8 +90,10 @@ export function FilePreview({ fileName, sourceUrl, mimeType, className, compact 
         src={sourceUrl}
         controls
         preload="metadata"
-        className={cn('w-full rounded-lg border border-border bg-black/50', frameHeight, className)}
-      />
+        className={cn('w-full rounded-lg border border-border bg-surface-2', frameHeight, className)}
+      >
+        <track kind="captions" srcLang="pt-BR" label="Legenda em português" />
+      </video>
     )
   }
 
@@ -99,7 +101,9 @@ export function FilePreview({ fileName, sourceUrl, mimeType, className, compact 
     return (
       <div className={cn('rounded-lg border border-border bg-surface p-3', className)}>
         <p className="mb-2 truncate text-xs text-muted">{fileName}</p>
-        <audio src={sourceUrl} controls preload="metadata" className="w-full" />
+        <audio src={sourceUrl} controls preload="metadata" className="w-full">
+          <track kind="captions" srcLang="pt-BR" label="Legenda em português" />
+        </audio>
       </div>
     )
   }

@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, useParams } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { LoginPage } from '@/pages/LoginPage'
 import { FirstAccessPage } from '@/pages/FirstAccessPage'
@@ -20,17 +20,9 @@ import {
   StudyTrackTemplatesListPage,
   TrackTemplatesListPage,
 } from '@/pages/templates/TemplateResourceListPage'
+import { LegacyTemplateRouteRedirect } from '@/pages/templates/LegacyTemplateRouteRedirect'
 import { ProjectInstancesPage } from '@/pages/instances/ProjectInstancesPage'
 import { StoragePage } from '@/pages/StoragePage'
-
-type LegacyTemplateTarget = 'tracks' | 'materials' | 'study-tracks' | 'press-quizzes'
-
-function LegacyTemplateRouteRedirect({ target }: { target: LegacyTemplateTarget }) {
-  const { slug } = useParams<{ slug: string }>()
-  const query = slug ? `?projectSlug=${slug}` : ''
-
-  return <Navigate to={`/templates/${target}${query}`} replace />
-}
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },

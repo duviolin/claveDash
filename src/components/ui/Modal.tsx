@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './Button'
@@ -20,7 +20,7 @@ const sizeStyles = {
 }
 
 export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }: ModalProps) {
-  const overlayRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -34,19 +34,25 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
 
   return (
     <div
-      ref={overlayRef}
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-2 sm:p-4 sm:items-center"
-      onClick={(e) => e.target === overlayRef.current && onClose()}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-none" />
+      <button
+        type="button"
+        className="absolute inset-0 bg-overlay backdrop-blur-sm"
+        onClick={onClose}
+        aria-label="Fechar modal"
+      />
       <div
         className={cn(
           'relative flex w-full max-h-[calc(100dvh-1rem)] flex-col rounded-xl border border-border bg-surface shadow-2xl sm:max-h-[calc(100vh-2rem)]',
           sizeStyles[size]
         )}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
-          <h2 className="text-base font-semibold text-text sm:text-lg">{title}</h2>
+          <h2 id={titleId} className="text-base font-semibold text-text sm:text-lg">{title}</h2>
           <IconButton icon={<X className="h-5 w-5" />} label="Fechar modal" onClick={onClose} size="sm" />
         </div>
         <div className="min-h-0 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">{children}</div>

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, Send, RotateCcw, Eye, ChevronDown, ChevronRight, HelpCircle, ArchiveRestore } from 'lucide-react'
+import { Plus, Pencil, Trash2, Send, RotateCcw, Eye, HelpCircle, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
@@ -18,6 +18,8 @@ import { generateQuiz } from '@/api/ai'
 import { FileUpload } from '@/components/ui/FileUpload'
 import { FilePreview } from '@/components/ui/FilePreview'
 import { Pagination } from '@/components/ui/Pagination'
+import { DetailFieldList } from '@/components/ui/DetailFieldList'
+import { ListHeaderFilters } from '@/components/ui/ListHeaderFilters'
 import { presignDownload } from '@/api/storage'
 import type { AxiosError } from 'axios'
 import {
@@ -32,6 +34,7 @@ import {
   createDailyMissionQuiz,
   updateDailyMissionQuiz,
   deleteDailyMissionQuiz,
+  listDailyMissionQuizzesBatch,
   listDailyMissionQuizzesPaginated,
   listDeletedDailyMissionQuizzes,
   restoreDailyMissionQuiz,
@@ -39,13 +42,15 @@ import {
 import { listCourses } from '@/api/courses'
 import { DAILY_MISSION_STATUS_LABELS, DAILY_MISSION_STATUS_VARIANT } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
-import type { DailyMissionTemplate, DailyMissionQuiz, Course, QuizQuestion } from '@/types'
+import type { DailyMissionTemplate, DailyMissionQuiz, Course, QuizQuestion, PaginatedResponse } from '@/types'
 import toast from 'react-hot-toast'
 import { useTrashableListPage } from '@/hooks/useTrashableListPage'
 import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHandler'
+import { usePersistedState } from '@/hooks/usePersistedState'
 
 const DAILY_MISSION_PAGE_LIMIT = 10
 const DAILY_MISSION_QUIZ_PAGE_LIMIT = 10
+const DAILY_MISSION_FILTER_STORAGE_KEY = 'daily-mission-template-filters'
 const tabs = [
   { key: 'active', label: 'Ativos' },
   { key: 'TRASH', label: 'Lixeira' },
@@ -60,28 +65,41 @@ export function DailyMissionTemplatesPage() {
   const [deleteTarget, setDeleteTarget] = useState<DailyMissionTemplate | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<DailyMissionTemplate | null>(null)
   const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
-  const [courseFilter, setCourseFilter] = useState('')
-  const [expandedMission, setExpandedMission] = useState<string | null>(null)
+  const [persistedFilters, setPersistedFilters] = usePersistedState({
+    storage: 'local',
+    key: DAILY_MISSION_FILTER_STORAGE_KEY,
+    initialValue: { courseId: '', search: '' },
+  })
+  const [courseFilter, setCourseFilter] = useState(persistedFilters.courseId)
+  const [searchFilter, setSearchFilter] = useState(persistedFilters.search)
+  const [debouncedSearchFilter, setDebouncedSearchFilter] = useState(persistedFilters.search.trim())
   const [isVideoUploading, setIsVideoUploading] = useState(false)
   const [form, setForm] = useState({ courseId: '', title: '', videoUrl: '' })
 
   const { data: courses = [] } = useQuery({ queryKey: ['courses'], queryFn: () => listCourses() })
 
   const { data: activeResponse, isLoading: isLoadingActive } = useQuery({
-    queryKey: ['daily-mission-templates', 'active', courseFilter, page],
+    queryKey: ['daily-mission-templates', 'active', courseFilter, debouncedSearchFilter, page],
     queryFn: () =>
       listDailyMissionTemplatesPaginated({
         courseIdOrSlug: courseFilter || undefined,
+        search: debouncedSearchFilter || undefined,
         page,
         limit: DAILY_MISSION_PAGE_LIMIT,
       }),
-    enabled: !isTrash,
+    enabled: !isTrash && Boolean(courseFilter),
     placeholderData: (previousData) => previousData,
   })
 
   const { data: deletedResponse, isLoading: isLoadingDeleted } = useQuery({
-    queryKey: ['daily-mission-templates', 'deleted', page],
-    queryFn: () => listDeletedDailyMissionTemplates({ page, limit: DAILY_MISSION_PAGE_LIMIT }),
+    queryKey: ['daily-mission-templates', 'deleted', courseFilter, debouncedSearchFilter, page],
+    queryFn: () =>
+      listDeletedDailyMissionTemplates({
+        page,
+        limit: DAILY_MISSION_PAGE_LIMIT,
+        courseIdOrSlug: courseFilter || undefined,
+        search: debouncedSearchFilter || undefined,
+      }),
     enabled: isTrash,
     placeholderData: (previousData) => previousData,
   })
@@ -89,6 +107,28 @@ export function DailyMissionTemplatesPage() {
   const deletedMissions = deletedResponse?.data ?? []
   const pagination = isTrash ? deletedResponse?.pagination : activeResponse?.pagination
   const isLoading = isTrash ? isLoadingDeleted : isLoadingActive
+  const missionIds = missions.map((mission) => mission.id)
+  const { data: batchedQuizzes = [] } = useQuery({
+    queryKey: ['daily-mission-quizzes-batch', missionIds, 1, DAILY_MISSION_QUIZ_PAGE_LIMIT],
+    queryFn: () =>
+      listDailyMissionQuizzesBatch({
+        dailyMissionIds: missionIds,
+        page: 1,
+        limit: DAILY_MISSION_QUIZ_PAGE_LIMIT,
+      }),
+    enabled: !isTrash && missionIds.length > 0,
+    staleTime: 60 * 1000,
+  })
+  const batchedQuizzesByMission = useMemo(() => {
+    const grouped: Record<string, PaginatedResponse<DailyMissionQuiz>> = {}
+    batchedQuizzes.forEach((entry) => {
+      grouped[entry.dailyMissionId] = {
+        data: entry.data,
+        pagination: entry.pagination,
+      }
+    })
+    return grouped
+  }, [batchedQuizzes])
   const { data: previewVideoUrl, isLoading: isLoadingPreviewVideo } = useQuery({
     queryKey: ['daily-mission-preview-video', previewTarget?.id, previewTarget?.videoUrl],
     queryFn: async () => {
@@ -101,27 +141,49 @@ export function DailyMissionTemplatesPage() {
   })
 
   useEffect(() => {
+    setPersistedFilters({ courseId: courseFilter, search: searchFilter })
+  }, [courseFilter, searchFilter, setPersistedFilters])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchFilter(searchFilter.trim())
+      setPage(1)
+    }, 350)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [searchFilter, setPage])
+
+  useEffect(() => {
+    if (!isTrash && !courseFilter) return
     if (!pagination || page >= pagination.totalPages) return
     const nextPage = page + 1
 
     if (isTrash) {
       queryClient.prefetchQuery({
-        queryKey: ['daily-mission-templates', 'deleted', nextPage],
-        queryFn: () => listDeletedDailyMissionTemplates({ page: nextPage, limit: DAILY_MISSION_PAGE_LIMIT }),
+        queryKey: ['daily-mission-templates', 'deleted', courseFilter, debouncedSearchFilter, nextPage],
+        queryFn: () =>
+          listDeletedDailyMissionTemplates({
+            page: nextPage,
+            limit: DAILY_MISSION_PAGE_LIMIT,
+            courseIdOrSlug: courseFilter || undefined,
+            search: debouncedSearchFilter || undefined,
+          }),
       })
       return
     }
 
     queryClient.prefetchQuery({
-      queryKey: ['daily-mission-templates', 'active', courseFilter, nextPage],
+      queryKey: ['daily-mission-templates', 'active', courseFilter, debouncedSearchFilter, nextPage],
       queryFn: () =>
         listDailyMissionTemplatesPaginated({
           courseIdOrSlug: courseFilter || undefined,
+          search: debouncedSearchFilter || undefined,
           page: nextPage,
           limit: DAILY_MISSION_PAGE_LIMIT,
         }),
     })
-  }, [courseFilter, isTrash, page, pagination, queryClient])
+  }, [courseFilter, debouncedSearchFilter, isTrash, page, pagination, queryClient])
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -175,7 +237,11 @@ export function DailyMissionTemplatesPage() {
     },
   })
 
-  const openCreate = () => { setEditing(null); setForm({ courseId: '', title: '', videoUrl: '' }); setModalOpen(true) }
+  const openCreate = () => {
+    setEditing(null)
+    setForm({ courseId: courseFilter || '', title: '', videoUrl: '' })
+    setModalOpen(true)
+  }
   const openEdit = (m: DailyMissionTemplate) => { setEditing(m); setForm({ courseId: m.courseId, title: m.title, videoUrl: m.videoUrl || '' }); setModalOpen(true) }
   const closeModal = () => { setModalOpen(false); setEditing(null); setIsVideoUploading(false) }
 
@@ -227,26 +293,36 @@ export function DailyMissionTemplatesPage() {
   return (
     <PageContainer
       title="Missões diárias"
-      count={pagination?.total ?? (isTrash ? deletedMissions.length : missions.length)}
-      action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Cadastrar missão</Button> : undefined}
+      count={!isTrash && !courseFilter ? 0 : (pagination?.total ?? (isTrash ? deletedMissions.length : missions.length))}
+      action={
+        <ListHeaderFilters
+          projectValue={courseFilter}
+          onProjectChange={(value) => {
+            setCourseFilter(value)
+            setPage(1)
+          }}
+          projectOptions={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
+          projectPlaceholder="Selecionar curso"
+          searchValue={searchFilter}
+          onSearchChange={setSearchFilter}
+          searchPlaceholder="Buscar missão por título"
+          searchDisabled={!isTrash && !courseFilter}
+        >
+          {!isTrash && (
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" /> Cadastrar missão
+            </Button>
+          )}
+        </ListHeaderFilters>
+      }
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />
-        {!isTrash && (
-          <Select
-            value={courseFilter}
-            onChange={(e) => {
-              setCourseFilter(e.target.value)
-              setPage(1)
-            }}
-            placeholder="Todos os cursos"
-            options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
-            className="w-full sm:max-w-xs"
-          />
-        )}
       </div>
 
-      {isTrash ? (
+      {!isTrash && !courseFilter ? (
+        <p className="py-8 text-center text-sm text-muted">Selecione um curso para visualizar as missões.</p>
+      ) : isTrash ? (
         <>
           <Table
             columns={trashColumns}
@@ -265,9 +341,6 @@ export function DailyMissionTemplatesPage() {
           {missions.map((mission) => (
             <div key={mission.id} className="rounded-xl border border-border bg-surface overflow-hidden">
               <div className="flex items-center gap-3 px-4 py-3">
-                <button className="cursor-pointer" onClick={() => setExpandedMission(expandedMission === mission.id ? null : mission.id)}>
-                  {expandedMission === mission.id ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
-                </button>
                 <span className="text-xs text-muted font-mono w-6">{mission.order}</span>
                 <span className="font-medium text-text flex-1">{mission.title}</span>
                 <Badge variant={DAILY_MISSION_STATUS_VARIANT[mission.status]}>{DAILY_MISSION_STATUS_LABELS[mission.status]}</Badge>
@@ -287,11 +360,13 @@ export function DailyMissionTemplatesPage() {
                   <IconButton onClick={() => setDeleteTarget(mission)} label="Desativar" icon={<Trash2 className="h-4 w-4" />} variant="danger" />
                 </div>
               </div>
-              {expandedMission === mission.id && (
-                <div className="border-t border-border px-4 py-4 bg-surface-2/30">
-                  <MissionQuizSection missionId={mission.id} mission={mission} />
-                </div>
-              )}
+              <div className="border-t border-border px-4 py-4 bg-surface-2/30">
+                <MissionQuizSection
+                  missionId={mission.id}
+                  mission={mission}
+                  initialActiveResponse={batchedQuizzesByMission[mission.id]}
+                />
+              </div>
             </div>
           ))}
           {missions.length === 0 && <p className="text-center text-sm text-muted py-8">Nenhuma missão encontrada.</p>}
@@ -393,13 +468,22 @@ export function DailyMissionTemplatesPage() {
   )
 }
 
-function MissionQuizSection({ missionId, mission }: { missionId: string; mission: DailyMissionTemplate }) {
+function MissionQuizSection({
+  missionId,
+  mission,
+  initialActiveResponse,
+}: {
+  missionId: string
+  mission: DailyMissionTemplate
+  initialActiveResponse?: PaginatedResponse<DailyMissionQuiz>
+}) {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('active')
   const [modalOpen, setModalOpen] = useState(false)
   const [activePage, setActivePage] = useState(1)
   const [trashPage, setTrashPage] = useState(1)
   const [editing, setEditing] = useState<DailyMissionQuiz | null>(null)
+  const [previewQuiz, setPreviewQuiz] = useState<DailyMissionQuiz | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DailyMissionQuiz | null>(null)
   const [restoreTarget, setRestoreTarget] = useState<DailyMissionQuiz | null>(null)
   const [form, setForm] = useState({ questions: [] as QuizQuestion[], maxAttemptsPerDay: 3, allowRecoveryAttempt: false })
@@ -409,6 +493,8 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
     queryKey: ['daily-mission-quizzes', missionId, 'active', activePage],
     queryFn: () => listDailyMissionQuizzesPaginated(missionId, { page: activePage, limit: DAILY_MISSION_QUIZ_PAGE_LIMIT }),
     enabled: !isTrash,
+    initialData: activePage === 1 ? initialActiveResponse : undefined,
+    staleTime: 60 * 1000,
     placeholderData: (previousData) => previousData,
   })
 
@@ -508,6 +594,7 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
                   <span className="text-muted">{q.questionsJson?.length ?? 0} questões</span>
                   <span className="text-muted">{q.maxAttemptsPerDay} tentativas/dia</span>
                   <div className="flex-1" />
+                  <IconButton onClick={() => setPreviewQuiz(q)} label="Prévia do questionário" icon={<Eye className="h-3.5 w-3.5" />} />
                   <IconButton onClick={() => openEdit(q)} label="Editar cadastro" icon={<Pencil className="h-3.5 w-3.5" />} />
                   <IconButton onClick={() => setDeleteTarget(q)} label="Remover" icon={<Trash2 className="h-3.5 w-3.5" />} variant="danger" />
                 </div>
@@ -569,7 +656,7 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
       }>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium text-text">Questões</label>
+            <p className="block text-sm font-medium text-text">Questões</p>
             <AIButton
               label="Gerar questionário com IA"
               extraInputLabel="Instruções extras (opcional)"
@@ -595,6 +682,52 @@ function MissionQuizSection({ missionId, mission }: { missionId: string; mission
               <input type="checkbox" checked={form.allowRecoveryAttempt} onChange={(e) => setForm({ ...form, allowRecoveryAttempt: e.target.checked })} className="accent-accent" />
               Permitir tentativa de recuperação
             </label>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!previewQuiz}
+        onClose={() => setPreviewQuiz(null)}
+        title="Prévia do questionário da missão"
+        footer={<Button variant="secondary" onClick={() => setPreviewQuiz(null)}>Fechar</Button>}
+      >
+        <div className="space-y-4">
+          <DetailFieldList
+            items={[
+              { label: 'Missão', value: mission.title || '—' },
+              { label: 'Versão', value: previewQuiz ? `v${previewQuiz.version}` : '—' },
+              { label: 'Questões', value: previewQuiz ? String(previewQuiz.questionsJson?.length ?? 0) : '—' },
+              { label: 'Tentativas por dia', value: previewQuiz ? String(previewQuiz.maxAttemptsPerDay) : '—' },
+              { label: 'Tentativa de recuperação', value: previewQuiz?.allowRecoveryAttempt ? 'Sim' : 'Não' },
+              { label: 'Atualizado em', value: previewQuiz ? formatDate(previewQuiz.updatedAt) : '—' },
+            ]}
+          />
+
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wide text-muted">Perguntas</p>
+            {!previewQuiz?.questionsJson?.length ? (
+              <p className="text-sm text-muted">Nenhuma pergunta cadastrada.</p>
+            ) : (
+              <div className="space-y-3">
+                {previewQuiz.questionsJson.map((question, index) => (
+                  <div key={`${previewQuiz.id}-${index}`} className="rounded-lg border border-border bg-surface px-3 py-3">
+                    <p className="text-sm font-medium text-text">
+                      {index + 1}. {question.question || 'Sem enunciado'}
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {question.options.map((option, optionIndex) => (
+                        <li key={`${previewQuiz.id}-${index}-${optionIndex}`} className="text-sm">
+                          <span className={question.correctIndex === optionIndex ? 'font-medium text-success' : 'text-muted'}>
+                            {String.fromCharCode(65 + optionIndex)}. {option || 'Sem texto'}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </Modal>

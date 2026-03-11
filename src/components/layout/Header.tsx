@@ -1,10 +1,12 @@
 import { useAuth } from '@/contexts/AuthContext'
-import { LogOut, ChevronRight, Menu } from 'lucide-react'
+import { LogOut, ChevronRight, Menu, Moon, Sun } from 'lucide-react'
 import { useLocation, Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { getInitials } from '@/lib/utils'
 import { ROLE_LABELS, ROLE_BADGE_VARIANT } from '@/lib/constants'
 import { NotificationBell } from './NotificationBell'
+import { IconButton } from '@/components/ui/IconButton'
+import type { ThemeMode } from '@/hooks/useTheme'
 
 const routeLabels: Record<string, string> = {
   dashboard: 'Painel',
@@ -103,9 +105,11 @@ function Breadcrumb() {
 
 interface HeaderProps {
   onOpenSidebar: () => void
+  theme: ThemeMode
+  onToggleTheme: () => void
 }
 
-export function Header({ onOpenSidebar }: HeaderProps) {
+export function Header({ onOpenSidebar, theme, onToggleTheme }: HeaderProps) {
   const { user, logout } = useAuth()
 
   const roleBadgeVariant = ROLE_BADGE_VARIANT
@@ -128,6 +132,11 @@ export function Header({ onOpenSidebar }: HeaderProps) {
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         {user && (
           <>
+            <IconButton
+              icon={theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+              onClick={onToggleTheme}
+            />
             <NotificationBell />
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-xs font-bold text-accent">
