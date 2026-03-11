@@ -1,4 +1,4 @@
-import { useEffect, useId, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './Button'
@@ -21,6 +21,8 @@ const sizeStyles = {
 
 export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }: ModalProps) {
   const titleId = useId()
+  const dialogRef = useRef<HTMLDivElement | null>(null)
+  const lastActiveElementRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -29,6 +31,48 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
     if (isOpen) document.addEventListener('keydown', handleEsc)
     return () => document.removeEventListener('keydown', handleEsc)
   }, [isOpen, onClose])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    lastActiveElementRef.current = document.activeElement as HTMLElement | null
+
+    const node = dialogRef.current
+    if (!node) return
+
+    const focusable = node.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    ;(first ?? node).focus()
+
+    const handleTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+      if (!focusable.length) {
+        event.preventDefault()
+        return
+      }
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+        return
+      }
+
+      if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleTab)
+    return () => {
+      document.removeEventListener('keydown', handleTab)
+      lastActiveElementRef.current?.focus()
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -43,10 +87,12 @@ export function Modal({ isOpen, onClose, title, children, footer, size = 'md' }:
         aria-label="Fechar modal"
       />
       <div
+        ref={dialogRef}
         className={cn(
           'relative flex w-full max-h-[calc(100dvh-1rem)] flex-col rounded-xl border border-border bg-surface shadow-2xl sm:max-h-[calc(100vh-2rem)]',
           sizeStyles[size]
         )}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

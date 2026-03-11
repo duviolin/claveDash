@@ -120,7 +120,7 @@ export function Header({ onOpenSidebar, theme, onToggleTheme }: HeaderProps) {
         <button
           type="button"
           onClick={onOpenSidebar}
-          className="rounded-lg p-2 text-muted transition-colors hover:bg-surface-2 hover:text-text lg:hidden"
+          className="rounded-lg p-2 text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 lg:hidden"
           aria-label="Abrir menu"
           title="Abrir menu"
         >
@@ -149,9 +149,11 @@ export function Header({ onOpenSidebar, theme, onToggleTheme }: HeaderProps) {
                 </Badge>
               </div>
               <button
+                type="button"
                 onClick={logout}
-                className="rounded-lg p-2 text-muted transition-colors hover:bg-surface-2 hover:text-text cursor-pointer"
+                className="rounded-lg p-2 text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 cursor-pointer"
                 title="Sair"
+                aria-label="Sair"
               >
                 <LogOut className="h-4 w-4" />
               </button>

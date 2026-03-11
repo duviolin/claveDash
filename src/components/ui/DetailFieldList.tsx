@@ -12,8 +12,8 @@ export function DetailFieldList({ items }: DetailFieldListProps) {
     <div className="space-y-4">
       {items.map((item) => (
         <div key={item.label}>
-          <p className="text-xs uppercase tracking-wide text-muted">{item.label}</p>
-          <p className="mt-1 text-text">{item.value || '—'}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{item.label}</p>
+          <p className="mt-1 text-sm text-text">{item.value || '—'}</p>
         </div>
       ))}
     </div>

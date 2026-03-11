@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/Select'
 import { Pagination } from '@/components/ui/Pagination'
 import { IconButton } from '@/components/ui/IconButton'
 import { DetailFieldList } from '@/components/ui/DetailFieldList'
+import { CrudListToolbar } from '@/components/ui/CrudListToolbar'
 import { listSchools, createSchool, updateSchool, deleteSchool, listDeletedSchools, restoreSchool } from '@/api/schools'
 import { listUsers } from '@/api/users'
 import { formatDate } from '@/lib/utils'
@@ -209,7 +210,7 @@ export function SchoolsListPage() {
         ) : undefined
       }
     >
-      <Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />
+      <CrudListToolbar primary={<Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />} />
       <Table
         columns={isTrash ? trashColumns : columns}
         data={schools}

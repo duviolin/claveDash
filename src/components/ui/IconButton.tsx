@@ -19,8 +19,8 @@ const variantStyles: Record<IconButtonVariant, string> = {
 }
 
 const sizeStyles: Record<IconButtonSize, string> = {
-  sm: 'p-1',
-  md: 'p-1.5',
+  sm: 'min-h-8 min-w-8 p-1',
+  md: 'min-h-9 min-w-9 p-1.5',
 }
 
 export function IconButton({
@@ -39,7 +39,7 @@ export function IconButton({
       title={label}
       aria-label={label}
       className={cn(
-        'inline-flex items-center gap-1 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent/50 cursor-pointer disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex items-center justify-center gap-1 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 cursor-pointer disabled:pointer-events-none disabled:opacity-50',
         variantStyles[variant],
         sizeStyles[size],
         className

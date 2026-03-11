@@ -13,6 +13,7 @@ import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedMod
 import { Pagination } from '@/components/ui/Pagination'
 import { IconButton } from '@/components/ui/IconButton'
 import { DetailFieldList } from '@/components/ui/DetailFieldList'
+import { CrudListToolbar } from '@/components/ui/CrudListToolbar'
 import { listUsers, suspendUser, reactivateUser, softDeleteUser, restoreUser, listDeletedUsers } from '@/api/users'
 import { formatDate } from '@/lib/utils'
 import { truncateText } from '@/lib/text'
@@ -279,15 +280,17 @@ export function UsersListPage() {
         ) : undefined
       }
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs tabs={roleTabs} activeKey={roleFilter} onChange={handleTabChange} />
-        <Input
-          placeholder="Buscar por nome ou e-mail..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:max-w-xs"
-        />
-      </div>
+      <CrudListToolbar
+        primary={<Tabs tabs={roleTabs} activeKey={roleFilter} onChange={handleTabChange} />}
+        secondary={
+          <Input
+            placeholder="Buscar por nome ou e-mail..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full sm:min-w-[300px]"
+          />
+        }
+      />
 
       <Table
         columns={isTrash ? trashColumns : activeColumns}

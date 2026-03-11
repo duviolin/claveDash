@@ -22,6 +22,7 @@ Indice consolidado para execucao por fase, com status unico e atualizacao semana
 - `FRONT_BACK_EXECUTION_BOARD.md` - tarefas integradas front/back.
 - `DASHBOARD_DATA_ORIGEM_E_INTEGRACAO.md` - origem de dados e integracao.
 - `CHANGELOG.md` - historico de mudancas.
+- `UX_A11Y_OPERATIONAL_GUIDE.md` - padrao operacional de experiencia e acessibilidade.
 
 ## Documentos de referencia complementar
 
@@ -29,6 +30,8 @@ Indice consolidado para execucao por fase, com status unico e atualizacao semana
 - `AUDITORIA_FRONT_BACK_ISSUES_ONLY.md`
 - `PROJECT_TEMPLATE_READINESS.md`
 - `STYLE_GUIDE.md`
+- `A11Y_THEME_CHECKLIST.md`
+- `UX_A11Y_OPERATIONAL_GUIDE.md`
 - `MAPA_NOMENCLATURA_UI.md`
 - `PRODUCT_VISION.md`
 - `TEMPLATE_CRITERIO_ACEITE_EPICO.md`

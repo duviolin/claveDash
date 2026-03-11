@@ -18,6 +18,8 @@ Evitar recriar versoes locais desses componentes dentro de pages.
 
 ## Padroes de pagina
 - **List pages CRUD**:
+  - `PageContainer` no topo com titulo, contagem e CTA
+  - `CrudListToolbar` para tabs + filtros/busca
   - tabs `Ativos/Lixeira`
   - `deleteMutation` + `restoreMutation`
   - tratamento de 409 com `DeactivationBlockedModal`
@@ -48,6 +50,9 @@ Evitar recriar versoes locais desses componentes dentro de pages.
 ## Regras Cursor relacionadas
 - `06-style-guide.mdc` - Design System, tokens e padrao visual.
 - `07-reuse-structure.mdc` - reuso e padronizacao de estrutura.
+
+## Referencia operacional
+- `UX_A11Y_OPERATIONAL_GUIDE.md` - checklist de PR, matriz tipografica e roteiro de revisao UX/A11y.
 
 ## Checklist rapido (antes de finalizar)
 - [ ] Existe componente base para isso em `src/components/ui`?

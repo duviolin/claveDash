@@ -25,7 +25,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             id={id}
             type={visible ? 'text' : 'password'}
             className={cn(
-              'w-full rounded-lg border bg-surface px-3 py-2 pr-10 text-sm text-text placeholder:text-muted transition-colors focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent',
+              'w-full rounded-lg border bg-surface px-3 py-2 pr-10 text-sm text-text placeholder:text-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus:border-accent',
               error ? 'border-error' : 'border-border',
               className
             )}
@@ -34,7 +34,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-text"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
             aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
             title={visible ? 'Ocultar senha' : 'Mostrar senha'}
           >

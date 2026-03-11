@@ -10,11 +10,11 @@ interface BadgeProps {
 
 const variantStyles: Record<BadgeVariant, string> = {
   default: 'bg-surface-2 text-muted border-border',
-  success: 'bg-success/10 text-success border-success/30',
-  error: 'bg-error/10 text-error border-error/30',
-  warning: 'bg-warning/10 text-warning border-warning/30',
-  info: 'bg-info/10 text-info border-info/30',
-  accent: 'bg-accent/10 text-accent border-accent/30',
+  success: 'bg-surface-2 text-success-strong border-success/35',
+  error: 'bg-surface-2 text-error-strong border-error/35',
+  warning: 'bg-surface-2 text-warning-strong border-warning/35',
+  info: 'bg-surface-2 text-info-strong border-info/35',
+  accent: 'bg-surface-2 text-accent-strong border-accent/35',
 }
 
 export function Badge({ children, variant = 'default', className }: BadgeProps) {

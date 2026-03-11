@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { IconButton } from '@/components/ui/IconButton'
 import { DetailFieldList } from '@/components/ui/DetailFieldList'
+import { CrudListToolbar } from '@/components/ui/CrudListToolbar'
 import { listCourses, listCoursesPaginated, createCourse, updateCourse, deleteCourse, listDeletedCourses, restoreCourse } from '@/api/courses'
 import { listSchools } from '@/api/schools'
 import { COURSE_TYPE_LABELS } from '@/lib/constants'
@@ -214,18 +215,20 @@ export function CoursesListPage() {
       count={pagination?.total ?? courses.length}
       action={!isTrash ? <Button onClick={openCreate}><Plus className="h-4 w-4" /> Cadastrar curso</Button> : undefined}
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs tabs={courseTabs} activeKey={activeTab} onChange={handleTabChange} />
-        {!isTrash && (
-          <Select
-            value={schoolFilter}
-            onChange={(e) => setSchoolFilterAndResetPage(e.target.value)}
-            placeholder="Todas as escolas"
-            options={schools.map((s: School) => ({ value: s.id, label: s.name }))}
-            className="w-full sm:max-w-xs"
-          />
-        )}
-      </div>
+      <CrudListToolbar
+        primary={<Tabs tabs={courseTabs} activeKey={activeTab} onChange={handleTabChange} />}
+        secondary={
+          !isTrash ? (
+            <Select
+              value={schoolFilter}
+              onChange={(e) => setSchoolFilterAndResetPage(e.target.value)}
+              placeholder="Todas as escolas"
+              options={schools.map((s: School) => ({ value: s.id, label: s.name }))}
+              className="w-full sm:min-w-[280px]"
+            />
+          ) : undefined
+        }
+      />
 
       <Table
         columns={isTrash ? trashColumns : columns}

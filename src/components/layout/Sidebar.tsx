@@ -11,6 +11,7 @@ import {
   Music,
   Target,
   HelpCircle,
+  FolderOpen,
   FolderKanban,
   Cloud,
   Settings,
@@ -62,7 +63,7 @@ const templatesGroup: CollapsibleGroup = {
   label: 'Templates',
   icon: <FileText className="h-4 w-4" />,
   items: [
-    { label: 'Projetos', path: '/templates/projects', icon: <Music className="h-4 w-4" /> },
+    { label: 'Projetos', path: '/templates/projects', icon: <FolderOpen className="h-4 w-4" /> },
     { label: 'Faixas', path: '/templates/tracks', icon: <Music className="h-4 w-4" /> },
     { label: 'Materiais', path: '/templates/materials', icon: <FileText className="h-4 w-4" /> },
     { label: 'Trilhas', path: '/templates/study-tracks', icon: <BookOpen className="h-4 w-4" /> },
@@ -112,7 +113,10 @@ function CollapsibleSection({ group, onItemClick }: { group: CollapsibleGroup; o
   return (
     <div>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-controls={`sidebar-group-${group.label.toLowerCase().replace(/\s+/g, '-')}`}
         className={cn(
           'flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer',
           isChildActive ? 'text-accent' : 'text-muted hover:bg-surface-2 hover:text-text'
@@ -127,7 +131,10 @@ function CollapsibleSection({ group, onItemClick }: { group: CollapsibleGroup; o
         />
       </button>
       {isOpen && (
-        <div className="ml-4 mt-1 space-y-0.5 border-l border-border pl-3">
+        <div
+          id={`sidebar-group-${group.label.toLowerCase().replace(/\s+/g, '-')}`}
+          className="ml-4 mt-1 space-y-0.5 border-l border-border pl-3"
+        >
           {group.items.map((item) => (
             <SidebarLink
               key={item.path}
@@ -171,7 +178,7 @@ export function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
             {navGroups.map((group, i) => (
               <div key={i}>
                 {group.label && (
-                  <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted/60">
+                  <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted">
                     {group.label}
                   </p>
                 )}
@@ -184,7 +191,7 @@ export function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
             ))}
 
             <div>
-              <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted/60">
+              <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted">
                 Conteúdo
               </p>
               <div className="space-y-0.5">
@@ -194,7 +201,7 @@ export function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
             </div>
 
             <div>
-              <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted/60">
+              <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted">
                 Sistema
               </p>
               <div className="space-y-0.5">

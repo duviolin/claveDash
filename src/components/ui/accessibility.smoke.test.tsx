@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { render } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render } from '@testing-library/react'
 import { axe } from 'vitest-axe'
 import { Button } from '@/components/ui/Button'
 import { Tabs } from '@/components/ui/Tabs'
@@ -50,5 +50,27 @@ describe('acessibilidade smoke', () => {
   it('PasswordInput renderiza botao de alternancia acessivel', () => {
     const { getByRole } = render(<PasswordInput id="password" label="Senha" value="123456" onChange={() => undefined} />)
     expect(getByRole('button', { name: 'Mostrar senha' })).toBeDefined()
+  })
+
+  it('Tabs expõe semântica de tablist e permite navegação por teclado', () => {
+    const onChange = vi.fn()
+    const { getByRole } = render(
+      <Tabs
+        tabs={[
+          { key: 'active', label: 'Ativos' },
+          { key: 'trash', label: 'Lixeira' },
+        ]}
+        activeKey="active"
+        onChange={onChange}
+      />
+    )
+
+    const tablist = getByRole('tablist')
+    expect(tablist).toBeDefined()
+
+    const activeTab = getByRole('tab', { name: 'Ativos' })
+    activeTab.focus()
+    fireEvent.keyDown(activeTab, { key: 'ArrowRight' })
+    expect(onChange).toHaveBeenCalledWith('trash')
   })
 })

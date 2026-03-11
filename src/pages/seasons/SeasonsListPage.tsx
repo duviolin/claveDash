@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/Select'
 import { Pagination } from '@/components/ui/Pagination'
 import { IconButton } from '@/components/ui/IconButton'
 import { DetailFieldList } from '@/components/ui/DetailFieldList'
+import { CrudListToolbar } from '@/components/ui/CrudListToolbar'
 import { listSeasons, createSeason, updateSeason, deleteSeason, listDeletedSeasons, restoreSeason } from '@/api/seasons'
 import { listCourses } from '@/api/courses'
 import { formatDate } from '@/lib/utils'
@@ -227,22 +228,23 @@ export function SeasonsListPage() {
         ) : undefined
       }
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />
-
-        {!isTrash && (
-          <Select
-            value={courseFilter}
-            onChange={(e) => {
-              setCourseFilter(e.target.value)
-              setPage(1)
-            }}
-            placeholder="Todos os cursos"
-            options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
-            className="w-full sm:max-w-xs"
-          />
-        )}
-      </div>
+      <CrudListToolbar
+        primary={<Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />}
+        secondary={
+          !isTrash ? (
+            <Select
+              value={courseFilter}
+              onChange={(e) => {
+                setCourseFilter(e.target.value)
+                setPage(1)
+              }}
+              placeholder="Todos os cursos"
+              options={courses.map((c: Course) => ({ value: c.id, label: c.name }))}
+              className="w-full sm:min-w-[280px]"
+            />
+          ) : undefined
+        }
+      />
 
       <Table
         columns={isTrash ? trashColumns : columns}

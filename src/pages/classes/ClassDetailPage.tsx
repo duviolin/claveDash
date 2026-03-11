@@ -9,6 +9,8 @@ import { Tabs } from '@/components/ui/Tabs'
 import { Modal } from '@/components/ui/Modal'
 import { Select } from '@/components/ui/Select'
 import { ConfirmModal } from '@/components/ui/Modal'
+import { IconButton } from '@/components/ui/IconButton'
+import { CrudListToolbar } from '@/components/ui/CrudListToolbar'
 import {
   getClass,
   listClassTeachers,
@@ -178,21 +180,19 @@ export function ClassDetailPage() {
       header: 'Ações',
       render: (m: ClassMember) => (
         statusTab === 'active' ? (
-          <button
+          <IconButton
             onClick={() => setRemoveTarget({ member: m, type: activeTab === 'teachers' ? 'teacher' : 'student' })}
-            className="rounded-lg p-1.5 text-muted hover:bg-error/10 hover:text-error transition-colors cursor-pointer"
-            title="Remover"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+            icon={<Trash2 className="h-4 w-4" />}
+            label="Remover vínculo"
+            variant="danger"
+          />
         ) : (
-          <button
+          <IconButton
             onClick={() => setRestoreTarget({ member: m, type: activeTab === 'teachers' ? 'teacher' : 'student' })}
-            className="rounded-lg p-1.5 text-muted hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
-            title="Restaurar"
-          >
-            <ArchiveRestore className="h-4 w-4" />
-          </button>
+            icon={<ArchiveRestore className="h-4 w-4" />}
+            label="Restaurar vínculo"
+            variant="success"
+          />
         )
       ),
     },
@@ -208,22 +208,26 @@ export function ClassDetailPage() {
 
   return (
     <PageContainer title={classData?.name || 'Turma'}>
-      <div className="flex items-center gap-4">
-        <Tabs
-          tabs={[
-            { key: 'teachers', label: 'Professores', count: teachers.length },
-            { key: 'students', label: 'Alunos', count: students.length },
-          ]}
-          activeKey={activeTab}
-          onChange={setActiveTab}
-        />
-        {statusTab === 'active' && (
-          <Button size="sm" onClick={() => { setSelectedUserId(''); setAddModalOpen(true) }}>
-            <Plus className="h-3.5 w-3.5" />
-            {activeTab === 'teachers' ? 'Vincular professor' : 'Vincular aluno'}
-          </Button>
-        )}
-      </div>
+      <CrudListToolbar
+        primary={
+          <Tabs
+            tabs={[
+              { key: 'teachers', label: 'Professores', count: teachers.length },
+              { key: 'students', label: 'Alunos', count: students.length },
+            ]}
+            activeKey={activeTab}
+            onChange={setActiveTab}
+          />
+        }
+        secondary={
+          statusTab === 'active' ? (
+            <Button size="sm" onClick={() => { setSelectedUserId(''); setAddModalOpen(true) }}>
+              <Plus className="h-3.5 w-3.5" />
+              {activeTab === 'teachers' ? 'Vincular professor' : 'Vincular aluno'}
+            </Button>
+          ) : undefined
+        }
+      />
 
       <Tabs
         tabs={[

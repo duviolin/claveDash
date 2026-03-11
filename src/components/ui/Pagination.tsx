@@ -11,7 +11,7 @@ export function Pagination({ page, totalPages, onPageChange, total }: Pagination
   if (totalPages <= 1) return null
 
   return (
-    <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+    <nav className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Paginação">
       <span className="text-sm text-muted">
         Página {page} de {totalPages}
         {total != null && ` (${total} no total)`}
@@ -23,6 +23,7 @@ export function Pagination({ page, totalPages, onPageChange, total }: Pagination
           disabled={page <= 1}
           onClick={() => onPageChange(Math.max(1, page - 1))}
           className="flex-1 sm:flex-none"
+          aria-label="Ir para página anterior"
         >
           Anterior
         </Button>
@@ -32,10 +33,11 @@ export function Pagination({ page, totalPages, onPageChange, total }: Pagination
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           className="flex-1 sm:flex-none"
+          aria-label="Ir para próxima página"
         >
           Próximo
         </Button>
       </div>
-    </div>
+    </nav>
   )
 }

@@ -36,6 +36,7 @@ export function Table<T>({ columns, data, keyExtractor, emptyMessage = 'Nenhum r
               {columns.map((col) => (
                 <th
                   key={col.key}
+                  scope="col"
                   className={cn('px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted', col.className)}
                 >
                   {col.header}
