@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
+import { ResponsiveRowActions } from '@/components/ui/ResponsiveRowActions'
 import { instantiateProject, listProjects, updateProject, publishProject, unpublishProject } from '@/api/instances'
 import { getProjectTemplateReadiness, listProjectTemplates } from '@/api/templates'
 import { listClasses } from '@/api/classes'
@@ -124,9 +125,11 @@ export function ProjectInstancesPage() {
       key: 'context',
       header: 'Contexto',
       render: (p: Project) => (
-        <span className="text-xs text-muted">
-          {p.templateName ?? 'Template não informado'} | {p.className ?? 'Turma não informada'} | {p.seasonName ?? 'Semestre não informado'}
-        </span>
+        <div className="space-y-1 text-xs text-muted">
+          <p>{p.templateName ?? 'Template não informado'}</p>
+          <p>{p.className ?? 'Turma não informada'}</p>
+          <p>{p.seasonName ?? 'Semestre não informado'}</p>
+        </div>
       ),
     },
     {
@@ -138,12 +141,25 @@ export function ProjectInstancesPage() {
       key: 'actions',
       header: 'Ações',
       render: (p: Project) => (
-        <div className="flex gap-1">
-          <button onClick={() => { setEditTarget(p); setEditForm({ name: p.name, description: p.description || '' }) }} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer"><Pencil className="h-4 w-4" /></button>
-          <button onClick={() => togglePublishMut.mutate(p)} className="rounded-lg p-1.5 text-muted hover:bg-surface-2 hover:text-text transition-colors cursor-pointer" title={p.isVisible ? 'Ocultar' : 'Publicar'}>
-            {p.isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
+        <ResponsiveRowActions
+          actions={[
+            {
+              key: 'edit',
+              label: 'Editar projeto',
+              icon: <Pencil className="h-4 w-4" />,
+              onClick: () => {
+                setEditTarget(p)
+                setEditForm({ name: p.name, description: p.description || '' })
+              },
+            },
+            {
+              key: 'toggle-publish',
+              label: p.isVisible ? 'Ocultar' : 'Publicar',
+              icon: p.isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />,
+              onClick: () => togglePublishMut.mutate(p),
+            },
+          ]}
+        />
       ),
     },
   ]

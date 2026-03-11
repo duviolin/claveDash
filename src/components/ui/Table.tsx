@@ -16,9 +16,17 @@ interface TableProps<T> {
   keyExtractor: (item: T) => string
   emptyMessage?: string
   isLoading?: boolean
+  minWidthClassName?: string
 }
 
-export function Table<T>({ columns, data, keyExtractor, emptyMessage = 'Nenhum registro encontrado', isLoading }: TableProps<T>) {
+export function Table<T>({
+  columns,
+  data,
+  keyExtractor,
+  emptyMessage = 'Nenhum registro encontrado',
+  isLoading,
+  minWidthClassName = 'min-w-[560px] sm:min-w-[640px]',
+}: TableProps<T>) {
   if (isLoading) {
     return (
       <Card>
@@ -30,7 +38,7 @@ export function Table<T>({ columns, data, keyExtractor, emptyMessage = 'Nenhum r
   return (
     <Card>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px]">
+        <table className={cn('w-full', minWidthClassName)}>
           <thead>
             <tr className="border-b border-border bg-surface-2">
               {columns.map((col) => (

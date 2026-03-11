@@ -13,8 +13,9 @@ import { Select } from '@/components/ui/Select'
 import { QuizBuilder } from '@/components/ui/QuizBuilder'
 import { AIButton } from '@/components/ui/AIButton'
 import { IconButton } from '@/components/ui/IconButton'
+import { ResponsiveRowActions } from '@/components/ui/ResponsiveRowActions'
 import { LoadingState } from '@/components/ui/LoadingState'
-import { generateQuiz } from '@/api/ai'
+import { generateQuizQuestion } from '@/api/ai'
 import { FileUpload } from '@/components/ui/FileUpload'
 import { FilePreview } from '@/components/ui/FilePreview'
 import { Pagination } from '@/components/ui/Pagination'
@@ -41,6 +42,7 @@ import {
 } from '@/api/dailyMissions'
 import { listCourses } from '@/api/courses'
 import { DAILY_MISSION_STATUS_LABELS, DAILY_MISSION_STATUS_VARIANT } from '@/lib/constants'
+import { parseAIQuizQuestion } from '@/lib/quizAi'
 import { formatDate } from '@/lib/utils'
 import type { DailyMissionTemplate, DailyMissionQuiz, Course, QuizQuestion, PaginatedResponse } from '@/types'
 import toast from 'react-hot-toast'
@@ -280,11 +282,16 @@ export function DailyMissionTemplatesPage() {
       key: 'actions',
       header: 'Ações',
       render: (m: DailyMissionTemplate) => (
-        <IconButton
-          onClick={() => setRestoreTarget(m)}
-          label="Restaurar"
-          icon={<ArchiveRestore className="h-4 w-4" />}
-          variant="success"
+        <ResponsiveRowActions
+          actions={[
+            {
+              key: 'restore',
+              label: 'Restaurar',
+              icon: <ArchiveRestore className="h-4 w-4" />,
+              variant: 'success',
+              onClick: () => setRestoreTarget(m),
+            },
+          ]}
         />
       ),
     },
@@ -340,25 +347,50 @@ export function DailyMissionTemplatesPage() {
         <div className="space-y-2">
           {missions.map((mission) => (
             <div key={mission.id} className="rounded-xl border border-border bg-surface overflow-hidden">
-              <div className="flex items-center gap-3 px-4 py-3">
-                <span className="text-xs text-muted font-mono w-6">{mission.order}</span>
-                <span className="font-medium text-text flex-1">{mission.title}</span>
+              <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <span className="w-6 text-xs font-mono text-muted">{mission.order}</span>
+                <span className="min-w-0 flex-1 text-sm font-medium text-text">{mission.title}</span>
                 <Badge variant={DAILY_MISSION_STATUS_VARIANT[mission.status]}>{DAILY_MISSION_STATUS_LABELS[mission.status]}</Badge>
-                <div className="flex gap-1">
-                  <IconButton
-                    onClick={() => setPreviewTarget(mission)}
-                    label="Prévia da missão"
-                    icon={<Eye className="h-4 w-4" />}
-                  />
-                  {mission.status === 'DRAFT' && (
-                    <IconButton onClick={() => publishMutation.mutate(mission.id)} label="Publicar" icon={<Send className="h-4 w-4" />} variant="success" />
-                  )}
-                  {mission.status === 'PUBLISHED' && (
-                    <IconButton onClick={() => unpublishMutation.mutate(mission.id)} label="Remover publicação" icon={<RotateCcw className="h-4 w-4" />} />
-                  )}
-                  <IconButton onClick={() => openEdit(mission)} label="Editar cadastro" icon={<Pencil className="h-4 w-4" />} />
-                  <IconButton onClick={() => setDeleteTarget(mission)} label="Desativar" icon={<Trash2 className="h-4 w-4" />} variant="danger" />
-                </div>
+                <ResponsiveRowActions
+                  actions={[
+                    {
+                      key: 'preview',
+                      label: 'Prévia da missão',
+                      icon: <Eye className="h-4 w-4" />,
+                      onClick: () => setPreviewTarget(mission),
+                    },
+                    ...(mission.status === 'DRAFT'
+                      ? [{
+                          key: 'publish',
+                          label: 'Publicar',
+                          icon: <Send className="h-4 w-4" />,
+                          variant: 'success' as const,
+                          onClick: () => publishMutation.mutate(mission.id),
+                        }]
+                      : []),
+                    ...(mission.status === 'PUBLISHED'
+                      ? [{
+                          key: 'unpublish',
+                          label: 'Remover publicação',
+                          icon: <RotateCcw className="h-4 w-4" />,
+                          onClick: () => unpublishMutation.mutate(mission.id),
+                        }]
+                      : []),
+                    {
+                      key: 'edit',
+                      label: 'Editar cadastro',
+                      icon: <Pencil className="h-4 w-4" />,
+                      onClick: () => openEdit(mission),
+                    },
+                    {
+                      key: 'delete',
+                      label: 'Desativar',
+                      icon: <Trash2 className="h-4 w-4" />,
+                      variant: 'danger' as const,
+                      onClick: () => setDeleteTarget(mission),
+                    },
+                  ]}
+                />
               </div>
               <div className="border-t border-border px-4 py-4 bg-surface-2/30">
                 <MissionQuizSection
@@ -655,27 +687,39 @@ function MissionQuizSection({
         <><Button variant="secondary" onClick={() => { setModalOpen(false); setEditing(null) }}>Cancelar</Button><Button onClick={() => editing ? updateMut.mutate() : createMut.mutate()} isLoading={createMut.isPending || updateMut.isPending}>{editing ? 'Salvar alterações' : 'Cadastrar'}</Button></>
       }>
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="block text-sm font-medium text-text">Questões</p>
-            <AIButton
-              label="Gerar questionário com IA"
-              extraInputLabel="Instruções extras (opcional)"
-              extraInputPlaceholder="Ex.: foco em prática diária, dificuldade iniciante..."
-              onGenerate={(userExtra) => generateQuiz({
-                title: mission.title,
-                count: 5,
-                project: { name: mission.title, description: 'Missão diária do curso' },
-                userExtra: userExtra || undefined,
-              })}
-              onAccept={(raw) => {
-                try {
-                  const parsed = JSON.parse(raw)
-                  if (Array.isArray(parsed)) setForm({ ...form, questions: parsed })
-                } catch { toast.error('Formato inválido retornado pela IA') }
-              }}
-            />
-          </div>
-          <QuizBuilder value={form.questions} onChange={(questions) => setForm({ ...form, questions })} />
+          <p className="block text-sm font-medium text-text">Questões</p>
+          <QuizBuilder
+            value={form.questions}
+            onChange={(questions) => setForm({ ...form, questions })}
+            footerActions={
+              <AIButton
+                label="Adicionar pergunta com IA"
+                extraInputLabel="Instruções extras (opcional)"
+                extraInputPlaceholder="Ex.: foco em prática diária, dificuldade iniciante..."
+                onGenerate={(userExtra) =>
+                  generateQuizQuestion({
+                    title: mission.title || 'Questionário da missão diária',
+                    description: 'Questionário da missão diária do curso.',
+                    project: { name: mission.title, description: 'Missão diária do curso' },
+                    existingQuestions: form.questions,
+                    userExtra: userExtra || undefined,
+                  })
+                }
+                onAccept={(raw) => {
+                  try {
+                    const generatedQuestion = parseAIQuizQuestion(raw)
+                    setForm((prev) => ({
+                      ...prev,
+                      questions: [...prev.questions, generatedQuestion],
+                    }))
+                    toast.success('Pergunta adicionada com IA.')
+                  } catch {
+                    toast.error('A IA retornou um formato inválido para pergunta.')
+                  }
+                }}
+              />
+            }
+          />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input id="mqAttempts" label="Tentativas por dia" type="number" value={String(form.maxAttemptsPerDay)} onChange={(e) => setForm({ ...form, maxAttemptsPerDay: Number(e.target.value) })} />
             <label className="flex items-center gap-2 text-sm text-text cursor-pointer mt-6">

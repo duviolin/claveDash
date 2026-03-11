@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query'
 import { Plus, Eye, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
-import { Table } from '@/components/ui/Table'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Tabs } from '@/components/ui/Tabs'
@@ -13,7 +12,8 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { Pagination } from '@/components/ui/Pagination'
-import { IconButton } from '@/components/ui/IconButton'
+import { ResponsiveRowActions } from '@/components/ui/ResponsiveRowActions'
+import { ResponsiveDataView } from '@/components/ui/ResponsiveDataView'
 import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import {
   listProjectTemplatesPaginated,
@@ -212,7 +212,7 @@ export function ProjectTemplatesListPage() {
     {
       key: 'name',
       header: 'Nome',
-      className: 'w-[52%] min-w-[420px]',
+      className: 'w-[48%] min-w-[320px]',
       render: (t: ProjectTemplate) => {
         const readiness = readinessBySlug[t.slug]
         const readinessVariant = readiness
@@ -305,7 +305,7 @@ export function ProjectTemplatesListPage() {
     {
       key: 'course',
       header: 'Curso',
-      className: 'w-[240px]',
+      className: 'w-[180px]',
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
         return (
@@ -326,29 +326,39 @@ export function ProjectTemplatesListPage() {
       header: 'Ações',
       className: 'w-[120px] text-right',
       render: (t: ProjectTemplate) => (
-        <div className="flex justify-end gap-1">
-          <IconButton
-            onClick={() => setPreviewTarget(t)}
-            label="Visualizar projeto"
-            icon={<Eye className="h-4 w-4" />}
-          />
-          <IconButton
-            onClick={() => {
-              setEditingTarget(t)
-              setForm({
-                courseId: t.courseId,
-                name: t.name,
-                type: t.type,
-                description: t.description || '',
-                coverImage: t.coverImage || '',
-              })
-              setModalOpen(true)
-            }}
-            label="Editar cadastro"
-            icon={<Pencil className="h-4 w-4" />}
-          />
-          <IconButton onClick={() => setDeleteTarget(t)} label="Desativar" icon={<Trash2 className="h-4 w-4" />} variant="danger" />
-        </div>
+        <ResponsiveRowActions
+          actions={[
+            {
+              key: 'preview',
+              label: 'Visualizar projeto',
+              icon: <Eye className="h-4 w-4" />,
+              onClick: () => setPreviewTarget(t),
+            },
+            {
+              key: 'edit',
+              label: 'Editar cadastro',
+              icon: <Pencil className="h-4 w-4" />,
+              onClick: () => {
+                setEditingTarget(t)
+                setForm({
+                  courseId: t.courseId,
+                  name: t.name,
+                  type: t.type,
+                  description: t.description || '',
+                  coverImage: t.coverImage || '',
+                })
+                setModalOpen(true)
+              },
+            },
+            {
+              key: 'delete',
+              label: 'Desativar',
+              icon: <Trash2 className="h-4 w-4" />,
+              variant: 'danger',
+              onClick: () => setDeleteTarget(t),
+            },
+          ]}
+        />
       ),
     },
   ]
@@ -357,7 +367,7 @@ export function ProjectTemplatesListPage() {
     {
       key: 'name',
       header: 'Nome',
-      className: 'w-[52%] min-w-[420px]',
+      className: 'w-[48%] min-w-[320px]',
       render: (t: ProjectTemplate) => (
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-3">
@@ -387,7 +397,7 @@ export function ProjectTemplatesListPage() {
     {
       key: 'course',
       header: 'Curso',
-      className: 'w-[240px]',
+      className: 'w-[180px]',
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
         return (
@@ -408,14 +418,17 @@ export function ProjectTemplatesListPage() {
       header: 'Ações',
       className: 'w-[120px] text-right',
       render: (t: ProjectTemplate) => (
-        <div className="flex justify-end">
-          <IconButton
-            onClick={() => setRestoreTarget(t)}
-            label="Restaurar"
-            icon={<ArchiveRestore className="h-4 w-4" />}
-            variant="success"
-          />
-        </div>
+        <ResponsiveRowActions
+          actions={[
+            {
+              key: 'restore',
+              label: 'Restaurar',
+              icon: <ArchiveRestore className="h-4 w-4" />,
+              variant: 'success',
+              onClick: () => setRestoreTarget(t),
+            },
+          ]}
+        />
       ),
     },
   ]
@@ -458,12 +471,78 @@ export function ProjectTemplatesListPage() {
         </div>
       </div>
 
-      <Table
+      <ResponsiveDataView
         columns={isTrash ? trashColumns : columns}
         data={templatesList}
         keyExtractor={(t) => t.id}
         isLoading={isLoading}
         emptyMessage={isTrash ? 'A lixeira está vazia.' : 'Nenhum template encontrado.'}
+        tableMinWidthClassName="min-w-[560px] lg:min-w-[640px]"
+        mobileCardRender={(t) => {
+          const course = courses.find((c: Course) => c.id === t.courseId)
+          return (
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-text">{t.name}</p>
+                  <p className="text-xs text-muted">{course?.name || '—'}</p>
+                </div>
+                {isTrash ? <Badge variant="error">Excluído</Badge> : null}
+              </div>
+              <div className="flex items-center justify-between gap-2 text-xs text-muted">
+                <span>{PROJECT_TYPE_LABELS[t.type]}</span>
+                <span>v{t.version}</span>
+              </div>
+              <ResponsiveRowActions
+                className="justify-start"
+                desktopClassName="justify-start"
+                actions={
+                  isTrash
+                    ? [
+                        {
+                          key: 'restore',
+                          label: 'Restaurar',
+                          icon: <ArchiveRestore className="h-4 w-4" />,
+                          variant: 'success',
+                          onClick: () => setRestoreTarget(t),
+                        },
+                      ]
+                    : [
+                        {
+                          key: 'preview',
+                          label: 'Visualizar projeto',
+                          icon: <Eye className="h-4 w-4" />,
+                          onClick: () => setPreviewTarget(t),
+                        },
+                        {
+                          key: 'edit',
+                          label: 'Editar cadastro',
+                          icon: <Pencil className="h-4 w-4" />,
+                          onClick: () => {
+                            setEditingTarget(t)
+                            setForm({
+                              courseId: t.courseId,
+                              name: t.name,
+                              type: t.type,
+                              description: t.description || '',
+                              coverImage: t.coverImage || '',
+                            })
+                            setModalOpen(true)
+                          },
+                        },
+                        {
+                          key: 'delete',
+                          label: 'Desativar',
+                          icon: <Trash2 className="h-4 w-4" />,
+                          variant: 'danger',
+                          onClick: () => setDeleteTarget(t),
+                        },
+                      ]
+                }
+              />
+            </div>
+          )
+        }}
       />
 
       {pagination && (

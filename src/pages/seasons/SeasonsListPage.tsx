@@ -12,7 +12,7 @@ import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedMod
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Pagination } from '@/components/ui/Pagination'
-import { IconButton } from '@/components/ui/IconButton'
+import { ResponsiveRowActions } from '@/components/ui/ResponsiveRowActions'
 import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import { CrudListToolbar } from '@/components/ui/CrudListToolbar'
 import { listSeasons, createSeason, updateSeason, deleteSeason, listDeletedSeasons, restoreSeason } from '@/api/seasons'
@@ -160,15 +160,29 @@ export function SeasonsListPage() {
       key: 'actions',
       header: 'Ações',
       render: (s: Season) => (
-        <div className="flex gap-1">
-          <IconButton
-            onClick={() => setPreviewTarget(s)}
-            label="Visualizar semestre"
-            icon={<Eye className="h-4 w-4" />}
-          />
-          <IconButton onClick={() => openEdit(s)} label="Editar cadastro" icon={<Pencil className="h-4 w-4" />} />
-          <IconButton onClick={() => setDeleteTarget(s)} label="Desativar" icon={<Trash2 className="h-4 w-4" />} variant="danger" />
-        </div>
+        <ResponsiveRowActions
+          actions={[
+            {
+              key: 'preview',
+              label: 'Visualizar semestre',
+              icon: <Eye className="h-4 w-4" />,
+              onClick: () => setPreviewTarget(s),
+            },
+            {
+              key: 'edit',
+              label: 'Editar cadastro',
+              icon: <Pencil className="h-4 w-4" />,
+              onClick: () => openEdit(s),
+            },
+            {
+              key: 'delete',
+              label: 'Desativar',
+              icon: <Trash2 className="h-4 w-4" />,
+              variant: 'danger',
+              onClick: () => setDeleteTarget(s),
+            },
+          ]}
+        />
       ),
     },
   ]
@@ -208,11 +222,16 @@ export function SeasonsListPage() {
       key: 'actions',
       header: 'Ações',
       render: (s: Season) => (
-        <IconButton
-          onClick={() => setRestoreTarget(s)}
-          label="Restaurar"
-          icon={<ArchiveRestore className="h-4 w-4" />}
-          variant="success"
+        <ResponsiveRowActions
+          actions={[
+            {
+              key: 'restore',
+              label: 'Restaurar',
+              icon: <ArchiveRestore className="h-4 w-4" />,
+              variant: 'success',
+              onClick: () => setRestoreTarget(s),
+            },
+          ]}
         />
       ),
     },

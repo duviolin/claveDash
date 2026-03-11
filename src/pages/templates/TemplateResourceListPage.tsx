@@ -57,6 +57,7 @@ import {
   TRACK_MATERIAL_TYPE_LABELS,
   TRACK_MATERIAL_TYPE_VARIANT,
 } from '@/lib/constants'
+import { parseAIQuizQuestion } from '@/lib/quizAi'
 import { formatDate } from '@/lib/utils'
 import type {
   PressQuizTemplate,
@@ -326,10 +327,16 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       .sort((a, b) => a.project.name.localeCompare(b.project.name) || a.track.order - b.track.order)
   }, [scopedProjects, tracksQueries])
 
+  const effectiveTrackSlug = useMemo(() => {
+    if (!trackSlug) return ''
+    const existsInRows = trackRows.some((row) => row.track.slug === trackSlug)
+    return existsInRows ? trackSlug : ''
+  }, [trackRows, trackSlug])
+
   const filteredTrackRows = useMemo(() => {
-    if (mode === 'tracks' || !trackSlug) return trackRows
-    return trackRows.filter((row) => row.track.slug === trackSlug)
-  }, [mode, trackRows, trackSlug])
+    if (mode === 'tracks' || !effectiveTrackSlug) return trackRows
+    return trackRows.filter((row) => row.track.slug === effectiveTrackSlug)
+  }, [effectiveTrackSlug, mode, trackRows])
 
   const trackGroups = useMemo<TrackGroup[]>(() => {
     const groups = new Map<string, TrackGroup>()
@@ -375,9 +382,9 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   }, [deletedTracksResponse?.data, projects, projectSlug])
 
   const selectedTrackRow = useMemo(() => {
-    if (!trackSlug) return null
-    return trackRows.find((row) => row.track.slug === trackSlug) ?? null
-  }, [trackRows, trackSlug])
+    if (!effectiveTrackSlug) return null
+    return trackRows.find((row) => row.track.slug === effectiveTrackSlug) ?? null
+  }, [effectiveTrackSlug, trackRows])
 
   const { data: deletedMaterialsResponse } = useQuery({
     queryKey: ['resource-list-materials', 'deleted', materialsTrashPage, selectedProject?.id, selectedTrackRow?.track.id, debouncedSearchFilter],
@@ -403,9 +410,9 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   }, [projectSlug, trackRows])
 
   const trackRowsForChildren = useMemo(() => {
-    if (!trackSlug) return []
-    return trackRows.filter((row) => row.track.slug === trackSlug)
-  }, [trackRows, trackSlug])
+    if (!effectiveTrackSlug) return []
+    return trackRows.filter((row) => row.track.slug === effectiveTrackSlug)
+  }, [effectiveTrackSlug, trackRows])
 
   const materialQueries = useQueries({
     queries:
@@ -454,9 +461,9 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   }, [mode, trackRowsForChildren, materialQueries])
 
   const filteredMaterialRows = useMemo(() => {
-    if (!trackSlug) return materialRows
-    return materialRows.filter((row) => row.track.slug === trackSlug)
-  }, [materialRows, trackSlug])
+    if (!effectiveTrackSlug) return materialRows
+    return materialRows.filter((row) => row.track.slug === effectiveTrackSlug)
+  }, [effectiveTrackSlug, materialRows])
 
   const materialGroups = useMemo<MaterialProjectGroup[]>(() => {
     const projectMap = new Map<string, MaterialProjectGroup>()
@@ -504,10 +511,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
         return row.project?.slug === projectSlug
       })
       .filter((row) => {
-        if (!trackSlug) return true
-        return row.track?.slug === trackSlug
+        if (!effectiveTrackSlug) return true
+        return row.track?.slug === effectiveTrackSlug
       })
-  }, [deletedMaterialsResponse?.data, trackRows, projectSlug, trackSlug])
+  }, [deletedMaterialsResponse?.data, effectiveTrackSlug, projectSlug, trackRows])
 
   const { data: deletedStudyTracksResponse } = useQuery({
     queryKey: ['resource-list-study-tracks', 'deleted', studyTracksTrashPage, selectedProject?.id, selectedTrackRow?.track.id, debouncedSearchFilter],
@@ -538,10 +545,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
         return row.project?.slug === projectSlug
       })
       .filter((row) => {
-        if (!trackSlug) return true
-        return row.track?.slug === trackSlug
+        if (!effectiveTrackSlug) return true
+        return row.track?.slug === effectiveTrackSlug
       })
-  }, [deletedStudyTracksResponse?.data, trackRows, projectSlug, trackSlug])
+  }, [deletedStudyTracksResponse?.data, effectiveTrackSlug, projectSlug, trackRows])
 
   const { data: deletedQuizzesResponse } = useQuery({
     queryKey: ['resource-list-press-quizzes', 'deleted', quizzesTrashPage, selectedProject?.id, selectedTrackRow?.track.id, debouncedSearchFilter],
@@ -572,10 +579,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
         return row.project?.slug === projectSlug
       })
       .filter((row) => {
-        if (!trackSlug) return true
-        return row.track?.slug === trackSlug
+        if (!effectiveTrackSlug) return true
+        return row.track?.slug === effectiveTrackSlug
       })
-  }, [deletedQuizzesResponse?.data, trackRows, projectSlug, trackSlug])
+  }, [deletedQuizzesResponse?.data, effectiveTrackSlug, projectSlug, trackRows])
 
   const studyTrackRows = useMemo<StudyTrackRow[]>(() => {
     if (mode !== 'study-tracks') return []
@@ -594,9 +601,9 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   }, [mode, trackRowsForChildren, studyTrackQueries])
 
   const filteredStudyTrackRows = useMemo(() => {
-    if (!trackSlug) return studyTrackRows
-    return studyTrackRows.filter((row) => row.track.slug === trackSlug)
-  }, [studyTrackRows, trackSlug])
+    if (!effectiveTrackSlug) return studyTrackRows
+    return studyTrackRows.filter((row) => row.track.slug === effectiveTrackSlug)
+  }, [effectiveTrackSlug, studyTrackRows])
 
   const studyTrackGroups = useMemo<StudyTrackProjectGroup[]>(() => {
     const projectMap = new Map<string, StudyTrackProjectGroup>()
@@ -640,9 +647,9 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   }, [mode, trackRowsForChildren, quizQueries])
 
   const filteredQuizRows = useMemo(() => {
-    if (!trackSlug) return quizRows
-    return quizRows.filter((row) => row.track.slug === trackSlug)
-  }, [quizRows, trackSlug])
+    if (!effectiveTrackSlug) return quizRows
+    return quizRows.filter((row) => row.track.slug === effectiveTrackSlug)
+  }, [effectiveTrackSlug, quizRows])
 
   const quizGroups = useMemo<QuizProjectGroup[]>(() => {
     const projectMap = new Map<string, QuizProjectGroup>()
@@ -988,16 +995,18 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
     },
   ]
 
+  const editingTrackId = editingTrack?.track.id ?? ''
+
   const availablePrerequisiteTrackOptions = useMemo(() => {
     const selectedProjectTracks = trackRows.filter((row) => row.project.id === trackForm.projectTemplateId)
-    const filtered = selectedProjectTracks.filter((row) => row.track.id !== editingTrack?.track.id)
+    const filtered = selectedProjectTracks.filter((row) => row.track.id !== editingTrackId)
     return filtered
       .sort((a, b) => a.track.order - b.track.order)
       .map((row) => ({
         value: row.track.id,
         label: `${row.track.order}. ${row.track.title}`,
       }))
-  }, [trackRows, trackForm.projectTemplateId, editingTrack?.track.id])
+  }, [editingTrackId, trackRows, trackForm.projectTemplateId])
 
   const materialTrackOptions = useMemo(() => {
     const rows = trackRows
@@ -1043,8 +1052,8 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   )
 
   useEffect(() => {
-    setPersistedFilters({ projectSlug, trackSlug, search: searchFilter })
-  }, [projectSlug, searchFilter, setPersistedFilters, trackSlug])
+    setPersistedFilters({ projectSlug, trackSlug: effectiveTrackSlug, search: searchFilter })
+  }, [effectiveTrackSlug, projectSlug, searchFilter, setPersistedFilters])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -1058,14 +1067,6 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
 
     return () => window.clearTimeout(timeoutId)
   }, [searchFilter])
-
-  useEffect(() => {
-    if (!trackSlug) return
-    const existsInOptions = availableTrackOptions.some((option) => option.value === trackSlug)
-    if (!existsInOptions) {
-      setTrackSlug('')
-    }
-  }, [availableTrackOptions, trackSlug])
 
   const materialTrashColumns = [
     {
@@ -1205,13 +1206,13 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
           }}
           projectOptions={projects.map((project) => ({ value: project.slug, label: project.name }))}
           showTrackFilter={mode === 'materials' || mode === 'study-tracks' || mode === 'press-quizzes'}
-          trackValue={trackSlug}
+          trackValue={effectiveTrackSlug}
           onTrackChange={setTrackSlug}
           trackOptions={availableTrackOptions}
           searchValue={searchFilter}
           onSearchChange={setSearchFilter}
           searchPlaceholder={mode === 'tracks' ? 'Buscar faixa por título' : mode === 'materials' ? 'Buscar material por título' : mode === 'study-tracks' ? 'Buscar trilha por título' : 'Buscar quiz por título'}
-          searchDisabled={mode !== 'tracks' && !trackSlug}
+          searchDisabled={mode !== 'tracks' && !effectiveTrackSlug}
         >
           {mode === 'tracks' && !isTracksTrash && (
             <Button
@@ -1324,7 +1325,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                     <p className="text-sm font-semibold text-text">{group.project.name}</p>
                     <p className="text-xs text-muted">{group.tracks.length} faixa(s)</p>
                   </div>
-                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,260px)_120px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                  <div className="hidden gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,220px)_120px]">
                     <span>Faixa</span>
                     <span>Artista</span>
                     <span className="text-center">Ações</span>
@@ -1333,7 +1334,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                     {group.tracks.map((track) => (
                       <div
                         key={track.id}
-                        className="grid grid-cols-[minmax(0,1fr)_minmax(0,260px)_120px] items-center gap-3 px-4 py-3"
+                        className="grid grid-cols-1 items-start gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,220px)_120px] md:items-center md:gap-3"
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-text">
@@ -1341,7 +1342,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                           </p>
                         </div>
                         <p className="truncate text-sm text-muted">{track.artist || '—'}</p>
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-start gap-1 md:justify-center">
                           <IconButton
                             label="Visualizar faixa"
                             icon={<Eye className="h-4 w-4" />}
@@ -1440,7 +1441,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             Faixa {trackGroup.track.order}: {trackGroup.track.title}
                           </div>
 
-                          <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                          <div className="hidden gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted md:grid md:grid-cols-[minmax(0,1fr)_120px_160px]">
                             <span>Material</span>
                             <span>Tipo</span>
                             <span className="text-center">Ações</span>
@@ -1450,13 +1451,13 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             {trackGroup.materials.map((material) => (
                               <div
                                 key={material.id}
-                                className="grid grid-cols-[minmax(0,1fr)_120px_160px] items-center gap-3 px-4 py-3"
+                                className="grid grid-cols-1 items-start gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_120px_160px] md:items-center md:gap-3"
                               >
                                 <p className="truncate text-sm text-text">{material.title}</p>
                                 <Badge variant={TRACK_MATERIAL_TYPE_VARIANT[material.type]} className="w-fit text-[10px]">
                                   {TRACK_MATERIAL_TYPE_LABELS[material.type]}
                                 </Badge>
-                                <div className="flex items-center justify-center gap-1">
+                                <div className="flex items-center justify-start gap-1 md:justify-center">
                                   <IconButton
                                     label="Visualizar material"
                                     icon={<Eye className="h-4 w-4" />}
@@ -1575,7 +1576,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             Faixa {trackGroup.track.order}: {trackGroup.track.title}
                           </div>
 
-                          <div className="grid grid-cols-[minmax(0,1fr)_160px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                          <div className="hidden gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted md:grid md:grid-cols-[minmax(0,1fr)_160px]">
                             <span>Trilha</span>
                             <span className="text-center">Ações</span>
                           </div>
@@ -1584,10 +1585,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             {trackGroup.studyTracks.map((studyTrack) => (
                               <div
                                 key={studyTrack.id}
-                                className="grid grid-cols-[minmax(0,1fr)_160px] items-center gap-3 px-4 py-3"
+                                className="grid grid-cols-1 items-start gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_160px] md:items-center md:gap-3"
                               >
                                 <p className="truncate text-sm text-text">{studyTrack.title}</p>
-                                <div className="flex items-center justify-center gap-1">
+                                <div className="flex items-center justify-start gap-1 md:justify-center">
                                   <IconButton
                                     label="Visualizar trilha"
                                     icon={<Eye className="h-4 w-4" />}
@@ -1706,7 +1707,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             Faixa {trackGroup.track.order}: {trackGroup.track.title}
                           </div>
 
-                          <div className="grid grid-cols-[minmax(0,1fr)_120px_160px] gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                          <div className="hidden gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted md:grid md:grid-cols-[minmax(0,1fr)_120px_160px]">
                             <span>Quiz</span>
                             <span>Questões</span>
                             <span className="text-center">Ações</span>
@@ -1716,11 +1717,11 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                             {trackGroup.quizzes.map((quiz) => (
                               <div
                                 key={quiz.id}
-                                className="grid grid-cols-[minmax(0,1fr)_120px_160px] items-center gap-3 px-4 py-3"
+                                className="grid grid-cols-1 items-start gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_120px_160px] md:items-center md:gap-3"
                               >
                                 <p className="truncate text-sm text-text">{quiz.title}</p>
                                 <p className="text-sm text-muted">{quiz.questionsJson?.length ?? 0}</p>
-                                <div className="flex items-center justify-center gap-1">
+                                <div className="flex items-center justify-start gap-1 md:justify-center">
                                   <IconButton
                                     label="Visualizar quiz"
                                     icon={<Eye className="h-4 w-4" />}
@@ -2289,20 +2290,11 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
                   }
                   onAccept={(raw) => {
                     try {
-                      const parsed = JSON.parse(raw)
-                      const candidate = Array.isArray(parsed) ? parsed[0] : parsed
-                      const question = String(candidate?.question ?? '').trim()
-                      const optionsRaw = Array.isArray(candidate?.options) ? candidate.options : []
-                      const options = optionsRaw.slice(0, 4).map((opt: unknown) => String(opt ?? '').trim())
-                      const correctIndex = Number(candidate?.correctIndex)
-
-                      if (!question || options.length !== 4 || options.some((opt: string) => !opt) || Number.isNaN(correctIndex) || correctIndex < 0 || correctIndex > 3) {
-                        throw new Error('Formato inválido')
-                      }
+                      const generatedQuestion = parseAIQuizQuestion(raw)
 
                       setQuizForm((prev) => ({
                         ...prev,
-                        questions: [...prev.questions, { question, options, correctIndex }],
+                        questions: [...prev.questions, generatedQuestion],
                       }))
                       toast.success('Pergunta adicionada com IA.')
                     } catch {

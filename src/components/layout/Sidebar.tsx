@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { SIDEBAR_PANEL_CLASS } from '@/lib/layout'
 import {
   LayoutDashboard,
   Users,
@@ -161,7 +162,7 @@ export function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
       />
       <aside
         className={cn(
-          'fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col border-r border-border bg-surface transition-transform duration-200',
+          `fixed left-0 top-0 z-50 flex min-h-screen h-dvh ${SIDEBAR_PANEL_CLASS} flex-col border-r border-border bg-surface transition-transform duration-200`,
           isMobileOpen ? 'translate-x-0' : '-translate-x-full',
           'lg:z-40 lg:translate-x-0'
         )}

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { useTheme } from '@/hooks/useTheme'
+import { SIDEBAR_WIDTH_CLASS } from '@/lib/layout'
 
 export function AppLayout() {
   const { user, isLoading } = useAuth()
@@ -47,7 +48,7 @@ export function AppLayout() {
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
-      <div className="flex-1 lg:ml-[260px]">
+      <div className={`min-w-0 flex-1 ${SIDEBAR_WIDTH_CLASS}`}>
         <Header
           onOpenSidebar={() => setIsMobileSidebarOpen(true)}
           theme={theme}

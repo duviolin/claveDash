@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/Input'
 import { ConfirmModal, Modal } from '@/components/ui/Modal'
 import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedModal'
 import { Pagination } from '@/components/ui/Pagination'
-import { IconButton } from '@/components/ui/IconButton'
+import { ResponsiveRowActions } from '@/components/ui/ResponsiveRowActions'
 import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import { CrudListToolbar } from '@/components/ui/CrudListToolbar'
 import { listUsers, suspendUser, reactivateUser, softDeleteUser, restoreUser, listDeletedUsers } from '@/api/users'
@@ -161,39 +161,44 @@ export function UsersListPage() {
       key: 'actions',
       header: 'Ações',
       render: (u: User) => (
-        <div className="flex gap-1">
-          <IconButton
-            onClick={() => setPreviewTarget(u)}
-            label="Visualizar usuário"
-            icon={<Eye className="h-4 w-4" />}
-          />
-          <IconButton
-            onClick={() => navigate(`/users/${u.slug}`)}
-            label="Editar cadastro"
-            icon={<Pencil className="h-4 w-4" />}
-          />
-          {u.status === 'ACTIVE' ? (
-            <IconButton
-              onClick={() => setConfirmAction({ user: u, action: 'suspend' })}
-              label="Suspender"
-              icon={<Ban className="h-4 w-4" />}
-              variant="danger"
-            />
-          ) : (
-            <IconButton
-              onClick={() => setConfirmAction({ user: u, action: 'reactivate' })}
-              label="Reativar"
-              icon={<RotateCcw className="h-4 w-4" />}
-              variant="success"
-            />
-          )}
-          <IconButton
-            onClick={() => setConfirmAction({ user: u, action: 'delete' })}
-            label="Remover"
-            icon={<Trash2 className="h-4 w-4" />}
-            variant="danger"
-          />
-        </div>
+        <ResponsiveRowActions
+          actions={[
+            {
+              key: 'preview',
+              label: 'Visualizar usuário',
+              icon: <Eye className="h-4 w-4" />,
+              onClick: () => setPreviewTarget(u),
+            },
+            {
+              key: 'edit',
+              label: 'Editar cadastro',
+              icon: <Pencil className="h-4 w-4" />,
+              onClick: () => navigate(`/users/${u.slug}`),
+            },
+            ...(u.status === 'ACTIVE'
+              ? [{
+                  key: 'suspend',
+                  label: 'Suspender',
+                  icon: <Ban className="h-4 w-4" />,
+                  variant: 'danger' as const,
+                  onClick: () => setConfirmAction({ user: u, action: 'suspend' }),
+                }]
+              : [{
+                  key: 'reactivate',
+                  label: 'Reativar',
+                  icon: <RotateCcw className="h-4 w-4" />,
+                  variant: 'success' as const,
+                  onClick: () => setConfirmAction({ user: u, action: 'reactivate' }),
+                }]),
+            {
+              key: 'delete',
+              label: 'Remover',
+              icon: <Trash2 className="h-4 w-4" />,
+              variant: 'danger' as const,
+              onClick: () => setConfirmAction({ user: u, action: 'delete' }),
+            },
+          ]}
+        />
       ),
     },
   ]
@@ -228,11 +233,16 @@ export function UsersListPage() {
       key: 'actions',
       header: 'Ações',
       render: (u: User) => (
-        <IconButton
-          onClick={() => setConfirmAction({ user: u, action: 'restore' })}
-          label="Restaurar"
-          icon={<ArchiveRestore className="h-4 w-4" />}
-          variant="success"
+        <ResponsiveRowActions
+          actions={[
+            {
+              key: 'restore',
+              label: 'Restaurar',
+              icon: <ArchiveRestore className="h-4 w-4" />,
+              variant: 'success',
+              onClick: () => setConfirmAction({ user: u, action: 'restore' }),
+            },
+          ]}
         />
       ),
     },

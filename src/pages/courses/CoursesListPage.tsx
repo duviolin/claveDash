@@ -12,7 +12,7 @@ import { DeactivationBlockedModal } from '@/components/ui/DeactivationBlockedMod
 import { Pagination } from '@/components/ui/Pagination'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { IconButton } from '@/components/ui/IconButton'
+import { ResponsiveRowActions } from '@/components/ui/ResponsiveRowActions'
 import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import { CrudListToolbar } from '@/components/ui/CrudListToolbar'
 import { listCourses, listCoursesPaginated, createCourse, updateCourse, deleteCourse, listDeletedCourses, restoreCourse } from '@/api/courses'
@@ -143,15 +143,29 @@ export function CoursesListPage() {
       key: 'actions',
       header: 'Ações',
       render: (c: Course) => (
-        <div className="flex gap-1">
-          <IconButton
-            onClick={() => setPreviewTarget(c)}
-            label="Visualizar curso"
-            icon={<Eye className="h-4 w-4" />}
-          />
-          <IconButton onClick={() => openEdit(c)} label="Editar cadastro" icon={<Pencil className="h-4 w-4" />} />
-          <IconButton onClick={() => setDeleteTarget(c)} label="Desativar" icon={<Trash2 className="h-4 w-4" />} variant="danger" />
-        </div>
+        <ResponsiveRowActions
+          actions={[
+            {
+              key: 'preview',
+              label: 'Visualizar curso',
+              icon: <Eye className="h-4 w-4" />,
+              onClick: () => setPreviewTarget(c),
+            },
+            {
+              key: 'edit',
+              label: 'Editar cadastro',
+              icon: <Pencil className="h-4 w-4" />,
+              onClick: () => openEdit(c),
+            },
+            {
+              key: 'delete',
+              label: 'Desativar',
+              icon: <Trash2 className="h-4 w-4" />,
+              variant: 'danger',
+              onClick: () => setDeleteTarget(c),
+            },
+          ]}
+        />
       ),
     },
   ]
@@ -189,11 +203,16 @@ export function CoursesListPage() {
       key: 'actions',
       header: 'Ações',
       render: (c: Course) => (
-        <IconButton
-          onClick={() => setRestoreTarget(c)}
-          label="Restaurar"
-          icon={<ArchiveRestore className="h-4 w-4" />}
-          variant="success"
+        <ResponsiveRowActions
+          actions={[
+            {
+              key: 'restore',
+              label: 'Restaurar',
+              icon: <ArchiveRestore className="h-4 w-4" />,
+              variant: 'success',
+              onClick: () => setRestoreTarget(c),
+            },
+          ]}
         />
       ),
     },

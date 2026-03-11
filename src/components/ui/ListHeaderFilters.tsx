@@ -36,13 +36,13 @@ export function ListHeaderFilters({
   children,
 }: ListHeaderFiltersProps) {
   return (
-    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-end">
       <Select
         value={projectValue}
         onChange={(event) => onProjectChange(event.target.value)}
         placeholder={projectPlaceholder}
         options={projectOptions}
-        className="w-full sm:min-w-[260px]"
+        className="w-full md:min-w-[240px]"
       />
       {showTrackFilter && (
         <Select
@@ -50,14 +50,14 @@ export function ListHeaderFilters({
           onChange={(event) => onTrackChange?.(event.target.value)}
           placeholder={trackPlaceholder}
           options={trackOptions}
-          className="w-full sm:min-w-[260px]"
+          className="w-full md:min-w-[240px]"
         />
       )}
       <Input
         value={searchValue}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
-        className="w-full sm:min-w-[260px]"
+        className="w-full md:min-w-[240px]"
         disabled={searchDisabled}
       />
       {children}
