@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "clave-api-dev": {
+      "command": "npm",
+      "args": ["run", "mcp:start:dev"],
+      "cwd": "C:/Users/eduar/Documents/claveBack"
+    },
+    "clave-api-homolog": {
+      "command": "npm",
+      "args": ["run", "mcp:start:homolog"],
+      "cwd": "C:/Users/eduar/Documents/claveBack"
+    },
+    "clave-api-prod": {
+      "command": "npm",
+      "args": ["run", "mcp:start:prod"],
+      "cwd": "C:/Users/eduar/Documents/claveBack"
+    },
+    "railway": {
+      "command": "npx",
+      "args": ["-y", "@railway/mcp-server"]
+    }
+  }
+}

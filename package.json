@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:all": "concurrently --names \"DASH,API\" -c \"green,cyan\" \"npm run dev\" \"npm --prefix ../claveBack run dev\"",
+    "dev:all:mcp": "concurrently --names \"DASH,BACK\" -c \"green,cyan\" \"npm run dev\" \"npm --prefix ../claveBack run dev:mcp\"",
     "build": "tsc -b && vite build --mode homol",
     "build:dev": "tsc -b && vite build --mode development",
     "build:homol": "tsc -b && vite build --mode homol",
