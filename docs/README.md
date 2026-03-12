@@ -21,8 +21,6 @@ Indice consolidado para execucao por fase, com status unico e atualizacao semana
 - `EXECUTION_PLAN.md` - execucao tatico-operacional da fase atual.
 - `FRONT_BACK_EXECUTION_BOARD.md` - tarefas integradas front/back.
 - `DASHBOARD_DATA_ORIGEM_E_INTEGRACAO.md` - origem de dados e integracao.
-- `MCP_INTEGRACAO_RAILWAY_NEON_API.md` - pacote minimo de integracao MCP (Railway, Neon e API).
-- `../../claveBack/mcp/clave-api-server/README.md` - scaffold tecnico do servidor MCP da API (acoplado ao backend).
 - `CHANGELOG.md` - historico de mudancas.
 - `UX_A11Y_OPERATIONAL_GUIDE.md` - padrao operacional de experiencia e acessibilidade.
 
