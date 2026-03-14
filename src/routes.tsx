@@ -62,6 +62,11 @@ export const router = createBrowserRouter([
       { path: 'templates/daily-missions', element: <DailyMissionTemplatesPage /> },
       // Instances
       { path: 'instances/projects', element: <ProjectInstancesPage /> },
+      { path: 'instances/tracks', element: <TrackTemplatesListPage /> },
+      { path: 'instances/materials', element: <MaterialTemplatesListPage /> },
+      { path: 'instances/study-tracks', element: <StudyTrackTemplatesListPage /> },
+      { path: 'instances/press-quizzes', element: <PressQuizTemplatesListPage /> },
+      { path: 'instances/daily-missions', element: <DailyMissionTemplatesPage /> },
       // Storage
       { path: 'storage', element: <StoragePage /> },
     ],
