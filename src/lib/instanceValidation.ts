@@ -21,6 +21,7 @@ export function getReadyTemplatesForSeason(
 
   return templates.filter((template) => {
     const isReady = readinessById[template.id]
-    return isReady && template.courseId === season.courseId
+    const isInstantiationAllowed = template.isInstantiationAllowed ?? template.isPublished ?? false
+    return isReady && isInstantiationAllowed && template.courseId === season.courseId
   })
 }

@@ -85,7 +85,8 @@ export interface ProjectTemplate {
   description: string | null
   coverImage: string | null
   version: number
-  isPublished: boolean
+  isInstantiationAllowed: boolean
+  isPublished?: boolean
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -117,7 +118,7 @@ export interface ProjectTemplateReadinessSummary {
   metCount: number
   totalCount: number
   isReady: boolean
-  statusLabel: 'Não pronto' | 'Quase pronto' | 'Apto para publicação'
+  statusLabel: 'Não pronto' | 'Quase pronto' | 'Apto para publicação' | 'Apto para instanciação' | 'Apto para instanciacao'
   missingTips: string[]
   requirements: ProjectTemplateReadinessRequirement[]
 }
@@ -231,6 +232,7 @@ export interface QuizQuestion {
 
 export interface Project {
   id: string
+  slug?: string
   templateId?: string
   classId?: string
   seasonId?: string
@@ -244,10 +246,12 @@ export interface Project {
   description: string | null
   coverImage: string | null
   status: ProjectStatus
+  isActive?: boolean
   isVisible: boolean
   releasedAt: string | null
   projectTemplateVersion: number
   createdAt: string
+  updatedAt?: string
 }
 
 export interface PaginatedResponse<T> {

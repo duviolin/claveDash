@@ -77,7 +77,7 @@ const instancesGroup: CollapsibleGroup = {
   label: 'Instâncias',
   icon: <FolderKanban className="h-4 w-4" />,
   items: [
-    { label: 'Projetos ativos', path: '/instances/projects', icon: <Music className="h-4 w-4" /> },
+    { label: 'Projetos', path: '/instances/projects', icon: <Music className="h-4 w-4" /> },
   ],
 }
 

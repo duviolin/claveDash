@@ -113,15 +113,19 @@ export async function restoreProjectTemplate(idOrSlug: string) {
   return data
 }
 
-export async function publishProjectTemplate(idOrSlug: string) {
-  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${idOrSlug}/publish`)
+export async function allowProjectTemplateInstantiation(idOrSlug: string) {
+  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${idOrSlug}/allow-instantiation`)
   return data
 }
 
-export async function unpublishProjectTemplate(idOrSlug: string) {
-  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${idOrSlug}/unpublish`)
+export async function blockProjectTemplateInstantiation(idOrSlug: string) {
+  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${idOrSlug}/block-instantiation`)
   return data
 }
+
+// Backward compatibility for old imports.
+export const publishProjectTemplate = allowProjectTemplateInstantiation
+export const unpublishProjectTemplate = blockProjectTemplateInstantiation
 
 // --- Track Scene Templates ---
 export async function listTrackTemplates(projectTemplateIdOrSlug: string, search?: string) {

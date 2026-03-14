@@ -55,9 +55,9 @@ export const ERROR_HANDLERS: Record<string, ErrorHandler> = {
   RESOURCE_NOT_FOUND: { message: 'Registro não encontrado' },
 
   // ── Conflict ──────────────────────────────────────
-  CONFLICT_DUPLICATE: { message: 'Este registro já existe' },
-  CONFLICT_ALREADY_EXISTS: { message: 'Registro já cadastrado' },
-  CONFLICT_INVALID_STATE: {},
+  CONFLICT_DUPLICATE: { message: 'Já existe um registro com essa combinação.' },
+  CONFLICT_ALREADY_EXISTS: { message: 'Este item já foi instanciado neste contexto.' },
+  CONFLICT_INVALID_STATE: { message: 'A operação não pode ser concluída por conflito de estado.' },
 
   // ── Business ──────────────────────────────────────
   BUSINESS_SELF_ACTION: { message: 'Não é possível realizar esta ação em si mesmo' },

@@ -1,12 +1,30 @@
 import { api } from './client'
-import type { Project } from '@/types'
+import type { PaginatedResponse, Project } from '@/types'
+
+interface ListProjectInstancesParams {
+  page: number
+  limit: number
+  seasonId?: string
+  classId?: string
+  templateId?: string
+}
+
+export async function listProjectInstancesPaginated(params: ListProjectInstancesParams) {
+  const { data } = await api.get<PaginatedResponse<Project>>('/project-instances', { params })
+  return data
+}
+
+export async function listDeletedProjectInstances(params: { page: number; limit: number }) {
+  const { data } = await api.get<PaginatedResponse<Project>>('/project-instances/deleted', { params })
+  return data
+}
 
 export async function instantiateProject(payload: {
   templateId: string
   classId: string
   seasonId: string
 }): Promise<Project> {
-  const { data } = await api.post<Project>('/projects/from-template', payload)
+  const { data } = await api.post<Project>('/project-instances', payload)
   return data
 }
 
@@ -25,17 +43,26 @@ export async function updateProject(
   id: string,
   payload: { name?: string; description?: string; coverImage?: string }
 ): Promise<Project> {
-  const { data } = await api.patch<Project>(`/projects/${id}`, payload)
+  const { data } = await api.patch<Project>(`/project-instances/${id}`, payload)
   return data
 }
 
 export async function publishProject(id: string): Promise<Project> {
-  const { data } = await api.patch<Project>(`/projects/${id}/publish`)
+  const { data } = await api.patch<Project>(`/project-instances/${id}/publish`)
   return data
 }
 
 export async function unpublishProject(id: string): Promise<Project> {
-  const { data } = await api.patch<Project>(`/projects/${id}/unpublish`)
+  const { data } = await api.patch<Project>(`/project-instances/${id}/unpublish`)
+  return data
+}
+
+export async function deleteProjectInstance(id: string): Promise<void> {
+  await api.delete(`/project-instances/${id}`)
+}
+
+export async function restoreProjectInstance(id: string): Promise<Project> {
+  const { data } = await api.patch<Project>(`/project-instances/${id}/restore`)
   return data
 }
 

@@ -182,6 +182,8 @@ export const EVENT_TYPE_LABELS: Record<string, string> = {
   PROJECT_TEMPLATE_ACTIVATED: 'Template de projeto ativado',
   PROJECT_TEMPLATE_DEACTIVATED: 'Template de projeto desativado',
   PROJECT_TEMPLATE_RESTORED: 'Template de projeto restaurado',
+  PROJECT_TEMPLATE_INSTANTIATION_ALLOWED: 'Instanciação de template permitida',
+  PROJECT_TEMPLATE_INSTANTIATION_BLOCKED: 'Instanciação de template bloqueada',
   PROJECT_TEMPLATE_PUBLISHED: 'Template de projeto publicado',
   PROJECT_TEMPLATE_UNPUBLISHED: 'Template de projeto despublicado',
   PROJECT_INSTANTIATED: 'Projeto instanciado',

@@ -22,8 +22,8 @@ import {
   deleteProjectTemplate,
   listDeletedProjectTemplates,
   restoreProjectTemplate,
-  publishProjectTemplate,
-  unpublishProjectTemplate,
+  allowProjectTemplateInstantiation,
+  blockProjectTemplateInstantiation,
   getProjectTemplateReadiness,
 } from '@/api/templates'
 import { presignDownload } from '@/api/storage'
@@ -211,9 +211,9 @@ export function ProjectTemplatesListPage() {
   })
 
   const publishMutation = useMutation({
-    mutationFn: (id: string) => publishProjectTemplate(id),
+    mutationFn: (id: string) => allowProjectTemplateInstantiation(id),
     onSuccess: () => {
-      toast.success('Template publicado com sucesso.')
+      toast.success('Instanciação permitida com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
     },
     onError: (error: unknown) => {
@@ -221,109 +221,102 @@ export function ProjectTemplatesListPage() {
       const score = err.response?.data?.details?.scorePercentage
       const firstTip = err.response?.data?.details?.missingTips?.[0]
       if (typeof score === 'number') {
-        toast.error(firstTip ? `Template não apto para publicar (${score}%). ${firstTip}` : `Template não apto para publicar (${score}%).`)
+        toast.error(firstTip ? `Template não apto para instanciação (${score}%). ${firstTip}` : `Template não apto para instanciação (${score}%).`)
         return
       }
-      toast.error('Não foi possível publicar o template.')
+      toast.error('Não foi possível permitir a instanciação do template.')
     },
   })
 
   const unpublishMutation = useMutation({
-    mutationFn: (id: string) => unpublishProjectTemplate(id),
+    mutationFn: (id: string) => blockProjectTemplateInstantiation(id),
     onSuccess: () => {
-      toast.success('Publicação removida com sucesso.')
+      toast.success('Permissão de instanciação removida com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['project-templates'] })
     },
   })
+
+  const getReadinessVariant = (score: number, isReady: boolean) => {
+    if (isReady) return 'success' as const
+    if (score >= 70) return 'warning' as const
+    return 'default' as const
+  }
+
+  const isTemplateInstantiationAllowed = (template: ProjectTemplate) => template.isInstantiationAllowed ?? template.isPublished ?? false
+
+  const getReadinessLabel = (statusLabel: 'Não pronto' | 'Quase pronto' | 'Apto para publicação' | 'Apto para instanciação' | 'Apto para instanciacao') => {
+    if (statusLabel === 'Não pronto') return 'Em construção'
+    if (statusLabel === 'Quase pronto') return 'Em validação'
+    return 'Apto para instanciação'
+  }
+
+  const compactTopCellClass = 'align-top py-2.5'
 
   const columns = [
     {
       key: 'name',
       header: 'Nome',
-      className: 'w-[48%] min-w-[320px]',
+      className: `w-[48%] min-w-[320px] ${compactTopCellClass}`,
       render: (t: ProjectTemplate) => {
         const readiness = readinessBySlug[t.slug]
-        const readinessVariant = readiness
-          ? readiness.isReady
-            ? 'success'
-            : readiness.scorePercentage >= 70
-              ? 'warning'
-              : 'default'
-          : 'default'
-        const readinessLabel = readiness
-          ? readiness.statusLabel === 'Não pronto'
-            ? 'Em construção'
-            : readiness.statusLabel === 'Quase pronto'
-              ? 'Em validação'
-              : readiness.statusLabel
-          : undefined
 
         return (
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              {coverBySlug[t.slug] ? (
-                <img
-                  src={coverBySlug[t.slug]}
-                  alt={`Capa do template ${t.name}`}
-                  className="h-10 w-10 shrink-0 rounded-lg border border-border object-cover"
-                />
-              ) : (
-                <div className="h-10 w-10 shrink-0 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
-              )}
-              <div className="min-w-0 space-y-1">
-                <p className="truncate font-semibold text-text" title={t.name}>
-                  {truncateText(t.name, 56)}
-                </p>
-                <p className="text-xs text-muted">Atualizado em {formatDate(t.updatedAt)}</p>
-                <div>
-                  <Badge variant={t.isPublished ? 'success' : 'warning'}>
-                    {t.isPublished ? 'Publicado' : 'Rascunho'}
-                  </Badge>
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                {coverBySlug[t.slug] ? (
+                  <img
+                    src={coverBySlug[t.slug]}
+                    alt={`Capa do template ${t.name}`}
+                    className="h-9 w-9 shrink-0 rounded-lg border border-border object-cover"
+                  />
+                ) : (
+                  <div className="h-9 w-9 shrink-0 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
+                )}
+                <div className="min-w-0 space-y-0.5">
+                  <p className="truncate text-sm font-semibold leading-tight text-text" title={t.name}>
+                    {truncateText(t.name, 56)}
+                  </p>
+                  <p className="text-[11px] text-muted">Atualizado em {formatDate(t.updatedAt)} • v{t.version}</p>
                 </div>
               </div>
+
+              <Badge variant={isTemplateInstantiationAllowed(t) ? 'success' : 'warning'} className="px-2 py-0 text-[11px]">
+                {isTemplateInstantiationAllowed(t) ? 'Instanciação permitida' : 'Instanciação bloqueada'}
+              </Badge>
             </div>
 
             {readiness ? (
-              <div className="rounded-lg border border-border bg-surface-2 p-3">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
                   <Badge
-                    variant={readinessVariant}
-                    className={readiness?.statusLabel === 'Não pronto' ? 'bg-surface text-muted border-border-strong' : undefined}
+                    variant={getReadinessVariant(readiness.scorePercentage, readiness.isReady)}
+                    className={readiness.statusLabel === 'Não pronto' ? 'px-2 py-0 text-[11px] text-muted' : 'px-2 py-0 text-[11px]'}
                   >
-                    {readinessLabel}
+                    {getReadinessLabel(readiness.statusLabel)}
                   </Badge>
-                  <span className="text-xs font-semibold text-text">{readiness.scorePercentage}% concluído</span>
+                  <span className="text-[11px] font-medium text-muted">{readiness.scorePercentage}% concluído</span>
                 </div>
-                <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-surface">
+
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
                   <div
                     className="h-full rounded-full bg-accent transition-all"
                     style={{ width: `${Math.max(0, Math.min(readiness.scorePercentage, 100))}%` }}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted sm:grid-cols-4">
-                  <p>
-                    <span className="font-medium text-text">{readiness.trackCount}</span> faixas
-                  </p>
-                  <p>
-                    <span className="font-medium text-text">{readiness.quizCount}</span> coletivas
-                  </p>
-                  <p>
-                    <span className="font-medium text-text">{readiness.materialCount}</span> materiais
-                  </p>
-                  <p>
-                    <span className="font-medium text-text">{readiness.studyTrackCount}</span> trilhas
-                  </p>
-                </div>
-                {readiness.missingTips.length > 0 && (
-                  <div className="mt-2 rounded-md border border-warning/30 bg-warning/10 px-2.5 py-1.5">
-                    <p className="text-[11px] font-medium text-warning">Próximo passo: {readiness.missingTips[0]}</p>
-                  </div>
-                )}
+
+                <p className="text-[11px] text-muted/90">
+                  <span className="font-medium text-text">{readiness.trackCount}</span> faixas
+                  {' • '}
+                  <span className="font-medium text-text">{readiness.quizCount}</span> coletivas
+                  {' • '}
+                  <span className="font-medium text-text">{readiness.materialCount}</span> materiais
+                  {' • '}
+                  <span className="font-medium text-text">{readiness.studyTrackCount}</span> trilhas
+                </p>
               </div>
             ) : (
-              <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-muted">
-                Calculando aptidão...
-              </div>
+              <p className="text-xs text-muted">Calculando aptidão...</p>
             )}
           </div>
         )
@@ -332,17 +325,17 @@ export function ProjectTemplatesListPage() {
     {
       key: 'type',
       header: 'Tipo',
-      className: 'w-[130px]',
+      className: `w-[130px] ${compactTopCellClass}`,
       render: (t: ProjectTemplate) => <Badge variant={t.type === 'ALBUM' ? 'accent' : 'info'}>{PROJECT_TYPE_LABELS[t.type]}</Badge>,
     },
     {
       key: 'course',
       header: 'Curso',
-      className: 'w-[180px]',
+      className: `w-[180px] ${compactTopCellClass}`,
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
         return (
-          <span className="text-muted" title={course?.name}>
+          <span className="text-sm text-muted" title={course?.name}>
             {course?.name ? truncateText(course.name, 30) : '—'}
           </span>
         )
@@ -351,15 +344,16 @@ export function ProjectTemplatesListPage() {
     {
       key: 'version',
       header: 'Versão',
-      className: 'w-[110px]',
-      render: (t: ProjectTemplate) => <span className="text-muted">v{t.version}</span>,
+      className: `w-[110px] ${compactTopCellClass}`,
+      render: (t: ProjectTemplate) => <span className="text-sm text-muted">v{t.version}</span>,
     },
     {
       key: 'actions',
       header: 'Ações',
-      className: 'w-[120px] text-right',
+      className: `w-[156px] text-right ${compactTopCellClass}`,
       render: (t: ProjectTemplate) => (
         <ResponsiveRowActions
+          desktopClassName="min-w-[132px]"
           actions={[
             {
               key: 'preview',
@@ -368,17 +362,17 @@ export function ProjectTemplatesListPage() {
               onClick: () => setPreviewTarget(t),
             },
             {
-              key: t.isPublished ? 'unpublish' : 'publish',
-              label: t.isPublished ? 'Remover publicação' : 'Publicar',
-              icon: t.isPublished ? <RotateCcw className="h-4 w-4" /> : <Send className="h-4 w-4" />,
-              variant: t.isPublished ? undefined : 'success',
-              disabled: !t.isPublished && !readinessBySlug[t.slug]?.isReady,
+              key: isTemplateInstantiationAllowed(t) ? 'block-instantiation' : 'allow-instantiation',
+              label: isTemplateInstantiationAllowed(t) ? 'Bloquear instanciação' : 'Permitir instanciação',
+              icon: isTemplateInstantiationAllowed(t) ? <RotateCcw className="h-4 w-4" /> : <Send className="h-4 w-4" />,
+              variant: isTemplateInstantiationAllowed(t) ? undefined : 'success',
+              disabled: !isTemplateInstantiationAllowed(t) && !readinessBySlug[t.slug]?.isReady,
               onClick: () => {
-                if (!t.isPublished && !readinessBySlug[t.slug]?.isReady) {
-                  toast.error('Este template ainda não está apto para publicação.')
+                if (!isTemplateInstantiationAllowed(t) && !readinessBySlug[t.slug]?.isReady) {
+                  toast.error('Este template ainda não está apto para instanciação.')
                   return
                 }
-                if (t.isPublished) {
+                if (isTemplateInstantiationAllowed(t)) {
                   unpublishMutation.mutate(t.id)
                   return
                 }
@@ -418,41 +412,47 @@ export function ProjectTemplatesListPage() {
     {
       key: 'name',
       header: 'Nome',
-      className: 'w-[48%] min-w-[320px]',
+      className: `w-[48%] min-w-[320px] ${compactTopCellClass}`,
       render: (t: ProjectTemplate) => (
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
             {coverBySlug[t.slug] ? (
               <img
                 src={coverBySlug[t.slug]}
                 alt={`Capa do template ${t.name}`}
-                className="h-9 w-9 rounded-lg border border-border object-cover"
+                className="h-9 w-9 shrink-0 rounded-lg border border-border object-cover"
               />
             ) : (
-              <div className="h-9 w-9 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
+              <div className="h-9 w-9 shrink-0 rounded-lg border border-border bg-surface-2" aria-hidden="true" />
             )}
-            <span className="font-medium text-text" title={t.name}>
-              {truncateText(t.name, 42)}
-            </span>
+            <div className="min-w-0 space-y-0.5">
+              <p className="truncate text-sm font-semibold leading-tight text-text" title={t.name}>
+                {truncateText(t.name, 50)}
+              </p>
+              <p className="text-[11px] text-muted">Atualizado em {formatDate(t.updatedAt)} • v{t.version}</p>
+            </div>
           </div>
-          <Badge variant="error">Excluído</Badge>
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <Badge variant="error" className="px-2 py-0 text-[11px]">Excluído</Badge>
+            <span className="text-[11px] text-muted">{formatDate(t.updatedAt)}</span>
+          </div>
         </div>
       ),
     },
     {
       key: 'type',
       header: 'Tipo',
-      className: 'w-[130px]',
+      className: `w-[130px] ${compactTopCellClass}`,
       render: (t: ProjectTemplate) => <Badge variant={t.type === 'ALBUM' ? 'accent' : 'info'}>{PROJECT_TYPE_LABELS[t.type]}</Badge>,
     },
     {
       key: 'course',
       header: 'Curso',
-      className: 'w-[180px]',
+      className: `w-[180px] ${compactTopCellClass}`,
       render: (t: ProjectTemplate) => {
         const course = courses.find((c: Course) => c.id === t.courseId)
         return (
-          <span className="text-muted" title={course?.name}>
+          <span className="text-sm text-muted" title={course?.name}>
             {course?.name ? truncateText(course.name, 30) : '—'}
           </span>
         )
@@ -461,15 +461,16 @@ export function ProjectTemplatesListPage() {
     {
       key: 'deletedAt',
       header: 'Excluído em',
-      className: 'w-[150px]',
-      render: (t: ProjectTemplate) => <span className="text-muted">{formatDate(t.updatedAt)}</span>,
+      className: `w-[150px] ${compactTopCellClass}`,
+      render: (t: ProjectTemplate) => <span className="text-sm text-muted">{formatDate(t.updatedAt)}</span>,
     },
     {
       key: 'actions',
       header: 'Ações',
-      className: 'w-[120px] text-right',
+      className: `w-[156px] text-right ${compactTopCellClass}`,
       render: (t: ProjectTemplate) => (
         <ResponsiveRowActions
+          desktopClassName="min-w-[132px]"
           actions={[
             {
               key: 'restore',
@@ -531,21 +532,55 @@ export function ProjectTemplatesListPage() {
         tableMinWidthClassName="min-w-[560px] lg:min-w-[640px]"
         mobileCardRender={(t) => {
           const course = courses.find((c: Course) => c.id === t.courseId)
+          const readiness = readinessBySlug[t.slug]
           return (
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-text">{t.name}</p>
-                  <p className="text-xs text-muted">{course?.name || '—'}</p>
+            <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+              <div className="px-3.5 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-0.5">
+                    <p className="truncate text-sm font-semibold leading-tight text-text">{t.name}</p>
+                    <p className="text-xs text-muted">{course?.name || '—'}</p>
+                    <p className="text-[11px] text-muted">Atualizado em {formatDate(t.updatedAt)} • v{t.version}</p>
+                  </div>
+                  {isTrash ? <Badge variant="error">Excluído</Badge> : (
+                    <Badge variant={isTemplateInstantiationAllowed(t) ? 'success' : 'warning'} className="px-2 py-0 text-[11px]">
+                      {isTemplateInstantiationAllowed(t) ? 'Instanciação permitida' : 'Instanciação bloqueada'}
+                    </Badge>
+                  )}
                 </div>
-                {isTrash ? <Badge variant="error">Excluído</Badge> : null}
               </div>
-              <div className="flex items-center justify-between gap-2 text-xs text-muted">
-                <span>{PROJECT_TYPE_LABELS[t.type]}</span>
-                <span>v{t.version}</span>
+
+              {!isTrash && readiness && (
+                <div className="border-t border-border bg-surface-2/40 px-3.5 py-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <Badge variant={getReadinessVariant(readiness.scorePercentage, readiness.isReady)} className="px-2 py-0 text-[11px]">
+                      {getReadinessLabel(readiness.statusLabel)}
+                    </Badge>
+                    <span className="text-[11px] font-medium text-muted">{readiness.scorePercentage}%</span>
+                  </div>
+                  <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-surface">
+                    <div
+                      className="h-full rounded-full bg-accent transition-all"
+                      style={{ width: `${Math.max(0, Math.min(readiness.scorePercentage, 100))}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted/90">
+                    <span className="font-medium text-text">{readiness.trackCount}</span> faixas
+                    {' • '}
+                    <span className="font-medium text-text">{readiness.quizCount}</span> coletivas
+                  </p>
+                </div>
+              )}
+
+              <div className="border-t border-border bg-surface px-3.5 py-2.5">
+                <div className="flex items-center justify-between gap-2 text-xs text-muted">
+                  <span>{PROJECT_TYPE_LABELS[t.type]}</span>
+                  <span>v{t.version}</span>
+                </div>
               </div>
+
               <ResponsiveRowActions
-                className="justify-start"
+                className="justify-start px-3 pb-3"
                 desktopClassName="justify-start"
                 actions={
                   isTrash
@@ -566,17 +601,17 @@ export function ProjectTemplatesListPage() {
                           onClick: () => setPreviewTarget(t),
                         },
                         {
-                          key: t.isPublished ? 'unpublish' : 'publish',
-                          label: t.isPublished ? 'Remover publicação' : 'Publicar',
-                          icon: t.isPublished ? <RotateCcw className="h-4 w-4" /> : <Send className="h-4 w-4" />,
-                          variant: t.isPublished ? undefined : 'success',
-                          disabled: !t.isPublished && !readinessBySlug[t.slug]?.isReady,
+                          key: isTemplateInstantiationAllowed(t) ? 'block-instantiation' : 'allow-instantiation',
+                          label: isTemplateInstantiationAllowed(t) ? 'Bloquear instanciação' : 'Permitir instanciação',
+                          icon: isTemplateInstantiationAllowed(t) ? <RotateCcw className="h-4 w-4" /> : <Send className="h-4 w-4" />,
+                          variant: isTemplateInstantiationAllowed(t) ? undefined : 'success',
+                          disabled: !isTemplateInstantiationAllowed(t) && !readinessBySlug[t.slug]?.isReady,
                           onClick: () => {
-                            if (!t.isPublished && !readinessBySlug[t.slug]?.isReady) {
-                              toast.error('Este template ainda não está apto para publicação.')
+                            if (!isTemplateInstantiationAllowed(t) && !readinessBySlug[t.slug]?.isReady) {
+                              toast.error('Este template ainda não está apto para instanciação.')
                               return
                             }
-                            if (t.isPublished) {
+                            if (isTemplateInstantiationAllowed(t)) {
                               unpublishMutation.mutate(t.id)
                               return
                             }
