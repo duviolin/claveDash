@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query'
-import { Plus, Eye, Pencil, Trash2, ArchiveRestore } from 'lucide-react'
+import { Plus, Eye, Pencil, Trash2, ArchiveRestore, Send, RotateCcw } from 'lucide-react'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -22,6 +22,8 @@ import {
   deleteProjectTemplate,
   listDeletedProjectTemplates,
   restoreProjectTemplate,
+  publishProjectTemplate,
+  unpublishProjectTemplate,
   getProjectTemplateReadiness,
 } from '@/api/templates'
 import { presignDownload } from '@/api/storage'
@@ -208,6 +210,32 @@ export function ProjectTemplatesListPage() {
     },
   })
 
+  const publishMutation = useMutation({
+    mutationFn: (id: string) => publishProjectTemplate(id),
+    onSuccess: () => {
+      toast.success('Template publicado com sucesso.')
+      queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { details?: { scorePercentage?: number; missingTips?: string[] } } } }
+      const score = err.response?.data?.details?.scorePercentage
+      const firstTip = err.response?.data?.details?.missingTips?.[0]
+      if (typeof score === 'number') {
+        toast.error(firstTip ? `Template não apto para publicar (${score}%). ${firstTip}` : `Template não apto para publicar (${score}%).`)
+        return
+      }
+      toast.error('Não foi possível publicar o template.')
+    },
+  })
+
+  const unpublishMutation = useMutation({
+    mutationFn: (id: string) => unpublishProjectTemplate(id),
+    onSuccess: () => {
+      toast.success('Publicação removida com sucesso.')
+      queryClient.invalidateQueries({ queryKey: ['project-templates'] })
+    },
+  })
+
   const columns = [
     {
       key: 'name',
@@ -247,6 +275,11 @@ export function ProjectTemplatesListPage() {
                   {truncateText(t.name, 56)}
                 </p>
                 <p className="text-xs text-muted">Atualizado em {formatDate(t.updatedAt)}</p>
+                <div>
+                  <Badge variant={t.isPublished ? 'success' : 'warning'}>
+                    {t.isPublished ? 'Publicado' : 'Rascunho'}
+                  </Badge>
+                </div>
               </div>
             </div>
 
@@ -333,6 +366,24 @@ export function ProjectTemplatesListPage() {
               label: 'Visualizar projeto',
               icon: <Eye className="h-4 w-4" />,
               onClick: () => setPreviewTarget(t),
+            },
+            {
+              key: t.isPublished ? 'unpublish' : 'publish',
+              label: t.isPublished ? 'Remover publicação' : 'Publicar',
+              icon: t.isPublished ? <RotateCcw className="h-4 w-4" /> : <Send className="h-4 w-4" />,
+              variant: t.isPublished ? undefined : 'success',
+              disabled: !t.isPublished && !readinessBySlug[t.slug]?.isReady,
+              onClick: () => {
+                if (!t.isPublished && !readinessBySlug[t.slug]?.isReady) {
+                  toast.error('Este template ainda não está apto para publicação.')
+                  return
+                }
+                if (t.isPublished) {
+                  unpublishMutation.mutate(t.id)
+                  return
+                }
+                publishMutation.mutate(t.id)
+              },
             },
             {
               key: 'edit',
@@ -513,6 +564,24 @@ export function ProjectTemplatesListPage() {
                           label: 'Visualizar projeto',
                           icon: <Eye className="h-4 w-4" />,
                           onClick: () => setPreviewTarget(t),
+                        },
+                        {
+                          key: t.isPublished ? 'unpublish' : 'publish',
+                          label: t.isPublished ? 'Remover publicação' : 'Publicar',
+                          icon: t.isPublished ? <RotateCcw className="h-4 w-4" /> : <Send className="h-4 w-4" />,
+                          variant: t.isPublished ? undefined : 'success',
+                          disabled: !t.isPublished && !readinessBySlug[t.slug]?.isReady,
+                          onClick: () => {
+                            if (!t.isPublished && !readinessBySlug[t.slug]?.isReady) {
+                              toast.error('Este template ainda não está apto para publicação.')
+                              return
+                            }
+                            if (t.isPublished) {
+                              unpublishMutation.mutate(t.id)
+                              return
+                            }
+                            publishMutation.mutate(t.id)
+                          },
                         },
                         {
                           key: 'edit',

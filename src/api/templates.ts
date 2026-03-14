@@ -113,6 +113,16 @@ export async function restoreProjectTemplate(idOrSlug: string) {
   return data
 }
 
+export async function publishProjectTemplate(idOrSlug: string) {
+  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${idOrSlug}/publish`)
+  return data
+}
+
+export async function unpublishProjectTemplate(idOrSlug: string) {
+  const { data } = await api.patch<ProjectTemplate>(`/project-templates/${idOrSlug}/unpublish`)
+  return data
+}
+
 // --- Track Scene Templates ---
 export async function listTrackTemplates(projectTemplateIdOrSlug: string, search?: string) {
   const { data } = await api.get<TrackSceneTemplate[]>(`/project-templates/${projectTemplateIdOrSlug}/tracks`, {

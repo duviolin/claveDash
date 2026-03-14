@@ -85,6 +85,7 @@ export interface ProjectTemplate {
   description: string | null
   coverImage: string | null
   version: number
+  isPublished: boolean
   isActive: boolean
   createdAt: string
   updatedAt: string
