@@ -8,6 +8,7 @@ export type TrackSceneStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 export type TrackMaterialType = 'PDF' | 'AUDIO' | 'VIDEO' | 'TEXT' | 'LINK'
 export type StudyTrackAttachmentType = 'VIDEO' | 'AUDIO' | 'PDF'
 export type DailyMissionTemplateStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+export type DailyMissionStatus = 'DONE' | 'DONE_WITH_PENALTY' | 'SKIPPED'
 export type SubmissionStatus = 'PENDING' | 'PENDING_REVIEW' | 'APPROVED' | 'NEEDS_REVISION' | 'REJECTED'
 
 export interface AuthUser {
@@ -208,6 +209,21 @@ export interface DailyMissionTemplate {
   order: number
   status: DailyMissionTemplateStatus
   isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DailyMissionInstance {
+  id: string
+  templateId: string
+  templateTitle: string
+  studentId: string
+  studentName: string
+  seasonId: string
+  seasonName: string
+  date: string
+  status: DailyMissionStatus
+  attemptsCount: number
   createdAt: string
   updatedAt: string
 }

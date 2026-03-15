@@ -22,6 +22,7 @@ import {
 } from '@/pages/templates/TemplateResourceListPage'
 import { LegacyTemplateRouteRedirect } from '@/pages/templates/LegacyTemplateRouteRedirect'
 import { ProjectInstancesPage } from '@/pages/instances/ProjectInstancesPage'
+import { DailyMissionInstancesPage } from '@/pages/instances/DailyMissionInstancesPage'
 import { StoragePage } from '@/pages/StoragePage'
 
 export const router = createBrowserRouter([
@@ -66,7 +67,7 @@ export const router = createBrowserRouter([
       { path: 'instances/materials', element: <MaterialTemplatesListPage /> },
       { path: 'instances/study-tracks', element: <StudyTrackTemplatesListPage /> },
       { path: 'instances/press-quizzes', element: <PressQuizTemplatesListPage /> },
-      { path: 'instances/daily-missions', element: <DailyMissionTemplatesPage /> },
+      { path: 'instances/daily-missions', element: <DailyMissionInstancesPage /> },
       // Storage
       { path: 'storage', element: <StoragePage /> },
     ],

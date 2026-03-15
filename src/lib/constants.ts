@@ -5,6 +5,7 @@ import type {
   SeasonStatus,
   ProjectStatus,
   ProjectType,
+  DailyMissionStatus,
   DailyMissionTemplateStatus,
   TrackMaterialType,
   StudyTrackAttachmentType,
@@ -128,6 +129,18 @@ export const DAILY_MISSION_STATUS_VARIANT: Record<DailyMissionTemplateStatus, 'w
   DRAFT: 'warning',
   PUBLISHED: 'success',
   ARCHIVED: 'error',
+}
+
+export const DAILY_MISSION_INSTANCE_STATUS_LABELS: Record<DailyMissionStatus, string> = {
+  DONE: 'Concluída',
+  DONE_WITH_PENALTY: 'Concluída com penalidade',
+  SKIPPED: 'Pulada',
+}
+
+export const DAILY_MISSION_INSTANCE_STATUS_VARIANT: Record<DailyMissionStatus, 'success' | 'warning' | 'error'> = {
+  DONE: 'success',
+  DONE_WITH_PENALTY: 'warning',
+  SKIPPED: 'error',
 }
 
 // ── Domain Events ───────────────────────────────────────────
