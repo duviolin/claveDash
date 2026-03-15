@@ -24,7 +24,25 @@ import { Pagination } from '@/components/ui/Pagination'
 import { ListHeaderFilters } from '@/components/ui/ListHeaderFilters'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { presignDownload } from '@/api/storage'
-import { listAllProjectInstances } from '@/api/instances'
+import {
+  createPressQuizInstance,
+  createStudyTrackInstance,
+  createTrackMaterialInstance,
+  createTrackSceneInstance,
+  deletePressQuizInstance,
+  deleteStudyTrackInstance,
+  deleteTrackMaterialInstance,
+  deleteTrackSceneInstance,
+  listAllProjectInstances,
+  listPressQuizInstances,
+  listStudyTrackInstances,
+  listTrackMaterialInstances,
+  listTrackSceneInstances,
+  updatePressQuiz,
+  updateStudyTrack,
+  updateTrackMaterial,
+  updateTrackScene,
+} from '@/api/instances'
 import {
   createMaterialTemplate,
   createPressQuizTemplate,
@@ -218,10 +236,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   const [studyTracksTab, setStudyTracksTab] = useState<'active' | 'TRASH'>('active')
   const [quizzesTab, setQuizzesTab] = useState<'active' | 'TRASH'>('active')
   const [trashPage, setTrashPage] = useState(1)
-  const isTracksTrash = mode === 'tracks' && tracksTab === 'TRASH'
-  const isMaterialsTrash = mode === 'materials' && materialsTab === 'TRASH'
-  const isStudyTracksTrash = mode === 'study-tracks' && studyTracksTab === 'TRASH'
-  const isQuizzesTrash = mode === 'press-quizzes' && quizzesTab === 'TRASH'
+  const isTracksTrash = !isInstanceRoute && mode === 'tracks' && tracksTab === 'TRASH'
+  const isMaterialsTrash = !isInstanceRoute && mode === 'materials' && materialsTab === 'TRASH'
+  const isStudyTracksTrash = !isInstanceRoute && mode === 'study-tracks' && studyTracksTab === 'TRASH'
+  const isQuizzesTrash = !isInstanceRoute && mode === 'press-quizzes' && quizzesTab === 'TRASH'
   const [materialsTrashPage, setMaterialsTrashPage] = useState(1)
   const [studyTracksTrashPage, setStudyTracksTrashPage] = useState(1)
   const [quizzesTrashPage, setQuizzesTrashPage] = useState(1)
@@ -330,8 +348,7 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       return instances
         .filter((instance: Project) => Boolean(instance.slug && instance.templateId))
         .map((instance: Project) => ({
-          // Track endpoints still resolve by template id in this shared page.
-          id: instance.templateId as string,
+          id: instance.id,
           slug: instance.slug as string,
           name: instance.name,
         }))
@@ -347,7 +364,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   const tracksQueries = useQueries({
     queries: scopedProjects.map((project) => ({
       queryKey: ['resource-list-tracks', project.slug, mode === 'tracks' ? debouncedSearchFilter : ''],
-      queryFn: () => listTrackTemplates(project.id, mode === 'tracks' ? (debouncedSearchFilter || undefined) : undefined),
+      queryFn: () =>
+        isInstanceRoute
+          ? listTrackSceneInstances(project.id, mode === 'tracks' ? (debouncedSearchFilter || undefined) : undefined)
+          : listTrackTemplates(project.id, mode === 'tracks' ? (debouncedSearchFilter || undefined) : undefined),
       enabled: mode !== 'tracks' || !isTracksTrash,
     })),
   })
@@ -455,7 +475,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       mode === 'materials' && !isMaterialsTrash
         ? trackRowsForChildren.map(({ track }) => ({
             queryKey: ['resource-list-materials', track.id, debouncedSearchFilter],
-            queryFn: () => listMaterialTemplates(track.id, debouncedSearchFilter || undefined),
+            queryFn: () =>
+              isInstanceRoute
+                ? listTrackMaterialInstances(track.id, debouncedSearchFilter || undefined)
+                : listMaterialTemplates(track.id, debouncedSearchFilter || undefined),
           }))
         : [],
   })
@@ -465,7 +488,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       mode === 'study-tracks' && !isStudyTracksTrash
         ? trackRowsForChildren.map(({ track }) => ({
             queryKey: ['resource-list-study-tracks', track.id, debouncedSearchFilter],
-            queryFn: () => listStudyTrackTemplates(track.id, debouncedSearchFilter || undefined),
+            queryFn: () =>
+              isInstanceRoute
+                ? listStudyTrackInstances(track.id, debouncedSearchFilter || undefined)
+                : listStudyTrackTemplates(track.id, debouncedSearchFilter || undefined),
           }))
         : [],
   })
@@ -475,7 +501,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       mode === 'press-quizzes' && !isQuizzesTrash
         ? trackRowsForChildren.map(({ track }) => ({
             queryKey: ['resource-list-press-quizzes', track.id, debouncedSearchFilter],
-            queryFn: () => listPressQuizTemplates(track.id, debouncedSearchFilter || undefined),
+            queryFn: () =>
+              isInstanceRoute
+                ? listPressQuizInstances(track.id, debouncedSearchFilter || undefined)
+                : listPressQuizTemplates(track.id, debouncedSearchFilter || undefined),
           }))
         : [],
   })
@@ -728,14 +757,25 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   const isLoading = isLoadingProjects || isLoadingTracks || isLoadingChildren
 
   const saveTrackMutation = useMutation({
-    mutationFn: () => updateTrackTemplate(editingTrack!.track.id, {
-      title: trackForm.title,
-      artist: trackForm.artist.trim() ? trackForm.artist : null,
-      description: trackForm.description.trim() ? trackForm.description : null,
-      technicalInstruction: trackForm.technicalInstruction.trim() ? trackForm.technicalInstruction : null,
-      lyrics: trackForm.lyrics.trim() ? trackForm.lyrics : null,
-      unlockAfterTrackId: trackForm.unlockAfterTrackId || null,
-    }),
+    mutationFn: () =>
+      isInstanceRoute
+        ? updateTrackScene(editingTrack!.track.id, {
+            title: trackForm.title,
+            artist: trackForm.artist.trim() ? trackForm.artist : null,
+            description: trackForm.description.trim() ? trackForm.description : null,
+            technicalInstruction: trackForm.technicalInstruction.trim() ? trackForm.technicalInstruction : null,
+            lyrics: trackForm.lyrics.trim() ? trackForm.lyrics : null,
+            demoRequired: true,
+            pressQuizRequired: true,
+          })
+        : updateTrackTemplate(editingTrack!.track.id, {
+            title: trackForm.title,
+            artist: trackForm.artist.trim() ? trackForm.artist : null,
+            description: trackForm.description.trim() ? trackForm.description : null,
+            technicalInstruction: trackForm.technicalInstruction.trim() ? trackForm.technicalInstruction : null,
+            lyrics: trackForm.lyrics.trim() ? trackForm.lyrics : null,
+            unlockAfterTrackId: trackForm.unlockAfterTrackId || null,
+          }),
     onSuccess: () => {
       toast.success('Faixa atualizada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-tracks'] })
@@ -745,14 +785,22 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
 
   const createTrackMutation = useMutation({
     mutationFn: () =>
-      createTrackTemplate(trackForm.projectTemplateId, {
-        title: trackForm.title,
-        artist: trackForm.artist.trim() ? trackForm.artist : undefined,
-        description: trackForm.description.trim() ? trackForm.description : undefined,
-        technicalInstruction: trackForm.technicalInstruction.trim() ? trackForm.technicalInstruction : undefined,
-        lyrics: trackForm.lyrics.trim() ? trackForm.lyrics : undefined,
-        unlockAfterTrackId: trackForm.unlockAfterTrackId || undefined,
-      }),
+      isInstanceRoute
+        ? createTrackSceneInstance(trackForm.projectTemplateId, {
+            title: trackForm.title,
+            artist: trackForm.artist.trim() ? trackForm.artist : undefined,
+            description: trackForm.description.trim() ? trackForm.description : undefined,
+            technicalInstruction: trackForm.technicalInstruction.trim() ? trackForm.technicalInstruction : undefined,
+            lyrics: trackForm.lyrics.trim() ? trackForm.lyrics : undefined,
+          })
+        : createTrackTemplate(trackForm.projectTemplateId, {
+            title: trackForm.title,
+            artist: trackForm.artist.trim() ? trackForm.artist : undefined,
+            description: trackForm.description.trim() ? trackForm.description : undefined,
+            technicalInstruction: trackForm.technicalInstruction.trim() ? trackForm.technicalInstruction : undefined,
+            lyrics: trackForm.lyrics.trim() ? trackForm.lyrics : undefined,
+            unlockAfterTrackId: trackForm.unlockAfterTrackId || undefined,
+          }).then(() => undefined),
     onSuccess: () => {
       toast.success('Faixa cadastrada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-tracks'] })
@@ -770,7 +818,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   })
 
   const deleteTrackMutation = useMutation({
-    mutationFn: () => deleteTrackTemplate(deleteTargetTrack!.track.id),
+    mutationFn: () =>
+      isInstanceRoute
+        ? deleteTrackSceneInstance(deleteTargetTrack!.track.id)
+        : deleteTrackTemplate(deleteTargetTrack!.track.id),
     onSuccess: () => {
       toast.success('Faixa desativada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-tracks'] })
@@ -797,22 +848,39 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
 
   const createMaterialMutation = useMutation({
     mutationFn: () =>
-      createMaterialTemplate(materialForm.trackSceneTemplateId, {
-        type: materialForm.type,
-        title: materialForm.title,
-        defaultContentUrl:
-          materialForm.type === 'TEXT'
-            ? undefined
-            : materialForm.defaultContentUrl.trim()
-              ? materialForm.defaultContentUrl
-              : undefined,
-        defaultTextContent:
-          materialForm.type === 'TEXT'
-            ? materialForm.defaultTextContent.trim()
-              ? materialForm.defaultTextContent
-              : undefined
-            : undefined,
-      }),
+      isInstanceRoute
+        ? createTrackMaterialInstance(materialForm.trackSceneTemplateId, {
+            type: materialForm.type,
+            title: materialForm.title,
+            contentUrl:
+              materialForm.type === 'TEXT'
+                ? undefined
+                : materialForm.defaultContentUrl.trim()
+                  ? materialForm.defaultContentUrl
+                  : undefined,
+            textContent:
+              materialForm.type === 'TEXT'
+                ? materialForm.defaultTextContent.trim()
+                  ? materialForm.defaultTextContent
+                  : undefined
+                : undefined,
+          })
+        : createMaterialTemplate(materialForm.trackSceneTemplateId, {
+            type: materialForm.type,
+            title: materialForm.title,
+            defaultContentUrl:
+              materialForm.type === 'TEXT'
+                ? undefined
+                : materialForm.defaultContentUrl.trim()
+                  ? materialForm.defaultContentUrl
+                  : undefined,
+            defaultTextContent:
+              materialForm.type === 'TEXT'
+                ? materialForm.defaultTextContent.trim()
+                  ? materialForm.defaultTextContent
+                  : undefined
+                : undefined,
+          }).then(() => undefined),
     onSuccess: () => {
       toast.success('Material cadastrado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-materials'] })
@@ -831,22 +899,38 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
 
   const updateMaterialMutation = useMutation({
     mutationFn: () =>
-      updateMaterialTemplate(editingMaterial!.material.id, {
-        type: materialForm.type,
-        title: materialForm.title,
-        defaultContentUrl:
-          materialForm.type === 'TEXT'
-            ? null
-            : materialForm.defaultContentUrl.trim()
-              ? materialForm.defaultContentUrl
-              : null,
-        defaultTextContent:
-          materialForm.type === 'TEXT'
-            ? materialForm.defaultTextContent.trim()
-              ? materialForm.defaultTextContent
-              : null
-            : null,
-      }),
+      isInstanceRoute
+        ? updateTrackMaterial(editingMaterial!.material.id, {
+            title: materialForm.title,
+            contentUrl:
+              materialForm.type === 'TEXT'
+                ? null
+                : materialForm.defaultContentUrl.trim()
+                  ? materialForm.defaultContentUrl
+                  : null,
+            textContent:
+              materialForm.type === 'TEXT'
+                ? materialForm.defaultTextContent.trim()
+                  ? materialForm.defaultTextContent
+                  : null
+                : null,
+          })
+        : updateMaterialTemplate(editingMaterial!.material.id, {
+            type: materialForm.type,
+            title: materialForm.title,
+            defaultContentUrl:
+              materialForm.type === 'TEXT'
+                ? null
+                : materialForm.defaultContentUrl.trim()
+                  ? materialForm.defaultContentUrl
+                  : null,
+            defaultTextContent:
+              materialForm.type === 'TEXT'
+                ? materialForm.defaultTextContent.trim()
+                  ? materialForm.defaultTextContent
+                  : null
+                : null,
+          }),
     onSuccess: () => {
       toast.success('Material atualizado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-materials'] })
@@ -856,7 +940,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   })
 
   const deleteMaterialMutation = useMutation({
-    mutationFn: () => deleteMaterialTemplate(deleteTargetMaterial!.material.id),
+    mutationFn: () =>
+      isInstanceRoute
+        ? deleteTrackMaterialInstance(deleteTargetMaterial!.material.id)
+        : deleteMaterialTemplate(deleteTargetMaterial!.material.id),
     onSuccess: () => {
       toast.success('Material desativado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-materials'] })
@@ -877,13 +964,21 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
 
   const createStudyTrackMutation = useMutation({
     mutationFn: () =>
-      createStudyTrackTemplate(studyTrackForm.trackSceneTemplateId, {
-        title: studyTrackForm.title,
-        description: studyTrackForm.description.trim() ? studyTrackForm.description : undefined,
-        technicalNotes: studyTrackForm.technicalNotes.trim() ? studyTrackForm.technicalNotes : undefined,
-        attachmentType: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentType : undefined,
-        attachmentUrl: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentUrl : undefined,
-      }),
+      isInstanceRoute
+        ? createStudyTrackInstance(studyTrackForm.trackSceneTemplateId, {
+            title: studyTrackForm.title,
+            description: studyTrackForm.description.trim() ? studyTrackForm.description : undefined,
+            technicalNotes: studyTrackForm.technicalNotes.trim() ? studyTrackForm.technicalNotes : undefined,
+            attachmentType: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentType : undefined,
+            attachmentUrl: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentUrl : undefined,
+          })
+        : createStudyTrackTemplate(studyTrackForm.trackSceneTemplateId, {
+            title: studyTrackForm.title,
+            description: studyTrackForm.description.trim() ? studyTrackForm.description : undefined,
+            technicalNotes: studyTrackForm.technicalNotes.trim() ? studyTrackForm.technicalNotes : undefined,
+            attachmentType: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentType : undefined,
+            attachmentUrl: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentUrl : undefined,
+          }).then(() => undefined),
     onSuccess: () => {
       toast.success('Trilha cadastrada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-study-tracks'] })
@@ -903,13 +998,21 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
 
   const updateStudyTrackMutation = useMutation({
     mutationFn: () =>
-      updateStudyTrackTemplate(editingStudyTrack!.studyTrack.id, {
-        title: studyTrackForm.title,
-        description: studyTrackForm.description.trim() ? studyTrackForm.description : null,
-        technicalNotes: studyTrackForm.technicalNotes.trim() ? studyTrackForm.technicalNotes : null,
-        attachmentType: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentType : null,
-        attachmentUrl: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentUrl : null,
-      }),
+      isInstanceRoute
+        ? updateStudyTrack(editingStudyTrack!.studyTrack.id, {
+            title: studyTrackForm.title,
+            description: studyTrackForm.description.trim() ? studyTrackForm.description : null,
+            technicalNotes: studyTrackForm.technicalNotes.trim() ? studyTrackForm.technicalNotes : null,
+            attachmentType: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentType : null,
+            attachmentUrl: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentUrl : null,
+          })
+        : updateStudyTrackTemplate(editingStudyTrack!.studyTrack.id, {
+            title: studyTrackForm.title,
+            description: studyTrackForm.description.trim() ? studyTrackForm.description : null,
+            technicalNotes: studyTrackForm.technicalNotes.trim() ? studyTrackForm.technicalNotes : null,
+            attachmentType: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentType : null,
+            attachmentUrl: studyTrackForm.attachmentUrl.trim() ? studyTrackForm.attachmentUrl : null,
+          }),
     onSuccess: () => {
       toast.success('Trilha atualizada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-study-tracks'] })
@@ -919,7 +1022,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   })
 
   const deleteStudyTrackMutation = useMutation({
-    mutationFn: () => deleteStudyTrackTemplate(deleteTargetStudyTrack!.studyTrack.id),
+    mutationFn: () =>
+      isInstanceRoute
+        ? deleteStudyTrackInstance(deleteTargetStudyTrack!.studyTrack.id)
+        : deleteStudyTrackTemplate(deleteTargetStudyTrack!.studyTrack.id),
     onSuccess: () => {
       toast.success('Trilha desativada com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-study-tracks'] })
@@ -940,13 +1046,21 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
 
   const createQuizMutation = useMutation({
     mutationFn: () =>
-      createPressQuizTemplate(quizForm.trackSceneTemplateId, {
-        title: quizForm.title,
-        description: quizForm.description.trim() ? quizForm.description : undefined,
-        questionsJson: quizForm.questions.length > 0 ? quizForm.questions : undefined,
-        maxAttempts: quizForm.maxAttempts,
-        passingScore: quizForm.passingScore,
-      }),
+      isInstanceRoute
+        ? createPressQuizInstance(quizForm.trackSceneTemplateId, {
+            title: quizForm.title,
+            description: quizForm.description.trim() ? quizForm.description : undefined,
+            questionsJson: quizForm.questions.length > 0 ? quizForm.questions : undefined,
+            maxAttempts: quizForm.maxAttempts,
+            passingScore: quizForm.passingScore,
+          })
+        : createPressQuizTemplate(quizForm.trackSceneTemplateId, {
+            title: quizForm.title,
+            description: quizForm.description.trim() ? quizForm.description : undefined,
+            questionsJson: quizForm.questions.length > 0 ? quizForm.questions : undefined,
+            maxAttempts: quizForm.maxAttempts,
+            passingScore: quizForm.passingScore,
+          }).then(() => undefined),
     onSuccess: () => {
       toast.success('Quiz cadastrado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-press-quizzes'] })
@@ -965,13 +1079,21 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
 
   const updateQuizMutation = useMutation({
     mutationFn: () =>
-      updatePressQuizTemplate(editingQuiz!.quiz.id, {
-        title: quizForm.title,
-        description: quizForm.description.trim() ? quizForm.description : null,
-        questionsJson: quizForm.questions.length > 0 ? quizForm.questions : null,
-        maxAttempts: quizForm.maxAttempts,
-        passingScore: quizForm.passingScore,
-      }),
+      isInstanceRoute
+        ? updatePressQuiz(editingQuiz!.quiz.id, {
+            title: quizForm.title,
+            description: quizForm.description.trim() ? quizForm.description : null,
+            questionsJson: quizForm.questions.length > 0 ? quizForm.questions : null,
+            maxAttempts: quizForm.maxAttempts,
+            passingScore: quizForm.passingScore,
+          })
+        : updatePressQuizTemplate(editingQuiz!.quiz.id, {
+            title: quizForm.title,
+            description: quizForm.description.trim() ? quizForm.description : null,
+            questionsJson: quizForm.questions.length > 0 ? quizForm.questions : null,
+            maxAttempts: quizForm.maxAttempts,
+            passingScore: quizForm.passingScore,
+          }),
     onSuccess: () => {
       toast.success('Quiz atualizado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-press-quizzes'] })
@@ -980,7 +1102,10 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   })
 
   const deleteQuizMutation = useMutation({
-    mutationFn: () => deletePressQuizTemplate(deleteTargetQuiz!.quiz.id),
+    mutationFn: () =>
+      isInstanceRoute
+        ? deletePressQuizInstance(deleteTargetQuiz!.quiz.id)
+        : deletePressQuizTemplate(deleteTargetQuiz!.quiz.id),
     onSuccess: () => {
       toast.success('Quiz desativado com sucesso.')
       queryClient.invalidateQueries({ queryKey: ['resource-list-press-quizzes'] })
@@ -1332,10 +1457,12 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       {mode === 'tracks' && (
         <>
           <Tabs
-            tabs={[
-              { key: 'active', label: 'Ativos', count: filteredTrackRows.length },
-              { key: 'TRASH', label: 'Lixeira', count: deletedTracksResponse?.pagination.total ?? deletedTrackRows.length },
-            ]}
+            tabs={isInstanceRoute
+              ? [{ key: 'active', label: 'Ativos', count: filteredTrackRows.length }]
+              : [
+                  { key: 'active', label: 'Ativos', count: filteredTrackRows.length },
+                  { key: 'TRASH', label: 'Lixeira', count: deletedTracksResponse?.pagination.total ?? deletedTrackRows.length },
+                ]}
             activeKey={tracksTab}
             onChange={(key) => {
               setTracksTab(key as 'active' | 'TRASH')
@@ -1437,10 +1564,12 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       {mode === 'materials' && (
         <>
           <Tabs
-            tabs={[
-              { key: 'active', label: 'Ativos', count: materialRows.length },
-              { key: 'TRASH', label: 'Lixeira', count: deletedMaterialsResponse?.pagination.total ?? deletedMaterialRows.length },
-            ]}
+            tabs={isInstanceRoute
+              ? [{ key: 'active', label: 'Ativos', count: materialRows.length }]
+              : [
+                  { key: 'active', label: 'Ativos', count: materialRows.length },
+                  { key: 'TRASH', label: 'Lixeira', count: deletedMaterialsResponse?.pagination.total ?? deletedMaterialRows.length },
+                ]}
             activeKey={materialsTab}
             onChange={(key) => {
               setMaterialsTab(key as 'active' | 'TRASH')
@@ -1572,10 +1701,12 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       {mode === 'study-tracks' && (
         <>
           <Tabs
-            tabs={[
-              { key: 'active', label: 'Ativos', count: filteredStudyTrackRows.length },
-              { key: 'TRASH', label: 'Lixeira', count: deletedStudyTracksResponse?.pagination.total ?? deletedStudyTrackRows.length },
-            ]}
+            tabs={isInstanceRoute
+              ? [{ key: 'active', label: 'Ativos', count: filteredStudyTrackRows.length }]
+              : [
+                  { key: 'active', label: 'Ativos', count: filteredStudyTrackRows.length },
+                  { key: 'TRASH', label: 'Lixeira', count: deletedStudyTracksResponse?.pagination.total ?? deletedStudyTrackRows.length },
+                ]}
             activeKey={studyTracksTab}
             onChange={(key) => {
               setStudyTracksTab(key as 'active' | 'TRASH')
@@ -1703,10 +1834,12 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
       {mode === 'press-quizzes' && (
         <>
           <Tabs
-            tabs={[
-              { key: 'active', label: 'Ativos', count: filteredQuizRows.length },
-              { key: 'TRASH', label: 'Lixeira', count: deletedQuizzesResponse?.pagination.total ?? deletedQuizRows.length },
-            ]}
+            tabs={isInstanceRoute
+              ? [{ key: 'active', label: 'Ativos', count: filteredQuizRows.length }]
+              : [
+                  { key: 'active', label: 'Ativos', count: filteredQuizRows.length },
+                  { key: 'TRASH', label: 'Lixeira', count: deletedQuizzesResponse?.pagination.total ?? deletedQuizRows.length },
+                ]}
             activeKey={quizzesTab}
             onChange={(key) => {
               setQuizzesTab(key as 'active' | 'TRASH')

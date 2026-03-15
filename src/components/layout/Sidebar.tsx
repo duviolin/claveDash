@@ -78,6 +78,11 @@ const instancesGroup: CollapsibleGroup = {
   icon: <FolderKanban className="h-4 w-4" />,
   items: [
     { label: 'Projetos', path: '/instances/projects', icon: <FolderOpen className="h-4 w-4" /> },
+    { label: 'Faixas', path: '/instances/tracks', icon: <Music className="h-4 w-4" /> },
+    { label: 'Materiais', path: '/instances/materials', icon: <FileText className="h-4 w-4" /> },
+    { label: 'Trilhas', path: '/instances/study-tracks', icon: <BookOpen className="h-4 w-4" /> },
+    { label: 'Quizzes', path: '/instances/press-quizzes', icon: <HelpCircle className="h-4 w-4" /> },
+    { label: 'Missões diárias', path: '/instances/daily-missions', icon: <Target className="h-4 w-4" /> },
   ],
 }
 

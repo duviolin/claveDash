@@ -1,5 +1,13 @@
 import { api } from './client'
-import type { PaginatedResponse, Project } from '@/types'
+import type {
+  PaginatedResponse,
+  PressQuizTemplate,
+  Project,
+  StudyTrackTemplate,
+  TrackMaterialTemplate,
+  TrackMaterialType,
+  TrackSceneTemplate,
+} from '@/types'
 import { fetchAllPaginated } from '@/lib/pagination'
 
 interface ListProjectInstancesParams {
@@ -114,4 +122,189 @@ export async function updatePressQuiz(id: string, payload: Record<string, unknow
 export async function activatePressQuiz(id: string) {
   const { data } = await api.patch(`/press-quizzes/${id}/activate`)
   return data
+}
+
+export async function listTrackSceneInstances(projectId: string, search?: string): Promise<TrackSceneTemplate[]> {
+  const { data } = await api.get<Array<{
+    id: string
+    title: string
+    artist: string | null
+    description: string | null
+    technicalInstruction: string | null
+    lyrics: string | null
+    order: number
+    demoRequired: boolean
+    pressQuizRequired: boolean
+    createdAt: string
+    updatedAt: string
+  }>>(`/project-instances/${projectId}/track-scenes`, {
+    params: { search },
+  })
+
+  return data.map((item) => ({
+    id: item.id,
+    slug: item.id,
+    projectTemplateId: projectId,
+    title: item.title,
+    artist: item.artist,
+    description: item.description,
+    technicalInstruction: item.technicalInstruction,
+    lyrics: item.lyrics,
+    order: item.order,
+    unlockAfterTrackId: null,
+    demoRequired: item.demoRequired,
+    pressQuizRequired: item.pressQuizRequired,
+    isActive: true,
+    version: 1,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  }))
+}
+
+export async function createTrackSceneInstance(projectId: string, payload: {
+  title: string
+  artist?: string
+  description?: string
+  technicalInstruction?: string
+  lyrics?: string
+  demoRequired?: boolean
+  pressQuizRequired?: boolean
+}): Promise<void> {
+  await api.post(`/project-instances/${projectId}/track-scenes`, payload)
+}
+
+export async function deleteTrackSceneInstance(id: string): Promise<void> {
+  await api.delete(`/track-scenes/${id}`)
+}
+
+export async function listTrackMaterialInstances(trackSceneId: string, search?: string): Promise<TrackMaterialTemplate[]> {
+  const { data } = await api.get<Array<{
+    id: string
+    title: string
+    type: TrackMaterialType
+    contentUrl: string | null
+    textContent: string | null
+    order: number
+    createdAt: string
+    updatedAt: string
+  }>>(`/track-scenes/${trackSceneId}/materials`, {
+    params: { search },
+  })
+
+  return data.map((item) => ({
+    id: item.id,
+    slug: item.id,
+    trackSceneTemplateId: trackSceneId,
+    type: item.type,
+    title: item.title,
+    defaultContentUrl: item.contentUrl,
+    defaultTextContent: item.textContent,
+    order: item.order,
+    isActive: true,
+    version: 1,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  }))
+}
+
+export async function createTrackMaterialInstance(trackSceneId: string, payload: {
+  type: TrackMaterialType
+  title: string
+  contentUrl?: string
+  textContent?: string
+}): Promise<void> {
+  await api.post(`/track-scenes/${trackSceneId}/materials`, payload)
+}
+
+export async function deleteTrackMaterialInstance(id: string): Promise<void> {
+  await api.delete(`/track-materials/${id}`)
+}
+
+export async function listStudyTrackInstances(trackSceneId: string, search?: string): Promise<StudyTrackTemplate[]> {
+  const { data } = await api.get<Array<{
+    id: string
+    title: string
+    description: string | null
+    technicalNotes: string | null
+    attachmentType: StudyTrackTemplate['attachmentType']
+    attachmentUrl: string | null
+    order: number
+    createdAt: string
+    updatedAt: string
+  }>>(`/track-scenes/${trackSceneId}/study-tracks`, {
+    params: { search },
+  })
+
+  return data.map((item) => ({
+    id: item.id,
+    slug: item.id,
+    trackSceneTemplateId: trackSceneId,
+    title: item.title,
+    description: item.description,
+    technicalNotes: item.technicalNotes,
+    attachmentType: item.attachmentType,
+    attachmentUrl: item.attachmentUrl,
+    order: item.order,
+    isActive: true,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  }))
+}
+
+export async function createStudyTrackInstance(trackSceneId: string, payload: {
+  title: string
+  description?: string
+  technicalNotes?: string
+  attachmentType?: StudyTrackTemplate['attachmentType']
+  attachmentUrl?: string
+}): Promise<void> {
+  await api.post(`/track-scenes/${trackSceneId}/study-tracks`, payload)
+}
+
+export async function deleteStudyTrackInstance(id: string): Promise<void> {
+  await api.delete(`/study-tracks/${id}`)
+}
+
+export async function listPressQuizInstances(trackSceneId: string, search?: string): Promise<PressQuizTemplate[]> {
+  const { data } = await api.get<Array<{
+    id: string
+    title: string
+    description: string | null
+    questionsJson: PressQuizTemplate['questionsJson']
+    maxAttempts: number
+    passingScore: number
+    createdAt: string
+    updatedAt: string
+  }>>(`/track-scenes/${trackSceneId}/press-quizzes`, {
+    params: { search },
+  })
+
+  return data.map((item) => ({
+    id: item.id,
+    slug: item.id,
+    trackSceneTemplateId: trackSceneId,
+    title: item.title,
+    description: item.description,
+    questionsJson: item.questionsJson,
+    maxAttempts: item.maxAttempts,
+    passingScore: item.passingScore,
+    version: 1,
+    isActive: true,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  }))
+}
+
+export async function createPressQuizInstance(trackSceneId: string, payload: {
+  title: string
+  description?: string
+  questionsJson?: PressQuizTemplate['questionsJson']
+  maxAttempts?: number
+  passingScore?: number
+}): Promise<void> {
+  await api.post(`/track-scenes/${trackSceneId}/press-quizzes`, payload)
+}
+
+export async function deletePressQuizInstance(id: string): Promise<void> {
+  await api.delete(`/press-quizzes/${id}`)
 }

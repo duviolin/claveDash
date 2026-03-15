@@ -62,11 +62,11 @@ export const router = createBrowserRouter([
       { path: 'templates/daily-missions', element: <DailyMissionTemplatesPage /> },
       // Instances
       { path: 'instances/projects', element: <ProjectInstancesPage /> },
-      { path: 'instances/tracks', element: <Navigate to="/instances/projects" replace /> },
-      { path: 'instances/materials', element: <Navigate to="/instances/projects" replace /> },
-      { path: 'instances/study-tracks', element: <Navigate to="/instances/projects" replace /> },
-      { path: 'instances/press-quizzes', element: <Navigate to="/instances/projects" replace /> },
-      { path: 'instances/daily-missions', element: <Navigate to="/instances/projects" replace /> },
+      { path: 'instances/tracks', element: <TrackTemplatesListPage /> },
+      { path: 'instances/materials', element: <MaterialTemplatesListPage /> },
+      { path: 'instances/study-tracks', element: <StudyTrackTemplatesListPage /> },
+      { path: 'instances/press-quizzes', element: <PressQuizTemplatesListPage /> },
+      { path: 'instances/daily-missions', element: <DailyMissionTemplatesPage /> },
       // Storage
       { path: 'storage', element: <StoragePage /> },
     ],
