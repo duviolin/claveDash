@@ -411,6 +411,10 @@ export function ProjectInstancesPage() {
       title="Instâncias de projeto"
       count={pagination?.total ?? projectsList.length}
     >
+      <div className="rounded-xl border border-border bg-surface-2/40 px-3.5 py-3 text-sm text-muted">
+        Aqui você gerencia somente projetos instanciados (snapshot do template). O cadastro e edição de templates ficam na aba de templates.
+      </div>
+
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
         <Tabs tabs={tabs} activeKey={activeTab} onChange={handleTabChange} />
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
