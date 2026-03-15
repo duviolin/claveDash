@@ -63,6 +63,7 @@ import { parseAIQuizQuestion } from '@/lib/quizAi'
 import { formatDate } from '@/lib/utils'
 import type {
   Project,
+  ProjectType,
   PressQuizTemplate,
   QuizQuestion,
   StudyTrackAttachmentType,
@@ -160,6 +161,8 @@ interface ResourceProject {
   id: string
   slug: string
   name: string
+  type?: ProjectType
+  description?: string | null
 }
 
 const TRACK_TRASH_PAGE_LIMIT = 20
@@ -318,6 +321,8 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
             id: template.id,
             slug: template.slug,
             name: template.name,
+            type: template.type,
+            description: template.description,
           }))
       }
 
