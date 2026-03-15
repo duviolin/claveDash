@@ -1,5 +1,6 @@
 import { api } from './client'
 import type { Season, SeasonStatus, PaginatedResponse } from '@/types'
+import { fetchAllPaginated } from '@/lib/pagination'
 
 export async function listDeletedSeasons(params: { page: number; limit: number }): Promise<PaginatedResponse<Season>> {
   const { data } = await api.get<PaginatedResponse<Season>>('/seasons/deleted', { params })
@@ -12,8 +13,12 @@ export async function restoreSeason(idOrSlug: string): Promise<Season> {
 }
 
 export async function listSeasons(courseIdOrSlug?: string) {
-  const { data } = await api.get<Season[]>('/seasons', { params: { courseId: courseIdOrSlug } })
-  return data
+  if (!courseIdOrSlug) {
+    const { data } = await api.get<Season[]>('/seasons')
+    return data
+  }
+
+  return fetchAllPaginated((pagination) => listSeasonsPaginated({ courseId: courseIdOrSlug, ...pagination }))
 }
 
 export async function listSeasonsPaginated(params: { courseId?: string; page?: number; limit?: number }): Promise<PaginatedResponse<Season>> {

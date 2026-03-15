@@ -1,9 +1,14 @@
 import { api } from './client'
 import type { PaginatedResponse, School } from '@/types'
+import { fetchAllPaginated } from '@/lib/pagination'
 
 export async function listSchools(params?: { page?: number; limit?: number }): Promise<PaginatedResponse<School>> {
   const { data } = await api.get<PaginatedResponse<School>>('/schools', { params })
   return data
+}
+
+export async function listAllSchools(): Promise<School[]> {
+  return fetchAllPaginated((pagination) => listSchools(pagination))
 }
 
 export async function getSchool(idOrSlug: string) {

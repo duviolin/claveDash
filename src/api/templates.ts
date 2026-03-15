@@ -13,10 +13,12 @@ import type {
   ProjectTemplateReadinessSummary,
   ProjectTemplateReadinessRule,
 } from '@/types'
+import { fetchAllPaginated } from '@/lib/pagination'
 
 interface ListPaginatedParams {
   page: number
   limit: number
+  search?: string
 }
 
 // Payload types for template APIs (only updatable fields)
@@ -66,8 +68,7 @@ interface UpdatePressQuizTemplatePayload {
 
 // --- Project Templates ---
 export async function listProjectTemplates(courseIdOrSlug?: string) {
-  const { data } = await api.get<ProjectTemplate[]>('/project-templates', { params: { courseId: courseIdOrSlug } })
-  return data
+  return fetchAllPaginated((pagination) => listProjectTemplatesPaginated({ courseIdOrSlug, ...pagination }))
 }
 
 export async function listProjectTemplatesPaginated(params: ListPaginatedParams & { courseIdOrSlug?: string }) {
@@ -129,10 +130,7 @@ export const unpublishProjectTemplate = blockProjectTemplateInstantiation
 
 // --- Track Scene Templates ---
 export async function listTrackTemplates(projectTemplateIdOrSlug: string, search?: string) {
-  const { data } = await api.get<TrackSceneTemplate[]>(`/project-templates/${projectTemplateIdOrSlug}/tracks`, {
-    params: { search },
-  })
-  return data
+  return fetchAllPaginated((pagination) => listTrackTemplatesPaginated(projectTemplateIdOrSlug, { ...pagination, search }))
 }
 
 export async function listTrackTemplatesPaginated(projectTemplateIdOrSlug: string, params: ListPaginatedParams) {
@@ -176,10 +174,7 @@ export async function reorderTrackTemplates(items: { id: string; order: number }
 
 // --- Track Material Templates ---
 export async function listMaterialTemplates(trackTemplateId: string, search?: string) {
-  const { data } = await api.get<TrackMaterialTemplate[]>(`/track-templates/${trackTemplateId}/materials`, {
-    params: { search },
-  })
-  return data
+  return fetchAllPaginated((pagination) => listMaterialTemplatesPaginated(trackTemplateId, { ...pagination, search }))
 }
 
 export async function listMaterialTemplatesPaginated(trackTemplateId: string, params: ListPaginatedParams) {
@@ -213,10 +208,7 @@ export async function restoreMaterialTemplate(id: string) {
 
 // --- Study Track Templates ---
 export async function listStudyTrackTemplates(trackTemplateId: string, search?: string) {
-  const { data } = await api.get<StudyTrackTemplate[]>(`/track-templates/${trackTemplateId}/study-tracks`, {
-    params: { search },
-  })
-  return data
+  return fetchAllPaginated((pagination) => listStudyTrackTemplatesPaginated(trackTemplateId, { ...pagination, search }))
 }
 
 export async function listStudyTrackTemplatesPaginated(trackTemplateId: string, params: ListPaginatedParams) {
@@ -250,10 +242,7 @@ export async function restoreStudyTrackTemplate(id: string) {
 
 // --- Press Quiz Templates ---
 export async function listPressQuizTemplates(trackTemplateId: string, search?: string) {
-  const { data } = await api.get<PressQuizTemplate[]>(`/track-templates/${trackTemplateId}/press-quizzes`, {
-    params: { search },
-  })
-  return data
+  return fetchAllPaginated((pagination) => listPressQuizTemplatesPaginated(trackTemplateId, { ...pagination, search }))
 }
 
 export async function listPressQuizTemplatesPaginated(trackTemplateId: string, params: ListPaginatedParams) {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArchiveRestore, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { PageContainer } from '@/components/layout/PageContainer'
 import { Table } from '@/components/ui/Table'
 import { Card } from '@/components/ui/Card'
@@ -23,6 +24,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { ListHeaderFilters } from '@/components/ui/ListHeaderFilters'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { presignDownload } from '@/api/storage'
+import { listAllProjectInstances } from '@/api/instances'
 import {
   createMaterialTemplate,
   createPressQuizTemplate,
@@ -60,8 +62,8 @@ import {
 import { parseAIQuizQuestion } from '@/lib/quizAi'
 import { formatDate } from '@/lib/utils'
 import type {
+  Project,
   PressQuizTemplate,
-  ProjectTemplate,
   QuizQuestion,
   StudyTrackAttachmentType,
   StudyTrackTemplate,
@@ -74,12 +76,12 @@ import { useDeactivationBlockedHandler } from '@/hooks/useDeactivationBlockedHan
 type ResourceMode = 'tracks' | 'materials' | 'study-tracks' | 'press-quizzes'
 
 interface TrackRow {
-  project: ProjectTemplate
+  project: ResourceProject
   track: TrackSceneTemplate
 }
 
 interface MaterialRow {
-  project: ProjectTemplate
+  project: ResourceProject
   track: TrackSceneTemplate
   material: TrackMaterialTemplate
 }
@@ -90,7 +92,7 @@ interface MaterialTrackGroup {
 }
 
 interface MaterialProjectGroup {
-  project: ProjectTemplate
+  project: ResourceProject
   tracks: MaterialTrackGroup[]
 }
 
@@ -100,7 +102,7 @@ interface StudyTrackGroup {
 }
 
 interface StudyTrackProjectGroup {
-  project: ProjectTemplate
+  project: ResourceProject
   tracks: StudyTrackGroup[]
 }
 
@@ -110,48 +112,54 @@ interface QuizTrackGroup {
 }
 
 interface QuizProjectGroup {
-  project: ProjectTemplate
+  project: ResourceProject
   tracks: QuizTrackGroup[]
 }
 
 interface StudyTrackRow {
-  project: ProjectTemplate
+  project: ResourceProject
   track: TrackSceneTemplate
   studyTrack: StudyTrackTemplate
 }
 
 interface QuizRow {
-  project: ProjectTemplate
+  project: ResourceProject
   track: TrackSceneTemplate
   quiz: PressQuizTemplate
 }
 
 interface TrackGroup {
-  project: ProjectTemplate
+  project: ResourceProject
   tracks: TrackSceneTemplate[]
 }
 
 interface TrackTrashRow {
-  project: ProjectTemplate | null
+  project: ResourceProject | null
   track: TrackSceneTemplate
 }
 
 interface MaterialTrashRow {
-  project: ProjectTemplate | null
+  project: ResourceProject | null
   track: TrackSceneTemplate | null
   material: TrackMaterialTemplate
 }
 
 interface StudyTrackTrashRow {
-  project: ProjectTemplate | null
+  project: ResourceProject | null
   track: TrackSceneTemplate | null
   studyTrack: StudyTrackTemplate
 }
 
 interface QuizTrashRow {
-  project: ProjectTemplate | null
+  project: ResourceProject | null
   track: TrackSceneTemplate | null
   quiz: PressQuizTemplate
+}
+
+interface ResourceProject {
+  id: string
+  slug: string
+  name: string
 }
 
 const TRACK_TRASH_PAGE_LIMIT = 20
@@ -191,6 +199,8 @@ function emptyMessage(mode: ResourceMode, hasContext: boolean) {
 
 function ResourceListPage({ mode }: { mode: ResourceMode }) {
   const queryClient = useQueryClient()
+  const location = useLocation()
+  const isInstanceRoute = location.pathname.startsWith('/instances/')
   const [persistedFilters, setPersistedFilters] = usePersistedState({
     storage: 'session',
     key: TEMPLATE_FILTERS_STORAGE_KEY,
@@ -297,9 +307,30 @@ function ResourceListPage({ mode }: { mode: ResourceMode }) {
   })
   const { blockedInfo, setBlockedInfo, handleBlockedError } = useDeactivationBlockedHandler()
 
-  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
-    queryKey: ['project-templates'],
-    queryFn: () => listProjectTemplates(),
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery<ResourceProject[]>({
+    queryKey: ['resource-list-projects', isInstanceRoute ? 'instances' : 'templates'],
+    queryFn: async () => {
+      if (!isInstanceRoute) {
+        const templates = await listProjectTemplates()
+        return templates
+          .filter((template) => Boolean(template.slug))
+          .map((template) => ({
+            id: template.id,
+            slug: template.slug,
+            name: template.name,
+          }))
+      }
+
+      const instances = await listAllProjectInstances()
+      return instances
+        .filter((instance: Project) => Boolean(instance.slug && instance.templateId))
+        .map((instance: Project) => ({
+          // Track endpoints still resolve by template id in this shared page.
+          id: instance.templateId as string,
+          slug: instance.slug as string,
+          name: instance.name,
+        }))
+    },
   })
 
   const selectedProject = useMemo(

@@ -16,7 +16,7 @@ import { ResponsiveRowActions } from '@/components/ui/ResponsiveRowActions'
 import { DetailFieldList } from '@/components/ui/DetailFieldList'
 import { CrudListToolbar } from '@/components/ui/CrudListToolbar'
 import { listCourses, listCoursesPaginated, createCourse, updateCourse, deleteCourse, listDeletedCourses, restoreCourse } from '@/api/courses'
-import { listSchools } from '@/api/schools'
+import { listAllSchools } from '@/api/schools'
 import { COURSE_TYPE_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import type { Course, CourseType, School } from '@/types'
@@ -52,9 +52,9 @@ export function CoursesListPage() {
 
   const { data: schoolsResponse } = useQuery({
     queryKey: ['schools'],
-    queryFn: () => listSchools({ limit: 100 }),
+    queryFn: () => listAllSchools(),
   })
-  const schools = schoolsResponse?.data ?? []
+  const schools = schoolsResponse ?? []
 
   const { data: activeResponse, isLoading: isLoadingActive } = useQuery({
     queryKey: ['courses', schoolFilter || 'all', page],

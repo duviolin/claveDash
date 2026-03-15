@@ -1,9 +1,14 @@
 import { api } from './client'
 import type { Course, CourseType, PaginatedResponse } from '@/types'
+import { fetchAllPaginated } from '@/lib/pagination'
 
 export async function listCourses(schoolIdOrSlug?: string) {
-  const { data } = await api.get<Course[]>('/courses', { params: { schoolId: schoolIdOrSlug } })
-  return data
+  if (!schoolIdOrSlug) {
+    const { data } = await api.get<Course[]>('/courses')
+    return data
+  }
+
+  return fetchAllPaginated((pagination) => listCoursesPaginated({ schoolId: schoolIdOrSlug, ...pagination }))
 }
 
 export async function listCoursesPaginated(params: { schoolId?: string; page?: number; limit?: number }): Promise<PaginatedResponse<Course>> {

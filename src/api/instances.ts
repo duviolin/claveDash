@@ -1,5 +1,6 @@
 import { api } from './client'
 import type { PaginatedResponse, Project } from '@/types'
+import { fetchAllPaginated } from '@/lib/pagination'
 
 interface ListProjectInstancesParams {
   page: number
@@ -9,14 +10,28 @@ interface ListProjectInstancesParams {
   templateId?: string
 }
 
+function isProjectInstance(project: Project): boolean {
+  return Boolean(project.templateId && project.classId && project.seasonId)
+}
+
 export async function listProjectInstancesPaginated(params: ListProjectInstancesParams) {
   const { data } = await api.get<PaginatedResponse<Project>>('/project-instances', { params })
-  return data
+  return {
+    ...data,
+    data: data.data.filter(isProjectInstance),
+  }
 }
 
 export async function listDeletedProjectInstances(params: { page: number; limit: number }) {
   const { data } = await api.get<PaginatedResponse<Project>>('/project-instances/deleted', { params })
-  return data
+  return {
+    ...data,
+    data: data.data.filter(isProjectInstance),
+  }
+}
+
+export async function listAllProjectInstances(filters?: Omit<ListProjectInstancesParams, 'page' | 'limit'>): Promise<Project[]> {
+  return fetchAllPaginated((pagination) => listProjectInstancesPaginated({ ...filters, ...pagination }))
 }
 
 export async function instantiateProject(payload: {

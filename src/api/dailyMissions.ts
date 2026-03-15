@@ -1,5 +1,6 @@
 import { api } from './client'
 import type { DailyMissionTemplate, DailyMissionQuiz, QuizQuestion, PaginatedResponse } from '@/types'
+import { fetchAllPaginated } from '@/lib/pagination'
 
 interface ListPaginatedParams {
   page: number
@@ -28,8 +29,7 @@ interface BatchDailyMissionQuizResponse {
 }
 
 export async function listDailyMissionTemplates(courseIdOrSlug?: string) {
-  const { data } = await api.get<DailyMissionTemplate[]>('/daily-mission-templates', { params: { courseId: courseIdOrSlug } })
-  return data
+  return fetchAllPaginated((pagination) => listDailyMissionTemplatesPaginated({ courseIdOrSlug, ...pagination }))
 }
 
 export async function listDailyMissionTemplatesPaginated(params: ListPaginatedParams & { courseIdOrSlug?: string }) {
@@ -101,8 +101,7 @@ export async function deleteDailyMissionQuiz(id: string) {
 }
 
 export async function listDailyMissionQuizzes(missionIdOrSlug: string) {
-  const { data } = await api.get<DailyMissionQuiz[]>(`/daily-mission-templates/${missionIdOrSlug}/quizzes`)
-  return data
+  return fetchAllPaginated((pagination) => listDailyMissionQuizzesPaginated(missionIdOrSlug, pagination))
 }
 
 export async function listDailyMissionQuizzesPaginated(missionIdOrSlug: string, params: ListPaginatedParams) {

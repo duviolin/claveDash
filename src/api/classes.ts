@@ -1,8 +1,23 @@
 import { api } from './client'
 import type { Class, PaginatedResponse } from '@/types'
+import { fetchAllPaginated } from '@/lib/pagination'
 
 export async function listClasses(seasonIdOrSlug?: string) {
-  const { data } = await api.get<Class[]>('/classes', { params: { seasonId: seasonIdOrSlug } })
+  if (!seasonIdOrSlug) {
+    const { data } = await api.get<Class[]>('/classes')
+    return data
+  }
+
+  return fetchAllPaginated((pagination) =>
+    listClassesPaginated({
+      seasonId: seasonIdOrSlug,
+      ...pagination,
+    })
+  )
+}
+
+export async function listClassesPaginated(params: { seasonId: string; page?: number; limit?: number }): Promise<PaginatedResponse<Class>> {
+  const { data } = await api.get<PaginatedResponse<Class>>('/classes', { params })
   return data
 }
 
